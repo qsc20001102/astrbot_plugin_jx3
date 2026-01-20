@@ -121,9 +121,9 @@ class Jx3ApiPlugin(Star):
         pass
 
 
-    @jx3.command("帮助")
+    @jx3.command("功能")
     async def jx3_helps(self, event: AstrMessageEvent):
-        """剑三 帮助"""
+        """剑三 功能"""
         data = await self.jx3fun.helps()
         try:
             
