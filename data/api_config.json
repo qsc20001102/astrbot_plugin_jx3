@@ -239,5 +239,16 @@
             "limit": "10",
             "token": ""
         }
+    },
+    "jx3box_qiyugonglue":{
+        "url":"https://node.jx3box.com/serendipities",
+        "method":"GET",
+        "description":"魔盒根据名称查询对应奇遇dwID",
+        "params":{
+            "name": "阴阳",
+            "per": "2",
+            "client": "std",
+            "page": "1"
+        }
     }
 }

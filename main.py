@@ -1,3 +1,5 @@
+# pyright: reportOptionalMemberAccess=false
+
 import json
 import shutil
 import pathlib
@@ -66,7 +68,7 @@ class Jx3ApiPlugin(Star):
             await self.at.init_tasks()
         except Exception as e:
             if hasattr(self, "at"):
-                await self.at.destroy()
+                await self.at.destroy()  
             logger.error(f"功能模块初始化失败: {e}")
             raise
 
@@ -258,9 +260,9 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试")   
 
 
-    @jx3.command("区服奇遇")
+    @jx3.command("奇遇统计")
     async def jx3_qufuqiyu(self, event: AstrMessageEvent,adventureName: str = "阴阳两界", server: str = ""):
-        """剑三 区服奇遇 奇遇名称 服务器"""
+        """剑三 奇遇统计 奇遇名称 服务器"""
         try:
             data= await self.jx3fun.qiyu(adventureName,self.serverdefault(server))
             if data["code"] == 200:
@@ -272,6 +274,26 @@ class Jx3ApiPlugin(Star):
         except Exception as e:
             logger.error(f"功能函数执行错误: {e}")
             yield event.plain_result("猪脑过载，请稍后再试") 
+
+
+    @jx3.command("奇遇攻略")
+    async def jx3_qiyugonglue(self, event: AstrMessageEvent,name: str):
+        """剑三 奇遇攻略 奇遇名称"""
+        try:
+            data= await self.jx3fun.qiyugonglue(name)
+            if data["code"] == 200:
+                url = await self.html_render(data["temp"], {}, options={})
+                chain = [
+                    Comp.Plain(f"{data['data']} \n"),
+                    Comp.Image.fromURL(f"{url}")
+                ]
+                yield event.chain_result(chain)
+            else:
+                yield event.plain_result(data["msg"])
+            return
+        except Exception as e:
+            logger.error(f"功能函数执行错误: {e}")
+            yield event.plain_result("猪脑过载，请稍后再试")
 
 
     @jx3.command("金价")

@@ -2,6 +2,7 @@
 # pyright: reportArgumentType=false
 # pyright: reportAttributeAccessIssue=false
 # pyright: reportIndexIssue=false
+# pyright: reportOptionalMemberAccess=false
 
 from datetime import datetime
 from typing import Dict, Any, Optional, List, Union
@@ -1022,4 +1023,50 @@ class JX3Service:
         return_data["data"] = result_msg
         return_data["code"] = 200
         
+        return return_data
+    
+
+    async def qiyugonglue(self, name: str) -> Dict[str, Any]:
+        """奇遇攻略"""
+        return_data = self._init_return_data()
+        
+        # 1. 构造请求参数
+        params = {"name": name}
+        
+        # 2. 调用基础请求
+        data: Optional[Dict[str, Any]] = await self._base_request(
+            "jx3box_qiyugonglue", "GET", params=params, out_key="list"
+        )
+        
+        if not data:
+            return_data["msg"] = "未找到该奇遇"
+            return return_data
+        
+        # 提取dwID
+        dwID = data[0]["dwID"]
+        url = f"https://node.jx3box.com/serendipity/{dwID}/achievement"
+        logger.debug(f"拼接URL：{url}")
+
+        # 3. 获取奇遇攻略
+        try:
+            # 获取achievement_id
+            data1 = await self._api.get(url)
+            url1 = f"https://cms.jx3box.com/api/cms/wiki/post/type/achievement/source/{data1['achievement_id']}"
+            logger.debug(f"拼接URL：{url1}")
+            # 获取奇遇攻略
+            data2 = await self._api.get(url1, out_key="data")
+        except Exception as e:
+            logger.exception("获取奇遇攻略数据失败")
+            return_data["msg"] = "获取奇遇攻略数据失败"
+        
+        # 4. 处理数据
+        try:
+            return_data["data"] = data2["post"]["title"]
+            content = data2["post"]["content"]
+        except Exception as e:
+            logger.exception("处理返回数据失败")
+            return_data["msg"] = "处理返回数据失败"
+
+        return_data["temp"] = content
+        return_data["code"] = 200
         return return_data
