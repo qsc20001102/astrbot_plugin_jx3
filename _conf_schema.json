@@ -72,5 +72,61 @@
         "default": []
       }
     }
+  },
+  "smxx": {
+    "description": "刷马消息推送",
+    "type": "object",
+    "items": {
+      "enable": {
+        "description": "刷马消息推送功能开关",
+        "type": "bool",
+        "default": false,
+        "hint": "是否启用剑网三开刷马消息推送功能。"
+      },
+      "time": {
+        "description": "获取最新消息循环时间",
+        "type": "int",
+        "default": 60,
+        "hint": "请求最新消息的循环时间，单位秒。"
+      },
+      "umos": {
+        "description": "推送列表",
+        "type": "list",
+        "hint": "可以填写多个会话唯一ID。",
+        "items": {
+            "type": "string",
+            "description": "会话唯一ID，可通过/std获取"
+        },
+        "default": []
+      }
+    }
+  },
+  "ctxx": {
+    "description": "赤兔消息推送",
+    "type": "object",
+    "items": {
+      "enable": {
+        "description": "赤兔消息推送功能开关",
+        "type": "bool",
+        "default": false,
+        "hint": "是否启用剑网三开赤兔消息推送功能。"
+      },
+      "time": {
+        "description": "获取最新消息循环时间",
+        "type": "int",
+        "default": 60,
+        "hint": "请求最新消息的循环时间，单位秒。"
+      },
+      "umos": {
+        "description": "推送列表",
+        "type": "list",
+        "hint": "可以填写多个会话唯一ID。",
+        "items": {
+            "type": "string",
+            "description": "会话唯一ID，可通过/std获取"
+        },
+        "default": []
+      }
+    }
   }
 }

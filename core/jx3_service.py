@@ -411,9 +411,10 @@ class JX3Service:
     async def xinwen(self) -> Dict[str, Any]:
         """新闻资讯"""
         return_data = self._init_return_data()
-        
+
         # 提取字段可能返回列表
-        data: Optional[List[Dict[str, Any]]] = await self._base_request("jx3_xinweng", "GET")
+        data: Optional[List[Dict[str, Any]]] = await self._base_request(
+            "jx3_xinweng", "GET")
         
         if not data or not isinstance(data, list):
             return_data["msg"] = "获取接口信息失败或数据格式错误"
@@ -437,6 +438,37 @@ class JX3Service:
             logger.error(f"jigai 数据处理时出错: {e}")
             return_data["msg"] = "处理接口返回信息时出错"
             
+        return return_data
+
+
+    async def shuamamsg(self,server:str,type:str,subtype:str) -> Dict[str, Any]:
+        """刷马消息"""
+        return_data = self._init_return_data()
+
+        params = {"server": server, "type": type, "subtype": subtype}
+        # 提取字段可能返回列表
+        data: Optional[List[Dict[str, Any]]] = await self._base_request(
+            "jx3box_shuamamsg", "GET", params=params)
+        
+        if not data:
+            return_data["msg"] = "获取接口信息失败或数据格式错误"
+            return return_data
+        
+        try:
+            # 
+            new_msg = data.get("list")[0]
+            return_data["status"] = new_msg.get('id')
+
+            result_msg = f"{server}\n"
+            result_msg += f"{new_msg.get('content')}\n"
+            result_msg += f"{new_msg.get('created_at')}\n"
+                
+            return_data["data"] = result_msg
+            return_data["code"] = 200
+        except Exception as e:
+            logger.error(f"jigai 数据处理时出错: {e}")
+            return_data["msg"] = "处理接口返回信息时出错"
+        
         return return_data
 
 

@@ -1,3 +1,4 @@
+# pyright: reportArgumentType=false
 import asyncio
 import json
 import aiofiles
@@ -22,7 +23,8 @@ class AsyncTask:
         self.context = context
         self.conf = config
         self.jx3fun = jx3fun
-        
+
+        self.server = self.conf.get("server", "梦江南")
         self.file_path = StarTools.get_data_dir("astrbot_plugin_jx3") / "local_async.json"
         self._file_lock = asyncio.Lock()
         
@@ -31,6 +33,7 @@ class AsyncTask:
         
         logger.info(f"获取后台数据缓存文件路径成功：{self.file_path}")
 
+    
     """===================== 本地读写 ====================="""
 
     async def set_local_data(self, key: str, value):
@@ -109,8 +112,10 @@ class AsyncTask:
 
     async def init_tasks(self):
         settings = [
-            ("kfjk", "开服监控", lambda: self.jx3fun.kaifu("梦江南")),
+            ("kfjk", "开服监控", lambda: self.jx3fun.kaifu(self.server)),
             ("xwzx", "新闻资讯", lambda: self.jx3fun.xinwen()),
+            ("smxx", "刷马消息", lambda: self.jx3fun.shuamamsg(self.server,type="horse",subtype="foreshow")),
+            ("ctxx", "赤兔消息", lambda: self.jx3fun.shuamamsg(self.server,type="chitu-horse",subtype="share_msg")),
         ]
 
         for key, name, fetch in settings:

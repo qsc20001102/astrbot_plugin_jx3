@@ -555,6 +555,20 @@ class Jx3ApiPlugin(Star):
         yield event.plain_result(return_msg) 
 
 
+    @jx3.command("刷马推送")
+    async def jx3_shuamamsg(self, event: AstrMessageEvent):
+        """剑三 刷马推送"""     
+        return_msg = await self.at.get_task_info("smxx")
+        yield event.plain_result(return_msg) 
+
+
+    @jx3.command("赤兔推送")
+    async def jx3_chitusg(self, event: AstrMessageEvent):
+        """剑三 赤兔推送"""     
+        return_msg = await self.at.get_task_info("ctxx")
+        yield event.plain_result(return_msg) 
+
+
     async def terminate(self):
         """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
         if self.at:

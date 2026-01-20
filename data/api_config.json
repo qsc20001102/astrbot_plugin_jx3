@@ -250,5 +250,17 @@
             "client": "std",
             "page": "1"
         }
+    },
+    "jx3box_shuamamsg":{
+        "url":"https://next2.jx3box.com/api/game/reporter/horse",
+        "method":"GET",
+        "description":"魔盒获取最新的刷马消息",
+        "params":{
+            "pageIndex": "1",
+            "pageSize": "3",
+            "server": "梦江南",
+            "type": "horse",
+            "subtype": "foreshow"
+        }
     }
 }
