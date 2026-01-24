@@ -1,4 +1,22 @@
 {
+"prefix": {
+    "description": "指令前缀",
+    "type": "object",
+    "items": {
+      "enable": {
+        "description": "是否启用",
+        "type": "bool",
+        "default": true,
+        "hint": "是否启用指令前缀检查功能"
+      },
+      "text": {
+        "description": "前缀内容",
+        "type": "string",
+        "default": "剑三",
+        "hint": "为了避免和其他插件的指令冲突可以增加指令的前缀，为空默认值为剑三。"
+      }
+    }
+  },
   "server": {
     "description": "默认服务器",
     "type": "string",

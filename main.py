@@ -4,6 +4,7 @@ import json
 import shutil
 import pathlib
 import asyncio
+import inspect
 from pathlib import Path
 from typing import Union
 
@@ -41,8 +42,21 @@ class Jx3ApiPlugin(Star):
             self.api_config = json.load(f) 
 
         # 初始化数据
+        self.prefix_en = self.conf.get("prefix").get("enable")
+        self.prefix_text = self.conf.get("prefix").get("text")
+        if not self.prefix_text:
+            self.prefix_text = "剑三"
+        if self.prefix_en:
+            logger.info(f"已启用指令前缀功能，前缀为：{self.prefix_text}")
+        else:
+            logger.info(f"未启用指令前缀功能。")
+
         self.server = self.conf.get("server", "梦江南")
         logger.info(f"配置加载默认服务器：{self.server}")
+
+        self.command_map = {
+            "日常": self.jx3_richang,
+        }
         logger.info("jx3api插件初始化完成")
 
 
@@ -114,6 +128,87 @@ class Jx3ApiPlugin(Star):
         if server == "":
             return self.server
         return server
+
+
+    def parse_message(self, text: str) -> list[str] | None:
+        """消息解析"""
+        text = text.strip()
+        if not text:
+            return None
+
+        # 前缀模式
+        if self.prefix_en:
+            prefix = self.prefix_text
+            if text.startswith(prefix):
+                text = text[len(prefix):].strip()
+            else:
+                # 非前缀消息，直接忽略
+                return None
+
+        return text.split()
+
+
+    async def _call_with_auto_args(
+        self,
+        handler,
+        event: AstrMessageEvent,
+        args: list[str]
+    ):
+        sig = inspect.signature(handler)
+        params = list(sig.parameters.values())
+
+        call_args = []
+        arg_index = 0
+
+        for p in params:
+            if p.name == "self":
+                continue
+
+            if p.name == "event":
+                call_args.append(event)
+                continue
+
+            if arg_index < len(args):
+                raw = args[arg_index]
+                arg_index += 1
+                try:
+                    if p.annotation is int:
+                        call_args.append(int(raw))
+                    elif p.annotation is float:
+                        call_args.append(float(raw))
+                    else:
+                        call_args.append(raw)
+                except Exception:
+                    call_args.append(p.default)
+            else:
+                if p.default is not inspect._empty:
+                    call_args.append(p.default)
+                else:
+                    raise ValueError(f"缺少参数: {p.name}")
+
+        async for ret in handler(*call_args):
+            yield ret
+
+
+    @filter.event_message_type(filter.EventMessageType.ALL)
+    async def on_all_message(self, event: AstrMessageEvent):
+
+        parts = self.parse_message(event.message_str)
+        if not parts:
+            return
+
+        cmd, *args = parts
+        handler = self.command_map.get(cmd)
+        if not handler:
+            return
+
+        try:
+            async for ret in self._call_with_auto_args(handler, event, args):
+                yield ret
+        except Exception as e:
+            logger.exception(f"指令执行失败: {cmd}, error={e}")
+            yield event.plain_result("参数错误或执行失败")
+
 
 
     @filter.command_group("剑三")
