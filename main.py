@@ -42,6 +42,7 @@ class Jx3ApiPlugin(Star):
             self.api_config = json.load(f) 
 
         # 初始化数据
+        # 指令前缀
         self.prefix_en = self.conf.get("prefix").get("enable")
         self.prefix_text = self.conf.get("prefix").get("text")
         if not self.prefix_text:
@@ -50,10 +51,10 @@ class Jx3ApiPlugin(Star):
             logger.info(f"已启用指令前缀功能，前缀为：{self.prefix_text}")
         else:
             logger.info(f"未启用指令前缀功能。")
-
+        # 默认服务器
         self.server = self.conf.get("server", "梦江南")
         logger.info(f"配置加载默认服务器：{self.server}")
-
+        # 指令集
         self.command_map = {
             "日常": self.jx3_richang,
         }
