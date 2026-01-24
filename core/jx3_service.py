@@ -140,16 +140,16 @@ class JX3Service:
                 f"阵营：{data.get('orecar', '无')}\n"
                 f"宗门：{data.get('school', '无')}\n"
                 f"驰援：{data.get('rescue', '无')}\n"
-                f"画像：{data.get('draw', '无')}\n"
+                f"画像：{data.get('draw', '无')}\n\n"
             )
             
             # 安全地处理列表索引
             luck = data.get('luck', [])
-            luck_msg = f"宠物福缘：{', '.join(luck)}\n"
+            luck_msg = f"[宠物福缘]：\n{', '.join(luck)}\n"
             card = data.get('card', [])
-            card_msg = f"家园声望·加倍道具：{', '.join(card)}\n"
+            card_msg = f"[家园声望·加倍道具]：\n{', '.join(card)}\n"
             team = data.get('team', [None, None, None])
-            team_msg = f"武林通鉴·公共任务：{team[0] or '无'}\n武林通鉴·团队秘境：{team[2] or '无'}\n"
+            team_msg = f"[武林通鉴·公共任务]：\n{team[0] or '无'}\n[武林通鉴·团队秘境]：\n{team[2] or '无'}\n"
 
             return_data["data"] = result_msg + luck_msg + card_msg + team_msg
             return_data["code"] = 200
