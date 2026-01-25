@@ -150,6 +150,50 @@ class JX3Commands(Star):
             yield event.plain_result("猪脑过载，请稍后再试") 
  
 
+    async def jx3_keju(self, event: AstrMessageEvent,subject: str, limit: int = 5):
+        """剑三 科举"""
+        try:
+            data= await self.jx3fun.keju(subject,limit)
+            if data["code"] == 200:
+                yield event.plain_result(data["data"])
+            else:
+                yield event.plain_result(data["msg"])
+            return
+        except Exception as e:
+            logger.error(f"功能函数执行错误: {e}")
+            yield event.plain_result("猪脑过载，请稍后再试") 
+
+
+    async def jx3_huajia(self, event: AstrMessageEvent,  name: str= "", server: str = "", map: str= ""):
+        """剑三 花价 名称 服务器 地图"""
+        try:
+            data= await self.jx3fun.huajia(self.serverdefault(server),name,map)
+            if data["code"] == 200:
+                url = await self.html_render(data["temp"], data["data"], options={})
+                yield event.image_result(url)
+            else:
+                yield event.plain_result(data["msg"])
+            return
+        except Exception as e:
+            logger.error(f"功能函数执行错误: {e}")
+            yield event.plain_result("猪脑过载，请稍后再试")
+
+
+    async def jx3_zhuangshi(self, event: AstrMessageEvent,  name: str):
+        """剑三 装饰 名称"""
+        try:
+            data= await self.jx3fun.zhuangshi(name)
+            if data["code"] == 200:
+                url = await self.html_render(data["temp"], data["data"], options={})
+                yield event.image_result(url)
+            else:
+                yield event.plain_result(data["msg"])
+            return
+        except Exception as e:
+            logger.error(f"功能函数执行错误: {e}")
+            yield event.plain_result("猪脑过载，请稍后再试")
+
+
     async def jx3_shapan(self, event: AstrMessageEvent,server: str = ""):
         """剑三 沙盘 服务器"""
         try:

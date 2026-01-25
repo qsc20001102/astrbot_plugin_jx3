@@ -240,6 +240,33 @@
             "token": ""
         }
     },
+    "jx3_keju":{
+        "url":"https://www.jx3api.com/data/exam/answer",
+        "method":"GET",
+        "description":"此接口用于科举考试时的答案查询，支持模糊查询和拼音首字母查询。",
+        "params":{
+            "subject": "",
+            "limit": "5"
+        }
+    },
+    "jx3_huajia":{
+        "url":"https://www.jx3api.com/data/home/flower",
+        "method":"GET",
+        "description":"此接口用于查询家园系统中特定鲜花的最高价格及其对应的采集线路，包括区服和地图信息。",
+        "params":{
+            "server": "",
+            "name": "",
+            "map": ""
+        }
+    },
+    "jx3_zhuangshi":{
+        "url":"https://www.jx3api.com/data/home/furniture",
+        "method":"GET",
+        "description":"此接口用于查询家园系统中特定装饰的详细信息，包括来源、属性和外观等内容。",
+        "params":{
+            "name": ""
+        }
+    },
     "jx3box_qiyugonglue":{
         "url":"https://node.jx3box.com/serendipities",
         "method":"GET",

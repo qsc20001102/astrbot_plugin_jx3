@@ -154,7 +154,7 @@ class JX3Service:
             return_data["data"] = result_msg + luck_msg + card_msg + team_msg
             return_data["code"] = 200
         except Exception as e:
-            logger.error(f"richang 数据处理时出错: {e}")
+            logger.error(f"数据处理时出错: {e}")
             return_data["msg"] = "处理接口返回信息时出错"
 
         return return_data
@@ -235,6 +235,7 @@ class JX3Service:
         # 3. 处理返回数据
         try:
             return_data["data"]["items"] = data
+            return_data["data"]["name"] = name
         except Exception as e:
             logger.error(f"richang 数据处理时出错: {e}")
             return_data["msg"] = "处理接口返回信息时出错"
@@ -248,6 +249,105 @@ class JX3Service:
 
 
         return_data["code"] = 200
+
+        return return_data
+
+
+    async def keju(self,subject: str, limit: int) -> Dict[str, Any]:
+        """科举"""
+        return_data = self._init_return_data()
+
+        # 1. 构造请求参数
+        params = {"subject": subject, "limit": limit}
+
+        # 2. 调用基础请求
+        data: Optional[Dict[str, Any]] = await self._base_request(
+            "jx3_keju", "GET", params=params
+        )
+        if not data:
+            return_data["msg"] = "未查询到相关题目"
+            return return_data
+    
+        # 3. 处理返回数据
+        try:
+            # 格式化字符串，利用字典的 get 方法提供默认值
+            result_msg = ""
+            for m in data:
+                result_msg += f"{m['id']}.{m['question']}\n"
+                result_msg += f"答案：{m['answer']}\n\n"
+
+            return_data["data"] = result_msg
+            return_data["code"] = 200
+        except Exception as e:
+            logger.error(f"数据处理时出错: {e}")
+            return_data["msg"] = "处理接口返回信息时出错"
+
+        return return_data
+
+
+    async def huajia(self,server: str, name: str, map: str) -> Dict[str, Any]:
+        """花价"""
+        return_data = self._init_return_data()
+
+        # 1. 构造请求参数
+        params = {"server": server, "name": name,  "map": map}
+
+        # 2. 调用基础请求
+        data: Optional[Dict[str, Any]] = await self._base_request(
+            "jx3_huajia", "GET", params=params
+        )
+        if not data:
+            return_data["msg"] = "未查询到相关内容"
+            return return_data
+    
+        # 3. 处理返回数据
+        try:
+            return_data["data"]["data"] = data
+            return_data["data"]["server"] = server
+            return_data["code"] = 200
+        except Exception as e:
+            logger.error(f"数据处理时出错: {e}")
+            return_data["msg"] = "处理接口返回信息时出错"
+
+        # 加载模板
+        try:
+            return_data["temp"] = await load_template("huajia.html")
+        except FileNotFoundError as e:
+            logger.error(f"加载模板失败: {e}")
+            return_data["msg"] = "系统错误：模板文件不存在"
+
+        return return_data
+
+
+    async def zhuangshi(self,name: str) -> Dict[str, Any]:
+        """花价"""
+        return_data = self._init_return_data()
+
+        # 1. 构造请求参数
+        params = { "name": name}
+
+        # 2. 调用基础请求
+        data: Optional[Dict[str, Any]] = await self._base_request(
+            "jx3_zhuangshi", "GET", params=params
+        )
+        if not data:
+            return_data["msg"] = "未查询到相关内容"
+            return return_data
+    
+        # 3. 处理返回数据
+        try:
+            return_data["data"]["data"] = data
+            return_data["code"] = 200
+        except Exception as e:
+            logger.error(f"数据处理时出错: {e}")
+            return_data["msg"] = "处理接口返回信息时出错"
+
+        # 加载模板
+        try:
+            return_data["temp"] = await load_template("zhuangshi.html")
+        except FileNotFoundError as e:
+            logger.error(f"加载模板失败: {e}")
+            return_data["msg"] = "系统错误：模板文件不存在"
 
         return return_data
 

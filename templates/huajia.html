@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>花价查询</title>
+
+<style>
+    body {
+        font-family: 'Microsoft YaHei', Arial, sans-serif;
+        background: #f1f2f6;
+        margin: 0;
+        padding: 20px;
+    }
+
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    h1 {
+        font-size: 32px;
+        margin-bottom: 30px;
+        color: #222;
+        font-weight: 800;
+        text-align: center;
+    }
+
+    h2 {
+        margin-top: 40px;
+        margin-bottom: 12px;
+        color: #d93939;
+        font-size: 26px;
+        font-weight: 700;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+    }
+
+    thead {
+        background: #d93939;
+        color: white;
+        font-size: 16px;
+    }
+
+    th, td {
+        padding: 12px 14px;
+        border-bottom: 1px solid #eee;
+        font-size: 15px;
+        text-align: left;
+    }
+
+    tbody tr:hover {
+        background: #fff2f2;
+    }
+
+    .lines {
+        color: #555;
+        font-weight: 600;
+    }
+
+    .price {
+        color: #1e6bd6;
+        font-weight: 700;
+    }
+
+    .empty {
+        color: #999;
+        font-style: italic;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>花价查询（{{ server }}）</h1>
+
+    {% for map_name in [
+        '九寨沟·镜海',
+        '枫叶泊·乐苑',
+        '浣花水榭',
+        '枫叶泊·天苑',
+        '广陵邑'
+    ] %}
+
+        {% if data.get(map_name) %}
+        <h2>{{ map_name }}</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>名称</th>
+                    <th>颜色</th>
+                    <th>倍率</th>
+                    <th>分线</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in data[map_name] %}
+                <tr>
+                    <td>{{ item.name }}</td>
+                    <td>
+                        {% if item.color %}
+                            {{ item.color }}
+                        {% else %}
+                            <span class="empty">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="price">{{ item.price }}</td>
+                    <td class="lines">
+                        {{ item.line | join('、') }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+
+    {% endfor %}
+</div>
+
+</body>
+</html>
