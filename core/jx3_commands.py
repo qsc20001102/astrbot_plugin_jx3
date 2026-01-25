@@ -150,6 +150,20 @@ class JX3Commands(Star):
             yield event.plain_result("猪脑过载，请稍后再试") 
  
 
+    async def jx3_xinwen(self, event: AstrMessageEvent,num:int = 5):
+        """剑三 新闻"""
+        try:
+            data= await self.jx3fun.xinwen(num)
+            if data["code"] == 200:
+                yield event.plain_result(data["data"])
+            else:
+                yield event.plain_result(data["msg"])
+            return
+        except Exception as e:
+            logger.error(f"功能函数执行错误: {e}")
+            yield event.plain_result("猪脑过载，请稍后再试") 
+
+
     async def jx3_keju(self, event: AstrMessageEvent,subject: str, limit: int = 5):
         """剑三 科举"""
         try:

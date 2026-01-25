@@ -231,6 +231,7 @@ class Jx3ApiPlugin(Star):
             "全服状态": self.jx3com.jx3_zhuangtai,
             "骚话": self.jx3com.jx3_shaohua,
             "技改": self.jx3com.jx3_jigai,
+            "公告": self.jx3com.jx3_xinwen,
             "科举": self.jx3com.jx3_keju,
             "花价": self.jx3com.jx3_huajia,
             "装饰": self.jx3com.jx3_zhuangshi,

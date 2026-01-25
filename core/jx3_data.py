@@ -542,13 +542,14 @@ class JX3Service:
         return return_data
     
 
-    async def xinwen(self) -> Dict[str, Any]:
+    async def xinwen(self, num:int) -> Dict[str, Any]:
         """新闻资讯"""
         return_data = self._init_return_data()
 
+        params = {"limit": num}
         # 提取字段可能返回列表
         data: Optional[List[Dict[str, Any]]] = await self._base_request(
-            "jx3_xinweng", "GET")
+            "jx3_xinweng", "GET", params=params)
         
         if not data or not isinstance(data, list):
             return_data["msg"] = "获取接口信息失败或数据格式错误"
@@ -561,7 +562,7 @@ class JX3Service:
 
             result_msg = "新闻资讯推送\n"
             # 仅展示前1条，避免消息过长
-            for i, item in enumerate(data[:1], 1): 
+            for i, item in enumerate(data[:num], 1): 
                 result_msg += f"{i}. {item.get('title', '无标题')}\n"
                 result_msg += f"时间：{item.get('date', '未知时间')}\n"
                 result_msg += f"链接：{item.get('url', '无链接')}\n"
