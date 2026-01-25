@@ -352,6 +352,40 @@ class JX3Service:
         return return_data
 
 
+    async def qiwu(self,name: str) -> Dict[str, Any]:
+        """器物"""
+        return_data = self._init_return_data()
+
+        # 1. 构造请求参数
+        params = { "name": name}
+
+        # 2. 调用基础请求
+        data: Optional[Dict[str, Any]] = await self._base_request(
+            "jx3_qiwu", "GET", params=params
+        )
+        if not data:
+            return_data["msg"] = "未查询到相关内容"
+            return return_data
+    
+        # 3. 处理返回数据
+        try:
+            return_data["data"]["data"] = data
+            return_data["data"]["name"] = name
+            return_data["code"] = 200
+        except Exception as e:
+            logger.error(f"数据处理时出错: {e}")
+            return_data["msg"] = "处理接口返回信息时出错"
+
+        # 加载模板
+        try:
+            return_data["temp"] = await load_template("qiwu.html")
+        except FileNotFoundError as e:
+            logger.error(f"加载模板失败: {e}")
+            return_data["msg"] = "系统错误：模板文件不存在"
+
+        return return_data
+
+
     async def shapan(self, server: str ) -> Dict[str, Any]:
         """区服沙盘"""
         return_data = self._init_return_data()

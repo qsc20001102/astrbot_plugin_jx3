@@ -267,6 +267,14 @@
             "name": ""
         }
     },
+    "jx3_qiwu":{
+        "url":"https://www.jx3api.com/data/home/travel",
+        "method":"GET",
+        "description":"此接口用于查询指定地图的装饰物品产出信息，包括装饰的属性、来源和外观等内容。",
+        "params":{
+            "name": ""
+        }
+    },
     "jx3box_qiyugonglue":{
         "url":"https://node.jx3box.com/serendipities",
         "method":"GET",

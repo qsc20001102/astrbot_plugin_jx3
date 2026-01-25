@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>地图装饰器物</title>
+
+<style>
+    body {
+        font-family: 'Microsoft YaHei', Arial, sans-serif;
+        background: #f1f2f6;
+        margin: 0;
+        padding: 20px;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    h1 {
+        text-align: center;
+        font-size: 32px;
+        font-weight: 800;
+        margin-bottom: 28px;
+        color: #222;
+    }
+
+    .item {
+        display: flex;
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+        margin-bottom: 22px;
+        overflow: hidden;
+    }
+
+    .item img {
+        width: 200px;
+        height: 200px;
+        object-fit: contain;
+        background: #fafafa;
+        padding: 14px;
+    }
+
+    .info {
+        flex: 1;
+        padding: 18px 22px;
+    }
+
+    .name {
+        font-size: 26px;
+        font-weight: 800;
+        margin-bottom: 6px;
+    }
+
+    /* 品质颜色 */
+    .q1 { color: #999; }
+    .q2 { color: #2ecc71; }
+    .q3 { color: #3498db; }
+    .q4 { color: #9b59b6; }
+    .q5 { color: #e67e22; }
+
+    .meta {
+        font-size: 15px;
+        color: #555;
+        margin-bottom: 12px;
+    }
+
+    .meta span {
+        margin-right: 16px;
+    }
+
+    .tip {
+        background: #f8f9fb;
+        border-left: 4px solid #d93939;
+        padding: 8px 12px;
+        font-size: 14px;
+        color: #555;
+        margin-bottom: 14px;
+    }
+
+    .attrs {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 10px;
+    }
+
+    .attr {
+        background: #fafafa;
+        border-radius: 10px;
+        padding: 10px;
+        text-align: center;
+    }
+
+    .attr-name {
+        font-size: 13px;
+        color: #777;
+        margin-bottom: 4px;
+    }
+
+    .attr-value {
+        font-size: 17px;
+        font-weight: 700;
+        color: #333;
+    }
+
+    .footer {
+        margin-top: 10px;
+        font-size: 14px;
+        color: #777;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>地图装饰器物({{ name }})</h1>
+
+    {% for item in data %}
+    <div class="item">
+        <img src="{{ item.image }}" alt="{{ item.name }}">
+
+        <div class="info">
+            <div class="name q{{ item.color }}">
+                {{ item.name }}
+            </div>
+
+            <div class="meta">
+                <span>来源：{{ item.source }}</span>
+                <span>数量限制：{{ item.limit }}</span>
+                <span>品质值：{{ item.quality }}</span>
+            </div>
+
+            {% if item.tip %}
+            <div class="tip">
+                {{ item.tip }}
+            </div>
+            {% endif %}
+
+            <div class="attrs">
+                <div class="attr">
+                    <div class="attr-name">观赏</div>
+                    <div class="attr-value">{{ item.view }}</div>
+                </div>
+                <div class="attr">
+                    <div class="attr-name">实用</div>
+                    <div class="attr-value">{{ item.practical }}</div>
+                </div>
+                <div class="attr">
+                    <div class="attr-name">坚固</div>
+                    <div class="attr-value">{{ item.hard }}</div>
+                </div>
+                <div class="attr">
+                    <div class="attr-name">风水</div>
+                    <div class="attr-value">{{ item.geomantic }}</div>
+                </div>
+                <div class="attr">
+                    <div class="attr-name">趣味</div>
+                    <div class="attr-value">{{ item.interesting }}</div>
+                </div>
+            </div>
+
+            <div class="footer">
+                建筑适配：{{ item.architecture }}　
+                {% if item.produce %}
+                    ｜制作门派：{{ item.produce }}
+                {% else %}
+                    ｜不可制作
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+</div>
+
+</body>
+</html>

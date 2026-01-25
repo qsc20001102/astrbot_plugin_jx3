@@ -194,6 +194,21 @@ class JX3Commands(Star):
             yield event.plain_result("猪脑过载，请稍后再试")
 
 
+    async def jx3_qiwu(self, event: AstrMessageEvent,  name: str):
+        """剑三 器物 地图名称"""
+        try:
+            data= await self.jx3fun.qiwu(name)
+            if data["code"] == 200:
+                url = await self.html_render(data["temp"], data["data"], options={})
+                yield event.image_result(url)
+            else:
+                yield event.plain_result(data["msg"])
+            return
+        except Exception as e:
+            logger.error(f"功能函数执行错误: {e}")
+            yield event.plain_result("猪脑过载，请稍后再试")            
+
+
     async def jx3_shapan(self, event: AstrMessageEvent,server: str = ""):
         """剑三 沙盘 服务器"""
         try:

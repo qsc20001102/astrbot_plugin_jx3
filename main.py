@@ -234,6 +234,7 @@ class Jx3ApiPlugin(Star):
             "科举": self.jx3com.jx3_keju,
             "花价": self.jx3com.jx3_huajia,
             "装饰": self.jx3com.jx3_zhuangshi,
+            "器物": self.jx3com.jx3_qiwu,
             "沙盘": self.jx3com.jx3_shapan,
             "奇遇统计": self.jx3com.jx3_qufuqiyu,
             "奇遇攻略": self.jx3com.jx3_qiyugonglue,
