@@ -11,7 +11,7 @@ from astrbot.api.star import Context, Star, register, StarTools
 from astrbot.api import logger
 from astrbot.api import AstrBotConfig
 
-from .jx3_service import JX3Service
+from .jx3_data import JX3Service
 
 
 class AsyncTask:

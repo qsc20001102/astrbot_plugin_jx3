@@ -14,13 +14,13 @@ from astrbot.api import logger
 from astrbot.api import AstrBotConfig
 import astrbot.api.message_components as Comp
 
-from .core.jx3_service import JX3Service
+from .core.jx3_data import JX3Service
 from .core.async_task import AsyncTask
 
 
 @register("astrbot_plugin_jx3", 
           "fxdyz", 
-          "通过接口调用剑网三API接口获取游戏数据", 
+          "通过接口调用剑网三API接口获取游戏数据，整理发送。", 
           "1.0.0",
           "https://github.com/qsc20001102/astrbot_plugin_jx3api.git"
 )
@@ -55,9 +55,8 @@ class Jx3ApiPlugin(Star):
         self.server = self.conf.get("server", "梦江南")
         logger.info(f"配置加载默认服务器：{self.server}")
         # 指令集
-        self.command_map = {
-            "日常": self.jx3_richang,
-        }
+        self.ini_command_map()
+        logger.info(f"指令集初始完成。")
         logger.info("jx3api插件初始化完成")
 
 
@@ -90,18 +89,22 @@ class Jx3ApiPlugin(Star):
         logger.info("jx3api 异步插件初始化完成")
 
 
+    async def terminate(self):
+        """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
+        if self.at:
+            await self.at.destroy()
+            self.at = None
+
+        if self.jx3fun:
+            await self.jx3fun.close()
+            self.jx3fun = None
+        logger.info("jx3api插件已卸载/停用")
+
+
     def check_and_copy_db(self, local_data_dir: Union[str, Path], db_filename: str, default_db_dir: Union[str, Path]) -> pathlib.Path:
         """
         检查本地数据目录中是否存在指定的数据库文件。
         如果不存在，则从默认目录复制该文件。
-        Args:
-            local_data_dir: 目标数据库文件所在的文件夹路径。
-            db_filename: 数据库文件的名称 (例如: 'local_data.db')。
-            default_db_dir: 默认/源数据库文件所在的文件夹路径。
-        Returns:
-            最终的数据库文件的完整 pathlib.Path 对象。
-        Raises:
-            FileNotFoundError: 如果默认的源数据库文件不存在。
         """
         # 目标路径
         target_dir = pathlib.Path(local_data_dir)
@@ -149,12 +152,8 @@ class Jx3ApiPlugin(Star):
         return text.split()
 
 
-    async def _call_with_auto_args(
-        self,
-        handler,
-        event: AstrMessageEvent,
-        args: list[str]
-    ):
+    async def _call_with_auto_args(self, handler, event: AstrMessageEvent, args: list[str]):
+        """指令执行函数"""
         sig = inspect.signature(handler)
         params = list(sig.parameters.values())
 
@@ -193,14 +192,16 @@ class Jx3ApiPlugin(Star):
 
     @filter.event_message_type(filter.EventMessageType.ALL)
     async def on_all_message(self, event: AstrMessageEvent):
-
+        """解析所有消息"""
         parts = self.parse_message(event.message_str)
         if not parts:
+            logger.debug("未触发指令")
             return
 
         cmd, *args = parts
         handler = self.command_map.get(cmd)
         if not handler:
+            logger.debug("指令函数为空")
             return
 
         try:
@@ -211,13 +212,41 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("参数错误或执行失败")
 
 
+    def ini_command_map(self):
+        """初始化指令集"""
+        self.command_map = {
+            "功能": self.jx3_helps,
+            "日常": self.jx3_richang,
+            "日常预测": self.jx3_richangyuche,
+            "名望": self.jx3_xingxiashijian,
+            "开服": self.jx3_kaifu,
+            "状态": self.jx3_zhuangtai,
+            "骚话": self.jx3_shaohua,
+            "技改": self.jx3_jigai,
+            "沙盘": self.jx3_shapan,
+            "奇遇统计": self.jx3_qufuqiyu,
+            "奇遇攻略": self.jx3_qiyugonglue,
+            "金价": self.jx3_jinjia,
+            "交易行": self.jx3_jiaoyihang,
+            "名片": self.jx3_jueshemingpian,
+            "随机名片": self.jx3_shuijimingpian,
+            "烟花": self.jx3_yanhuachaxun,
+            "的卢": self.jx3_dilujilu,
+            "招募": self.jx3_tuanduizhaomu,
+            "战绩": self.jx3_zhanji,
+            "奇遇": self.jx3_qiyu,
+            "阵营拍卖": self.jx3_zhengyingpaimai,
+            "扶摇九天": self.jx3_fuyaojjiutian,
+            "刷马": self.jx3_shuma,
+            "骗子": self.jx3_pianzhi,
+            "八卦": self.jx3_bagua,
+            "开服监控": self.jx3_kaifhujiank,
+            "新闻推送": self.jx3_xinwenzhixun,
+            "刷马推送": self.jx3_shuamamsg,
+            "赤兔推送": self.jx3_chitusg,
+        }
 
-    @filter.command_group("剑三")
-    def jx3(self):
-        pass
 
-
-    @jx3.command("功能")
     async def jx3_helps(self, event: AstrMessageEvent):
         """剑三 功能"""
         data = await self.jx3fun.helps()
@@ -233,7 +262,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试") 
 
 
-    @jx3.command("日常")
     async def jx3_richang(self, event: AstrMessageEvent,server: str = "" ,num: int = 0):
         """剑三 日常 服务器 天数"""
         try:
@@ -248,7 +276,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试")
     
 
-    @jx3.command("日常预测")
     async def jx3_richangyuche(self, event: AstrMessageEvent):
         """剑三 日常预测"""
         try:
@@ -264,7 +291,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试")
 
 
-    @jx3.command("名望")
     async def jx3_xingxiashijian(self, event: AstrMessageEvent,name: str = "穹野卫"):
         """剑三 名望"""
         try:
@@ -280,7 +306,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试")
 
 
-    @jx3.command("开服")
     async def jx3_kaifu(self, event: AstrMessageEvent,server: str = ""):
         """剑三 开服 服务器"""
         try:
@@ -295,7 +320,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试")
 
 
-    @jx3.command("状态")
     async def jx3_zhuangtai(self, event: AstrMessageEvent):
         """剑三 状态"""
         try:
@@ -311,7 +335,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试")
      
 
-    @jx3.command("骚话")
     async def jx3_shaohua(self, event: AstrMessageEvent,):
         """剑三 骚话"""
         try:
@@ -326,7 +349,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试") 
 
 
-    @jx3.command("技改")
     async def jx3_jigai(self, event: AstrMessageEvent,):
         """剑三 技改"""
         try:
@@ -341,7 +363,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试") 
  
 
-    @jx3.command("沙盘")
     async def jx3_shapan(self, event: AstrMessageEvent,server: str = ""):
         """剑三 沙盘 服务器"""
         try:
@@ -356,7 +377,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试")   
 
 
-    @jx3.command("奇遇统计")
     async def jx3_qufuqiyu(self, event: AstrMessageEvent,adventureName: str = "阴阳两界", server: str = ""):
         """剑三 奇遇统计 奇遇名称 服务器"""
         try:
@@ -372,7 +392,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试") 
 
 
-    @jx3.command("奇遇攻略")
     async def jx3_qiyugonglue(self, event: AstrMessageEvent,name: str):
         """剑三 奇遇攻略 奇遇名称"""
         try:
@@ -392,7 +411,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试")
 
 
-    @jx3.command("金价")
     async def jx3_jinjia(self, event: AstrMessageEvent,server: str = "", limit:str = "15"):
         """剑三 金价 服务器"""
         try:
@@ -408,7 +426,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试")
 
 
-    @jx3.command("物价")
     async def jx3_wujia(self, event: AstrMessageEvent,Name: str = "秃盒", server: str = ""):
         """剑三 物价 外观名称"""     
         try:
@@ -424,7 +441,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试") 
 
 
-    @jx3.command("交易行")
     async def jx3_jiaoyihang(self, event: AstrMessageEvent,Name: str = "守缺式",server: str = ""):
         """剑三 交易行 物品名称 服务器"""     
         try:
@@ -441,7 +457,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试") 
 
 
-    @jx3.command("名片")
     async def jx3_jueshemingpian(self, event: AstrMessageEvent, name: str = "飞翔大野猪", server: str = ""):
         """剑三 名片 角色 服务器"""
         try:
@@ -460,7 +475,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试")  
 
 
-    @jx3.command("随机名片")
     async def jx3_shuijimingpian(self, event: AstrMessageEvent,force: str = "万花", body: str = "萝莉", server: str = ""):
         """剑三 随机名片 职业 体型 服务器"""
         try:
@@ -481,7 +495,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试")  
 
 
-    @jx3.command("烟花")
     async def jx3_yanhuachaxun(self, event: AstrMessageEvent,name: str = "飞翔大野猪", server: str = ""):
         """剑三 烟花 角色 服务器"""
         try:
@@ -497,7 +510,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试")  
 
 
-    @jx3.command("的卢")
     async def jx3_dilujilu(self, event: AstrMessageEvent,server: str = ""):
         """剑三 的卢 服务器"""
         try:
@@ -513,7 +525,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试")  
 
 
-    @jx3.command("招募")
     async def jx3_tuanduizhaomu(self, event: AstrMessageEvent,keyword: str = "25人普通会战弓月城", server: str = ""):
         """剑三 招募 副本 服务器"""
         try:
@@ -529,7 +540,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试") 
 
 
-    @jx3.command("战绩")
     async def jx3_zhanji(self, event: AstrMessageEvent,name: str = "飞翔大野猪", server: str = "", mode:str = "33"):
         """剑三 战绩 角色 服务器 类型"""
         try:
@@ -545,7 +555,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试") 
 
 
-    @jx3.command("奇遇")
     async def jx3_qiyu(self, event: AstrMessageEvent,name: str = "飞翔大野猪", server: str = ""):
         """剑三 奇遇 角色名称 服务器"""
         try:
@@ -561,7 +570,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试") 
 
 
-    @jx3.command("阵营拍卖")
     async def jx3_zhengyingpaimai(self, event: AstrMessageEvent,name: str = "玄晶", server: str = ""):
         """剑三 阵营拍卖 物品名称 服务器"""
         try:
@@ -577,7 +585,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试") 
 
 
-    @jx3.command("扶摇九天")
     async def jx3_fuyaojjiutian(self, event: AstrMessageEvent,server: str = ""):
         """剑三 扶摇九天 服务器"""
         try:
@@ -592,7 +599,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试")
 
 
-    @jx3.command("刷马")
     async def jx3_shuma(self, event: AstrMessageEvent,server: str = ""): 
         """剑三 刷马 服务器"""
         try:
@@ -607,7 +613,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试")
 
 
-    @jx3.command("骗子")
     async def jx3_pianzhi(self, event: AstrMessageEvent,qq: str):
         """剑三 骗子 QQ"""
         try:
@@ -622,7 +627,6 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试")
 
 
-    @jx3.command("八卦")
     async def jx3_bagua(self, event: AstrMessageEvent,type: str):
         """剑三 八卦 类型"""
         try:
@@ -637,41 +641,27 @@ class Jx3ApiPlugin(Star):
             yield event.plain_result("猪脑过载，请稍后再试")
 
 
-    @jx3.command("开服监控")
     async def jx3_kaifhujiank(self, event: AstrMessageEvent):
         """剑三 开服监控"""     
         return_msg = await self.at.get_task_info("kfjk")
         yield event.plain_result(return_msg) 
 
 
-    @jx3.command("新闻推送")
     async def jx3_xinwenzhixun(self, event: AstrMessageEvent):
         """剑三 新闻推送"""     
         return_msg = await self.at.get_task_info("xwzx")
         yield event.plain_result(return_msg) 
 
 
-    @jx3.command("刷马推送")
     async def jx3_shuamamsg(self, event: AstrMessageEvent):
         """剑三 刷马推送"""     
         return_msg = await self.at.get_task_info("smxx")
         yield event.plain_result(return_msg) 
 
 
-    @jx3.command("赤兔推送")
     async def jx3_chitusg(self, event: AstrMessageEvent):
         """剑三 赤兔推送"""     
         return_msg = await self.at.get_task_info("ctxx")
         yield event.plain_result(return_msg) 
 
 
-    async def terminate(self):
-        """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
-        if self.at:
-            await self.at.destroy()
-            self.at = None
-
-        if self.jx3fun:
-            await self.jx3fun.close()
-            self.jx3fun = None
-        logger.info("jx3api插件已卸载/停用")
