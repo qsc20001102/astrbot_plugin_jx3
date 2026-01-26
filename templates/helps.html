@@ -6,10 +6,16 @@
     <style>
         body {
             margin: 0;
-            padding: 32px;
+            padding: 40px 20px;
             background: linear-gradient(180deg, #f5f7fb 0%, #eef1f7 100%);
             color: #2c2c33;
             font-family: "Microsoft YaHei", Arial, sans-serif;
+        }
+
+        /* 页面主体宽度控制 */
+        .container {
+            max-width: 980px;
+            margin: 0 auto;
         }
 
         /* 顶部标题 */
@@ -18,46 +24,50 @@
         }
 
         .header h1 {
-            font-size: 44px;
+            font-size: 42px;
             margin: 0 0 10px;
             color: #1f2a44;
         }
 
         .header p {
-            font-size: 22px;
+            font-size: 20px;
             color: #5a627a;
             margin: 0;
         }
 
         /* 分组 */
         .group {
-            margin-bottom: 46px;
+            margin-bottom: 42px;
         }
 
         .group-title {
-            font-size: 34px;
+            font-size: 30px;
             font-weight: bold;
-            margin-bottom: 22px;
+            margin-bottom: 18px;
             padding-left: 14px;
             border-left: 6px solid #4f7cff;
             color: #1f2a44;
         }
 
-        /* 三列网格 */
+        /* 单列 */
         .command-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 18px;
+            grid-template-columns: 1fr;
+            gap: 14px;
         }
 
-        /* 指令卡片 */
+        /* 指令行 */
         .command {
             background: #ffffff;
-            border-radius: 14px;
-            padding: 18px 22px;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            padding: 14px 18px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
             position: relative;
             overflow: hidden;
+
+            display: inline-flex;
+            align-items: center;
+            gap: 18px;
         }
 
         .command::before {
@@ -65,77 +75,57 @@
             position: absolute;
             left: 0;
             top: 0;
-            width: 5px;
+            width: 4px;
             height: 100%;
             background: #4f7cff;
         }
 
         .cmd-name {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: bold;
             color: #2b3a67;
-            margin-bottom: 6px;
-        }
-
-        .cmd-desc {
-            font-size: 24px;
-            color: #3a3f55;
-            margin-bottom: 12px;
+            white-space: nowrap;
+            min-width: 140px;
         }
 
         .cmd-usage {
-            font-size: 26px;
+            font-size: 22px;
             color: #1f2a44;
             background: #f0f3ff;
-            padding: 10px 14px;
-            border-radius: 8px;
+            padding: 6px 12px;
+            border-radius: 6px;
             font-family: Consolas, "Courier New", monospace;
-            display: inline-block;
+            white-space: nowrap;
         }
 
         /* 提示 */
         .tip {
-            margin-top: 50px;
-            font-size: 17px;
+            margin-top: 40px;
+            font-size: 16px;
             color: #5a5f73;
             background: #fffbe6;
-            padding: 18px 22px;
+            padding: 16px 20px;
             border-left: 6px solid #ffcc00;
             border-radius: 10px;
             line-height: 1.6;
         }
 
-        /* 响应式 */
-        @media (max-width: 1200px) {
-            .command-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 900px) {
-            .command-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .header h1 {
-                font-size: 40px;
-            }
-
-            .group-title {
-                font-size: 34px;
-            }
-
+        /* 小屏适配 */
+        @media (max-width: 640px) {
             .cmd-name {
-                font-size: 28px;
+                min-width: auto;
             }
 
-            .cmd-desc {
-                font-size: 24px;
+            .command {
+                flex-wrap: wrap;
+                gap: 10px;
             }
         }
     </style>
 </head>
 <body>
+
+<div class="container">
 
 <div class="header">
     <h1>剑三插件功能</h1>
@@ -145,224 +135,62 @@
 <div class="group">
     <div class="group-title">基础功能</div>
     <div class="command-grid">
-        <div class="command">
-            <div class="cmd-name">日常活动</div>
-            <div class="cmd-desc">查询指定服务器某天的日常任务</div>
-            <div class="cmd-usage">日常 [服务器] [天数]</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">日常预测</div>
-            <div class="cmd-desc">查询30天范围内的大战和战场</div>
-            <div class="cmd-usage">日常预测</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">名望事件</div>
-            <div class="cmd-desc">查询接下来10次对应名望的行侠事件</div>
-            <div class="cmd-usage">名望 [穹野卫]</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">开服查询</div>
-            <div class="cmd-desc">查询服务器当前的开服状态及时间</div>
-            <div class="cmd-usage">开服 [服务器]</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">全服状态</div>
-            <div class="cmd-desc">查询所有服务器当前的状态</div>
-            <div class="cmd-usage">全服状态 [服务器]</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">随机骚话</div>
-            <div class="cmd-desc">随机输出一条剑三骚话</div>
-            <div class="cmd-usage">骚话</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">最新技改</div>
-            <div class="cmd-desc">查看最新职业技能改动</div>
-            <div class="cmd-usage">技改</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">官方公告</div>
-            <div class="cmd-desc">获取官方最新公告及新闻内容，包括新闻分类、标题及链接等信息</div>
-            <div class="cmd-usage">公告 [数量]</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">阵营沙盘</div>
-            <div class="cmd-desc">查看服务器当前沙盘信息</div>
-            <div class="cmd-usage">沙盘 [服务器]</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">奇遇统计</div>
-            <div class="cmd-desc">查询服务器某个奇遇的触发情况</div>
-            <div class="cmd-usage">奇遇统计 奇遇名称 [服务器]</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">奇遇攻略</div>
-            <div class="cmd-desc">查询服务器某个奇遇的触发情况</div>
-            <div class="cmd-usage">奇遇攻略 奇遇名称</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">科举答题</div>
-            <div class="cmd-desc">查询科举的题目和答案</div>
-            <div class="cmd-usage">科举 内容</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">家园鲜花</div>
-            <div class="cmd-desc">查询各个地图的鲜花倍率</div>
-            <div class="cmd-usage">花价 名称 [服务器] [家园地图]</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">家园装饰</div>
-            <div class="cmd-desc">查询家园装饰的详细信息</div>
-            <div class="cmd-usage">装饰 名称 </div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">器物图谱</div>
-            <div class="cmd-desc">查询某地图可以获得的家园装饰物品信息</div>
-            <div class="cmd-usage">器物 地图名称 </div>
-        </div>
+        <div class="command"><div class="cmd-name">日常活动</div><div class="cmd-usage">日常 [服务器] [天数]</div></div>
+        <div class="command"><div class="cmd-name">日常预测</div><div class="cmd-usage">日常预测</div></div>
+        <div class="command"><div class="cmd-name">名望事件</div><div class="cmd-usage">名望 [穹野卫]</div></div>
+        <div class="command"><div class="cmd-name">开服查询</div><div class="cmd-usage">开服 [服务器]</div></div>
+        <div class="command"><div class="cmd-name">全服状态</div><div class="cmd-usage">全服状态 [服务器]</div></div>
+        <div class="command"><div class="cmd-name">随机骚话</div><div class="cmd-usage">骚话</div></div>
+        <div class="command"><div class="cmd-name">最新技改</div><div class="cmd-usage">技改</div></div>
+        <div class="command"><div class="cmd-name">官方公告</div><div class="cmd-usage">公告 [数量]</div></div>
+        <div class="command"><div class="cmd-name">阵营沙盘</div><div class="cmd-usage">沙盘 [服务器]</div></div>
+        <div class="command"><div class="cmd-name">奇遇统计</div><div class="cmd-usage">奇遇统计 奇遇名称 [服务器]</div></div>
+        <div class="command"><div class="cmd-name">奇遇攻略</div><div class="cmd-usage">奇遇攻略 奇遇名称</div></div>
+        <div class="command"><div class="cmd-name">科举答题</div><div class="cmd-usage">科举 内容</div></div>
+        <div class="command"><div class="cmd-name">家园鲜花</div><div class="cmd-usage">花价 名称 [服务器] [家园地图]</div></div>
+        <div class="command"><div class="cmd-name">家园装饰</div><div class="cmd-usage">装饰 名称</div></div>
+        <div class="command"><div class="cmd-name">器物图谱</div><div class="cmd-usage">器物 地图名称</div></div>
     </div>
 </div>
 
 <div class="group">
     <div class="group-title">进阶功能</div>
     <div class="command-grid">
-        <div class="command">
-            <div class="cmd-name">金价查询</div>
-            <div class="cmd-desc">查询指定服务器金价走势</div>
-            <div class="cmd-usage">金价 [服务器]</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">外观物价</div>
-            <div class="cmd-desc">查询外观物品价格</div>
-            <div class="cmd-usage">物价 外观名称 [服务器]</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">区服交易行</div>
-            <div class="cmd-desc">查询交易行物品信息</div>
-            <div class="cmd-usage">交易行 物品名称 [服务器]</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">角色名片</div>
-            <div class="cmd-desc">查看指定角色名片</div>
-            <div class="cmd-usage">名片 角色名 [服务器]</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">随机名片</div>
-            <div class="cmd-desc">随机获取指定职业与体型的名片</div>
-            <div class="cmd-usage">随机名片 职业 体型 [服务器]</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">烟花记录</div>
-            <div class="cmd-desc">查看角色烟花记录</div>
-            <div class="cmd-usage">烟花 角色名 [服务器]</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">的卢记录</div>
-            <div class="cmd-desc">查询的服务器的卢刷新捕获拍卖情况</div>
-            <div class="cmd-usage">的卢 [服务器]</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">副本招募</div>
-            <div class="cmd-desc">查询服务器副本招募信息</div>
-            <div class="cmd-usage">招募 副本名称 [服务器]</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">角色战绩</div>
-            <div class="cmd-desc">查询角色 PVP 战绩仅33</div>
-            <div class="cmd-usage">战绩 角色名 [服务器]</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">角色奇遇</div>
-            <div class="cmd-desc">查询角色已获得奇遇</div>
-            <div class="cmd-usage">奇遇 角色名 [服务器]</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">阵营拍卖</div>
-            <div class="cmd-desc">查询阵营拍卖中某物品的所有信息</div>
-            <div class="cmd-usage">阵营拍卖 物品名称 [服务器]</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">扶摇九天</div>
-            <div class="cmd-desc">查询服务器扶摇九天的开启时间</div>
-            <div class="cmd-usage">扶摇九天 [服务器]</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">刷马</div>
-            <div class="cmd-desc">查询服务器马儿的刷新时间</div>
-            <div class="cmd-usage">刷马 [服务器]</div>
-        </div>
-
-        <div class="command">
-            <div class="cmd-name">骗子查询</div>
-            <div class="cmd-desc">通过用户的 QQ 号搜索其在贴吧上的行骗记录</div>
-            <div class="cmd-usage">骗子 QQ号</div>
-        </div>
-        <div class="command">
-            <div class="cmd-name">八卦记录</div>
-            <div class="cmd-desc">随机搜索指定分类的贴吧帖子。类型：818 616 鬼网三 鬼网3 树洞 记录 教程 街拍 故事 避雷 吐槽 提问</div>
-            <div class="cmd-usage">八卦 类型</div>
-        </div>
+        <div class="command"><div class="cmd-name">金价查询</div><div class="cmd-usage">金价 [服务器]</div></div>
+        <div class="command"><div class="cmd-name">外观物价</div><div class="cmd-usage">物价 外观名称 [服务器]</div></div>
+        <div class="command"><div class="cmd-name">交易行</div><div class="cmd-usage">交易行 物品名称 [服务器]</div></div>
+        <div class="command"><div class="cmd-name">角色名片</div><div class="cmd-usage">名片 角色名 [服务器]</div></div>
+        <div class="command"><div class="cmd-name">随机名片</div><div class="cmd-usage">随机名片 职业 体型 [服务器]</div></div>
+        <div class="command"><div class="cmd-name">烟花记录</div><div class="cmd-usage">烟花 角色名 [服务器]</div></div>
+        <div class="command"><div class="cmd-name">的卢记录</div><div class="cmd-usage">的卢 [服务器]</div></div>
+        <div class="command"><div class="cmd-name">副本招募</div><div class="cmd-usage">招募 副本名称 [服务器]</div></div>
+        <div class="command"><div class="cmd-name">角色战绩</div><div class="cmd-usage">战绩 角色名 [服务器]</div></div>
+        <div class="command"><div class="cmd-name">角色奇遇</div><div class="cmd-usage">奇遇 角色名 [服务器]</div></div>
+        <div class="command"><div class="cmd-name">阵营拍卖</div><div class="cmd-usage">阵营拍卖 物品名称 [服务器]</div></div>
+        <div class="command"><div class="cmd-name">扶摇九天</div><div class="cmd-usage">扶摇九天 [服务器]</div></div>
+        <div class="command"><div class="cmd-name">刷马</div><div class="cmd-usage">刷马 [服务器]</div></div>
+        <div class="command"><div class="cmd-name">骗子查询</div><div class="cmd-usage">骗子 QQ号</div></div>
+        <div class="command"><div class="cmd-name">八卦记录</div><div class="cmd-usage">八卦 类型</div></div>
     </div>
 </div>
 
 <div class="group">
     <div class="group-title">推送功能</div>
     <div class="command-grid">
-        <div class="command">
-            <div class="cmd-name">开服监控</div>
-            <div class="cmd-desc">查看开服监控状态的后台运行状况</div>
-            <div class="cmd-usage">开服监控</div>
-        </div>
-        <div class="command">
-            <div class="cmd-name">新闻推送</div>
-            <div class="cmd-desc">推送最新的官方新闻资讯</div>
-            <div class="cmd-usage">新闻推送</div>
-        </div>
-        <div class="command">
-            <div class="cmd-name">刷马推送</div>
-            <div class="cmd-desc">推送最新的刷马消息</div>
-            <div class="cmd-usage">刷马推送</div>
-        </div>
-        <div class="command">
-            <div class="cmd-name">赤兔推送</div>
-            <div class="cmd-desc">推送最新的赤兔消息</div>
-            <div class="cmd-usage">赤兔推送</div>
-        </div>
+        <div class="command"><div class="cmd-name">开服监控</div><div class="cmd-usage">开服监控</div></div>
+        <div class="command"><div class="cmd-name">新闻推送</div><div class="cmd-usage">新闻推送</div></div>
+        <div class="command"><div class="cmd-name">刷马推送</div><div class="cmd-usage">刷马推送</div></div>
+        <div class="command"><div class="cmd-name">赤兔推送</div><div class="cmd-usage">赤兔推送</div></div>
     </div>
 </div>
 
 <div class="tip">
     <strong>使用提示：</strong><br>
-    1. 中括号参数为可选内容,不填写则使用程序的默认值<br>
-    2. 不填写服务器时将使用配置默认服务器
-    3. 基础指令不需要token可以直接使用
+    1. 中括号参数为可选内容，不填写则使用程序默认值<br>
+    2. 未填写服务器时将使用配置中的默认服务器<br>
+    3. 基础指令无需 token 可直接使用
 </div>
 
+</div>
 </body>
 </html>
