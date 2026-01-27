@@ -215,6 +215,7 @@ class Jx3ApiPlugin(Star):
         try:
             async for ret in self._call_with_auto_args(handler, event, args):
                 yield ret
+            event.stop_event()
         except Exception as e:
             logger.exception(f"指令执行失败: {cmd}, error={e}")
             yield event.plain_result("参数错误或执行失败")
@@ -239,6 +240,7 @@ class Jx3ApiPlugin(Star):
             "沙盘": self.jx3com.jx3_shapan,
             "奇遇统计": self.jx3com.jx3_qufuqiyu,
             "奇遇攻略": self.jx3com.jx3_qiyugonglue,
+            "宏": self.jx3com.jx3_hong,
             "金价": self.jx3com.jx3_jinjia,
             "物价": self.jx3com.jx3_wujia,
             "交易行": self.jx3com.jx3_jiaoyihang,
