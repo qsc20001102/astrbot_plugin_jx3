@@ -5,16 +5,20 @@
 import json
 import shutil
 import pathlib
-import asyncio
 import inspect
 from pathlib import Path
 from typing import Union
+import asyncio
 
-from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult, MessageChain
+from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult, MessageChain, filter
 from astrbot.api.star import Context, Star, register, StarTools
 from astrbot.api import logger
 from astrbot.api import AstrBotConfig
 import astrbot.api.message_components as Comp
+from astrbot.core.utils.session_waiter import (
+    SessionController,
+    session_waiter,
+)
 
 from .jx3_data import JX3Service
 from .async_task import AsyncTask
@@ -269,6 +273,50 @@ class JX3Commands(Star):
         except Exception as e:
             logger.error(f"功能函数执行错误: {e}")
             yield event.plain_result("猪脑过载，请稍后再试")
+
+    async def jx3_hong(self, event: AstrMessageEvent,name: str = "易筋经"):
+        """剑三 宏 心法"""
+        # ① 调用你的搜索接口
+        macros = "已查询到的内容"
+        if not macros:
+            yield event.plain_result(f"未搜索到与【{name}】相关的宏")
+            return
+
+        yield event.plain_result(macros)
+        user_id = event.get_sender_id()
+        # ③ 进入等待用户选择阶段
+        @session_waiter(timeout=10)
+        async def macro_select_waiter(
+            controller: SessionController,
+            new_event: AstrMessageEvent
+        ):
+            if new_event.get_sender_id() != user_id:
+                return
+
+            msg = new_event.message_str.strip()
+            logger.debug(msg)
+
+            if not msg.isdigit():
+                controller.stop()
+                return
+
+            # ✅ 关键：显式发送
+            await new_event.send(
+                new_event.plain_result(f"你输入的是：{msg}")
+            )
+
+            controller.stop()
+
+        try:
+            await macro_select_waiter(event)  # type: ignore
+        except TimeoutError:
+            yield event.plain_result("选择宏超时，已取消")
+        except Exception:
+            logger.error("宏选择发生异常", exc_info=True)
+
+        
+
+
 
 
     async def jx3_jinjia(self, event: AstrMessageEvent,server: str = "", limit:str = "15"):
