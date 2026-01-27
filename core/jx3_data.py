@@ -1212,19 +1212,18 @@ class JX3Service:
         # 提取dwID
         dwID = data[0]["dwID"]
         url = f"https://node.jx3box.com/serendipity/{dwID}/achievement"
-        logger.debug(f"拼接URL：{url}")
+        logger.debug(f"获取ID接口地址：{url}")
 
         # 3. 获取奇遇攻略
-        try:
-            # 获取achievement_id
-            data1 = await self._api.get(url)
-            url1 = f"https://cms.jx3box.com/api/cms/wiki/post/type/achievement/source/{data1['achievement_id']}"
-            logger.debug(f"拼接URL：{url1}")
-            # 获取奇遇攻略
-            data2 = await self._api.get(url1, out_key="data")
-        except Exception as e:
-            logger.exception("获取奇遇攻略数据失败")
-            return_data["msg"] = "获取奇遇攻略数据失败"
+        # 获取achievement_id
+        data1 = await self._api.get(url)
+        url1 = f"https://cms.jx3box.com/api/cms/wiki/post/type/achievement/source/{data1['achievement_id']}"
+        logger.debug(f"获取攻略接口地址：{url1}")
+        # 获取奇遇攻略
+        data2 = await self._api.get(url1, out_key="data")
+        if not data2:
+            return_data["msg"] = "获取攻略数据异常"
+            return return_data
         
         # 4. 处理数据
         try:
