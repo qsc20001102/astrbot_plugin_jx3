@@ -1,127 +1,90 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<title>未来战场日历</title>
+<pre class="e-jx3qixue-area">
+{"version":"v20251030","xf":"易筋经","sq":"1,1,1,1,1,1,1,9,5,7","client":"std"}
+</pre>
 
-<style>
-    body {
-        font-family: "Microsoft YaHei", Arial, sans-serif;
-        background: #f1f2f6;
-        padding: 20px;
-        margin: 0;
-    }
+<h1>如果你是第一次接触易筋经PVE，或者代练or代清，想寻找一个快速入门打输出的方式</h1>
 
-    h1 {
-        text-align: center;
-        font-size: 32px;
-        font-weight: 800;
-        margin-bottom: 25px;
-        color: #222;
-    }
+<p>
+  <strong>
+    <span style="font-size: 32px;">
+      <span style="text-decoration: line-through; color: #ff0000;">
+        推荐武学助手！
+        👉
+        <img src="https://cdn.jx3box.com/upload/post/2025/4/18/89351_9335671.png" />
+      </span>
+      <span style="text-decoration: line-through;">
+        经过提交建议优化后的武学助手真的很好用！
+      </span>
+    </span>
+  </strong>
+</p>
 
-    .calendar {
-        width: 100%;
-        max-width: 1200px;
-        margin: 0 auto;
-        border-collapse: collapse;
-        background: white;
-        border-radius: 10px;
-        overflow: hidden;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-    }
+<p>&nbsp;</p>
 
-    .calendar th {
-        background: #d93939;
-        color: white;
-        padding: 12px;
-        font-size: 18px;
-        border: 1px solid #eee;
-    }
+<p>
+  <span style="color: #ff0000;">
+    <strong>
+      <span style="font-size: 32px;">
+        PS：2026.1.8更新 明面优化武学助手实则重大削弱 实在不想动脑可以用。
+      </span>
+    </strong>
+  </span>
+</p>
 
-    .calendar td {
-        vertical-align: top;
-        padding: 6px;
-        width: 14.2%;
-        border: 1px solid #eee;
-        min-height: 120px;
-        background: #fff;
-    }
+<p>
+  <span style="color: #ff0000;">
+    <strong>
+      <span style="font-size: 32px;">
+        <img src="https://cdn.jx3box.com/upload/post/2026/1/16/89351_630300.png" />
+      </span>
+    </strong>
+  </span>
+</p>
 
-    .date-label {
-        font-size: 14px;
-        color: #666;
-        font-weight: bold;
-        margin-bottom: 6px;
-    }
+<p>&nbsp;</p>
 
-    .event-card {
-        background: #fff7f7;
-        border: 1px solid #f0dada;
-        border-radius: 6px;
-        padding: 6px;
-        margin-top: 6px;
-        font-size: 14px;
-        line-height: 1.4em;
-    }
+<p>
+  <strong>
+    <span style="font-size: 28px;">
+      加速：紫武默认1段or2段（头鞋附魔+加速大酒） 橙武推荐2段以上
+    </span>
+  </strong>
+</p>
 
-    .event-title {
-        font-weight: bold;
-        color: #222;
-    }
+<h2>秘籍选择：</h2>
 
-    /* 鼠标悬停卡片高亮 */
-    .event-card:hover {
-        background: #ffeaea;
-    }
+<p style="font-size: 22px;">
+  <img class="e-jx3-icon" src="https://icon.jx3box.com/icon/419.png" alt="419" />
+  ：1效果回豆 2伤害 1会心
+</p>
 
-    /* 当日高亮，可选 */
-    .today {
-        background: #fef3c7;
-    }
+<p style="font-size: 22px;">
+  <img class="e-jx3-icon" src="https://icon.jx3box.com/icon/428.png" alt="428" />
+  ：1效果回豆 3伤害
+</p>
 
-</style>
-</head>
-<body>
+<p style="font-size: 22px;">
+  <img class="e-jx3-icon" src="https://icon.jx3box.com/icon/434.png" alt="434" />
+  ：1伤害 1目标数量 1持续时间
+</p>
 
-<h1>未来战场日历</h1>
+<p style="font-size: 22px;">
+  <img class="e-jx3-icon" src="https://icon.jx3box.com/icon/1508.png" alt="1508" />
+  ：3伤害 1会心 或者 2伤害 2会心（自己酌情选择）
+</p>
 
-<table class="calendar">
+<p style="font-size: 22px;">
+  <img class="e-jx3-icon" src="https://icon.jx3box.com/icon/447.png" alt="447" />
+  ：2伤害 2CD
+</p>
 
-    <thead>
-        <tr>
-            <th>周日</th>
-            <th>周一</th>
-            <th>周二</th>
-            <th>周三</th>
-            <th>周四</th>
-            <th>周五</th>
-            <th>周六</th>
-        </tr>
-    </thead>
-
-    <tbody>
-
-    {% for week in calendar_rows %}
-    <tr>
-        {% for cell in week %}
-        <td class="{% if cell.is_today %}today{% endif %}">
-            {% if cell.date %}
-                <div class="date-label">{{ cell.date }}</div>
-                {% for ev in cell.items %}
-                <div class="event-card">
-                    <div class="event-title">{{ ev.war }}</div>
-                    <div>{{ ev.battle }}</div>
-                </div>
-                {% endfor %}
-            {% endif %}
-        </td>
-        {% endfor %}
-    </tr>
-    {% endfor %}
-
-    </tbody>
-</table>
-
-</body>
-</html>
+<p style="font-size: 28px;">
+  <img class="e-jx3-icon" src="https://icon.jx3box.com/icon/445.png" alt="445" />
+  ：
+  <span style="font-size: 22px;">
+    3持续
+    <span style="color: #ff0000;">
+      1回豆效果(加速2段以上建议点，看个人手感)
+    </span>
+  </span>
+</p>

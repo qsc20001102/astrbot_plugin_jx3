@@ -274,44 +274,77 @@ class JX3Commands(Star):
             logger.error(f"功能函数执行错误: {e}")
             yield event.plain_result("猪脑过载，请稍后再试")
 
-    async def jx3_hong(self, event: AstrMessageEvent, name: str = "易筋经"):
+
+    async def jx3_hong(self, event: AstrMessageEvent, kungfu: str = "易筋经"):
         """剑三 宏 心法"""
-
-        macros = "已查询到的内容"
-        if not macros:
-            yield event.plain_result(f"未搜索到与【{name}】相关的宏")
-            return
-
-        yield event.plain_result(macros)
-
-        user_id = event.get_sender_id()
-
-
-    @session_waiter(timeout=10)
-    async def macro_select_waiter(controller: SessionController,event: AstrMessageEvent):
-        if event.get_sender_id() != user_id:
-            return
-
-        msg = event.message_str.strip()
-        logger.debug(msg)
-
-        await event.send(
-            MessageChain().message("收到")
-        )
-
-        controller.stop()
+        # 获取宏列表
         try:
-            await macro_select_waiter(event)  # type: ignore
-            return  # ✅ 防止空 MessageChain
+            data = await self.jx3fun.hong1(kungfu)
+            if data["code"] == 200:
+                yield event.plain_result(data["msg"])
+            else:
+                yield event.plain_result(f"未搜索到与【{kungfu}】相关的宏")
+                return
+        except Exception as e:
+            logger.error(f"功能函数执行错误: {e}")
+            yield event.plain_result("猪脑过载，请稍后再试")
+
+        # 获取用户ID
+        user_id = event.get_sender_id()
+        # 等等用户回复
+        @session_waiter(timeout=15)
+        async def macro_select_waiter(controller: SessionController,new_event: AstrMessageEvent):
+            if new_event.get_sender_id() != user_id:
+                return
+
+            msg = new_event.get_message_str().strip()
+
+            if not msg.isdigit():
+                await new_event.send(
+                    MessageChain().message("输入异常，结束会话")
+                )
+                controller.stop()
+                return
+
+            num = int(msg)
+            if num < 1 or num > data["data"]["num"]:
+                await new_event.send(
+                    MessageChain().message("无效序号，结束会话")
+                )
+                controller.stop()
+                return
+
+            try:
+                data1 = await self.jx3fun.hong2(data["data"]["pid"][num])
+                if data1["code"] != 200:
+                    await new_event.send(
+                        MessageChain().message("获取详细宏数据失败")
+                    )
+                    controller.stop()
+                    return
+
+                url = await self.html_render(data1["temp"], {}, options={})
+                msg_text = data1["data"]
+
+                chain = MessageChain()
+                chain.url_image(url)
+                chain.message(msg_text)
+                await new_event.send(chain)
+
+            except Exception as e:
+                logger.error(f"功能函数执行错误: {e}")
+                await new_event.send(
+                    MessageChain().message("猪脑过载，请稍后再试")
+                )
+
+            controller.stop()
+
+        try:
+            await macro_select_waiter(event)  
         except TimeoutError:
             yield event.plain_result("选择宏超时，已取消")
-            return
         except Exception:
             logger.error("宏选择发生异常", exc_info=True)
-            return
-        
-
-
 
 
     async def jx3_jinjia(self, event: AstrMessageEvent,server: str = "", limit:str = "15"):

@@ -297,5 +297,15 @@
             "type": "horse",
             "subtype": "foreshow"
         }
+    },
+    "jx3box_hong":{
+        "url":"https://next2.jx3box.com/api/macro/tops",
+        "method":"GET",
+        "description":"魔盒获取宏推荐列表",
+        "params":{
+            "kungfu": "易筋经",
+            "size": "10",
+            "client": "std"
+        }
     }
 }

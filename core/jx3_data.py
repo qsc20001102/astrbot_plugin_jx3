@@ -1236,3 +1236,72 @@ class JX3Service:
         return_data["temp"] = content
         return_data["code"] = 200
         return return_data
+    
+
+    async def hong1(self, kungfu: str) -> Dict[str, Any]:
+        """宏 心法"""
+        return_data = self._init_return_data()
+        
+        # 1. 构造请求参数
+        params = {"kungfu": kungfu}
+        
+        # 2. 调用基础请求
+        data: Optional[Dict[str, Any]] = await self._base_request(
+            "jx3box_hong", "GET", params=params, out_key=""
+        )
+        logger.debug(data)
+        if not data:
+            return_data["msg"] = "未找到该心法一键宏"
+            return return_data
+        
+        # 提取ID
+        pid_list = [0]
+        msg = ""
+        n = 1
+        try:
+            for m in data:
+                msg += f"{n}、{m['author']}\t{m['item_version']}\n"
+                pid_list.append(m["pid"])
+                n += 1
+            
+            return_data["msg"] = msg
+            return_data["data"]["pid"] = pid_list
+            return_data["data"]["num"] = n
+            return_data["code"] = 200
+        except Exception as e:
+            logger.exception("处理返回数据失败")
+            return_data["msg"] = "处理返回数据失败"
+
+        return return_data
+    
+
+    async def hong2(self, pid: str) -> Dict[str, Any]:
+        """宏 心法"""
+        return_data = self._init_return_data()
+        
+        # 发起请求
+        url = f"https://cms.jx3box.com/api/cms/post/{pid}"
+        logger.debug(f"获取宏接口地址：{url}")
+        data = await self._api.get(url, out_key="data")
+        # 验证数据
+        if not data:
+            return_data["msg"] = "获取宏数据异常"
+            return return_data
+        
+        # 4. 处理数据
+        try:
+            return_data["temp"] = data["post_content"]
+            msg = ""
+            for m in data["post_meta"]["data"]:
+                msg += f"宏名称：{m['name']}\n"
+                msg += f"使用说明：{m['desc']}\n"
+                msg += f"宏脚本：\n{m['macro']}\n\n"
+
+            return_data["data"] = msg
+            return_data["code"] = 200
+        except Exception as e:
+            logger.exception("处理返回数据失败")
+            return_data["msg"] = "处理返回数据失败"
+
+    
+        return return_data
