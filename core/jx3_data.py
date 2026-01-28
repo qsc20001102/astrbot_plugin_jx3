@@ -145,11 +145,11 @@ class JX3Service:
             
             # 安全地处理列表索引
             luck = data.get('luck', [])
-            luck_msg = f"[宠物福缘]：\n{', '.join(luck)}\n"
+            luck_msg = f"【宠物福缘】\n{', '.join(luck)}\n"
             card = data.get('card', [])
-            card_msg = f"[家园声望·加倍道具]：\n{', '.join(card)}\n"
+            card_msg = f"【家园声望·加倍道具】\n{', '.join(card)}\n"
             team = data.get('team', [None, None, None])
-            team_msg = f"[武林通鉴·公共任务]：\n{team[0] or '无'}\n[武林通鉴·团队秘境]：\n{team[2] or '无'}\n"
+            team_msg = f"【武林通鉴·公共任务】\n{team[0] or '无'}\n【武林通鉴·团队秘境】\n{team[2] or '无'}\n"
 
             return_data["data"] = result_msg + luck_msg + card_msg + team_msg
             return_data["code"] = 200
@@ -1293,9 +1293,9 @@ class JX3Service:
             return_data["temp"] = data["post_content"]
             msg = ""
             for m in data["post_meta"]["data"]:
-                msg += f"宏名称：{m['name']}\n"
-                msg += f"使用说明：{m['desc']}\n"
-                msg += f"宏脚本：\n{m['macro']}\n\n"
+                msg += f"【宏名称】{m['name']}\n"
+                msg += f"【使用说明】\n{m['desc']}\n"
+                msg += f"【宏脚本】\n{m['macro']}\n\n"
 
             return_data["data"] = msg
             return_data["code"] = 200
