@@ -292,7 +292,7 @@ class JX3Commands(Star):
         # 获取用户ID
         user_id = event.get_sender_id()
         # 等等用户回复
-        @session_waiter(timeout=15)
+        @session_waiter(timeout=30)
         async def macro_select_waiter(controller: SessionController,new_event: AstrMessageEvent):
             if new_event.get_sender_id() != user_id:
                 return
@@ -343,7 +343,7 @@ class JX3Commands(Star):
         try:
             await macro_select_waiter(event)  
         except TimeoutError:
-            yield event.plain_result("选择宏超时，已取消")
+            yield event.plain_result("选择宏超时，已结束会话")
         except Exception:
             logger.error("宏选择发生异常", exc_info=True)
 

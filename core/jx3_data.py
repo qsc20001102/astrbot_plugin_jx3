@@ -1256,7 +1256,7 @@ class JX3Service:
         
         # 提取ID
         pid_list = [0]
-        msg = ""
+        msg = "按照热度排列\n"
         n = 1
         try:
             for m in data:
