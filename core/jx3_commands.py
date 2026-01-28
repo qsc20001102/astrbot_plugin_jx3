@@ -322,12 +322,13 @@ class JX3Commands(Star):
                     )
                     controller.stop()
                     return
-
-                url = await self.html_render(data1["temp"], {}, options={})
-                msg_text = data1["data"]
-
+                
                 chain = MessageChain()
-                chain.url_image(url)
+                if data1["temp"] != "":
+                    url = await self.html_render(data1["temp"], {}, options={})
+                    chain.url_image(url)
+
+                msg_text = data1["data"]
                 chain.message(msg_text)
                 await new_event.send(chain)
 
