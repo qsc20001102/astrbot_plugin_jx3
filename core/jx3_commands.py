@@ -286,25 +286,19 @@ class JX3Commands(Star):
         user_id = event.get_sender_id()
         # ③ 进入等待用户选择阶段
         @session_waiter(timeout=10)
-        async def macro_select_waiter(
-            controller: SessionController,
-            new_event: AstrMessageEvent
-        ):
+        async def macro_select_waiter(controller: SessionController,new_event: AstrMessageEvent):
             if new_event.get_sender_id() != user_id:
                 return
 
             msg = new_event.message_str.strip()
             logger.debug(msg)
 
-            if not msg.isdigit():
-                controller.stop()
-                return
+            #if not msg.isdigit():
+            #    controller.stop()
+            #    return
 
             # ✅ 关键：显式发送
-            await new_event.send(
-                new_event.plain_result(f"你输入的是：{msg}")
-            )
-
+            await new_event.send(MessageChain().message("收到"))
             controller.stop()
 
         try:
