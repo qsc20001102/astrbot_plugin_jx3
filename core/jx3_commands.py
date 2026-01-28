@@ -274,40 +274,41 @@ class JX3Commands(Star):
             logger.error(f"功能函数执行错误: {e}")
             yield event.plain_result("猪脑过载，请稍后再试")
 
-    async def jx3_hong(self, event: AstrMessageEvent,name: str = "易筋经"):
+    async def jx3_hong(self, event: AstrMessageEvent, name: str = "易筋经"):
         """剑三 宏 心法"""
-        # ① 调用你的搜索接口
+
         macros = "已查询到的内容"
         if not macros:
             yield event.plain_result(f"未搜索到与【{name}】相关的宏")
             return
 
         yield event.plain_result(macros)
+
         user_id = event.get_sender_id()
-        # ③ 进入等待用户选择阶段
-        @session_waiter(timeout=10)
-        async def macro_select_waiter(controller: SessionController,new_event: AstrMessageEvent):
-            if new_event.get_sender_id() != user_id:
-                return
 
-            msg = new_event.message_str.strip()
-            logger.debug(msg)
 
-            #if not msg.isdigit():
-            #    controller.stop()
-            #    return
+    @session_waiter(timeout=10)
+    async def macro_select_waiter(controller: SessionController,event: AstrMessageEvent):
+        if event.get_sender_id() != user_id:
+            return
 
-            # ✅ 关键：显式发送
-            await new_event.send(MessageChain().message("收到"))
-            controller.stop()
+        msg = event.message_str.strip()
+        logger.debug(msg)
 
+        await event.send(
+            MessageChain().message("收到")
+        )
+
+        controller.stop()
         try:
             await macro_select_waiter(event)  # type: ignore
+            return  # ✅ 防止空 MessageChain
         except TimeoutError:
             yield event.plain_result("选择宏超时，已取消")
+            return
         except Exception:
             logger.error("宏选择发生异常", exc_info=True)
-
+            return
         
 
 
