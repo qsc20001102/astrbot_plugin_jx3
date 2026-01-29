@@ -213,9 +213,9 @@ class Jx3ApiPlugin(Star):
             return
 
         try:
+            event.stop_event()
             async for ret in self._call_with_auto_args(handler, event, args):
                 yield ret
-            event.stop_event()
         except Exception as e:
             logger.exception(f"指令执行失败: {cmd}, error={e}")
             yield event.plain_result("参数错误或执行失败")
