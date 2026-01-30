@@ -191,8 +191,8 @@ class Jx3ApiPlugin(Star):
                 else:
                     raise ValueError(f"缺少参数: {p.name}")
 
-        async for ret in handler(*call_args):
-            yield ret
+        # 只允许 coroutine
+        return await handler(*call_args)
 
 
     @filter.event_message_type(filter.EventMessageType.ALL)
@@ -214,7 +214,8 @@ class Jx3ApiPlugin(Star):
 
         try:
             event.stop_event()
-            async for ret in self._call_with_auto_args(handler, event, args):
+            ret = await self._call_with_auto_args(handler, event, args)
+            if ret is not None:
                 yield ret
         except Exception as e:
             logger.exception(f"指令执行失败: {cmd}, error={e}")

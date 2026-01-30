@@ -38,194 +38,98 @@ class JX3Commands(Star):
         return server
 
 
-    async def jx3_helps(self, event: AstrMessageEvent):
-        """剑三 功能"""
-        data = await self.jx3fun.helps()
+    async def plain_msg(self, event: AstrMessageEvent, action):
+        """最终将数据整理成文本发送"""
+        data= await action()
         try:
-            
             if data["code"] == 200:
-                url = await self.html_render(data["temp"], data["data"], options={})
-                yield event.image_result(url)
+                return event.plain_result(data["data"])
             else:
-                yield event.plain_result(data["msg"])
+                return event.plain_result(data["msg"])
         except Exception as e:
             logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试")
+            return event.plain_result("猪脑过载，请稍后再试")
+
+
+    async def image_msg(self, event: AstrMessageEvent, action):
+        """最终将数据整理成图片发送"""
+        data = await action()
+        try:
+            if data["code"] == 200:
+                url = await self.html_render(data["temp"], data["data"], options={})
+                return event.image_result(url)
+            else:
+                return event.plain_result(data["msg"])
+
+        except Exception as e:
+            logger.error(f"功能函数执行错误: {e}")
+            return event.plain_result("猪脑过载，请稍后再试")
+
+
+    async def jx3_helps(self, event: AstrMessageEvent):
+        """剑三 功能"""
+        return await self.image_msg(event, self.jx3fun.helps)
 
 
     async def jx3_richang(self, event: AstrMessageEvent,server: str = "" ,num: int = 0):
         """剑三 日常 服务器 天数"""
-        try:
-            data= await self.jx3fun.richang(self.serverdefault(server),num)
-            if data["code"] == 200:
-                yield event.plain_result(data["data"])
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试")
-    
+        return await self.plain_msg(event, lambda: self.jx3fun.richang(self.serverdefault(server),num))
+
 
     async def jx3_richangyuche(self, event: AstrMessageEvent):
         """剑三 日常预测"""
-        try:
-            data= await self.jx3fun.richangyuche()
-            if data["code"] == 200:
-                url = await self.html_render(data["temp"], data["data"], options={})
-                yield event.image_result(url)
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试")
+        return await self.image_msg(event, self.jx3fun.richangyuche)
 
 
     async def jx3_xingxiashijian(self, event: AstrMessageEvent,name: str = "穹野卫"):
         """剑三 名望"""
-        try:
-            data= await self.jx3fun.xingxiashijian(name)
-            if data["code"] == 200:
-                url = await self.html_render(data["temp"], data["data"], options={})
-                yield event.image_result(url)
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试")
+        return await self.image_msg(event, lambda: self.jx3fun.xingxiashijian(name))
 
 
     async def jx3_kaifu(self, event: AstrMessageEvent,server: str = ""):
         """剑三 开服 服务器"""
-        try:
-            data= await self.jx3fun.kaifu(self.serverdefault(server))
-            if data["code"] == 200:
-                yield event.plain_result(data["data"])
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试")
+        return await self.plain_msg(event, lambda: self.jx3fun.kaifu(self.serverdefault(server)))
 
 
     async def jx3_zhuangtai(self, event: AstrMessageEvent):
         """剑三 状态"""
-        try:
-            data= await self.jx3fun.zhuangtai()
-            if data["code"] == 200:
-                url = await self.html_render(data["temp"], data["data"], options={})
-                yield event.image_result(url)
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试")
-     
+        return await self.image_msg(event, self.jx3fun.zhuangtai)
 
+     
     async def jx3_shaohua(self, event: AstrMessageEvent,):
         """剑三 骚话"""
-        try:
-            data= await self.jx3fun.shaohua()
-            if data["code"] == 200:
-                yield event.plain_result(data["data"])
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试") 
+        return await self.plain_msg(event, self.jx3fun.shaohua)
 
 
     async def jx3_jigai(self, event: AstrMessageEvent,):
         """剑三 技改"""
-        try:
-            data= await self.jx3fun.jigai()
-            if data["code"] == 200:
-                yield event.plain_result(data["data"])
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试") 
- 
+        return await self.plain_msg(event, self.jx3fun.jigai)
+
 
     async def jx3_xinwen(self, event: AstrMessageEvent,num:int = 5):
         """剑三 新闻"""
-        try:
-            data= await self.jx3fun.xinwen(num)
-            if data["code"] == 200:
-                yield event.plain_result(data["data"])
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试") 
-
+        return await self.plain_msg(event, lambda: self.jx3fun.xinwen(num))
+ 
 
     async def jx3_keju(self, event: AstrMessageEvent,subject: str, limit: int = 5):
         """剑三 科举"""
-        try:
-            data= await self.jx3fun.keju(subject,limit)
-            if data["code"] == 200:
-                yield event.plain_result(data["data"])
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试") 
+        return await self.plain_msg(event, lambda: self.jx3fun.keju(subject,limit))
 
 
     async def jx3_huajia(self, event: AstrMessageEvent,  name: str= "", server: str = "", map: str= ""):
         """剑三 花价 名称 服务器 地图"""
-        try:
-            data= await self.jx3fun.huajia(self.serverdefault(server),name,map)
-            if data["code"] == 200:
-                url = await self.html_render(data["temp"], data["data"], options={})
-                yield event.image_result(url)
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试")
+        return await self.image_msg(event, lambda: self.jx3fun.huajia(self.serverdefault(server),name,map))
 
 
     async def jx3_zhuangshi(self, event: AstrMessageEvent,  name: str):
         """剑三 装饰 名称"""
-        try:
-            data= await self.jx3fun.zhuangshi(name)
-            if data["code"] == 200:
-                url = await self.html_render(data["temp"], data["data"], options={})
-                yield event.image_result(url)
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试")
+        return await self.image_msg(event, lambda: self.jx3fun.zhuangshi(name))
 
 
     async def jx3_qiwu(self, event: AstrMessageEvent,  name: str):
         """剑三 器物 地图名称"""
-        try:
-            data= await self.jx3fun.qiwu(name)
-            if data["code"] == 200:
-                url = await self.html_render(data["temp"], data["data"], options={})
-                yield event.image_result(url)
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试")            
-
+        return await self.image_msg(event, lambda: self.jx3fun.qiwu(name))
+            
 
     async def jx3_shapan(self, event: AstrMessageEvent,server: str = ""):
         """剑三 沙盘 服务器"""
@@ -243,18 +147,8 @@ class JX3Commands(Star):
 
     async def jx3_qufuqiyu(self, event: AstrMessageEvent,adventureName: str = "阴阳两界", server: str = ""):
         """剑三 奇遇统计 奇遇名称 服务器"""
-        try:
-            data= await self.jx3fun.qiyu(adventureName,self.serverdefault(server))
-            if data["code"] == 200:
-                url = await self.html_render(data["temp"], data["data"], options={})
-                yield event.image_result(url)
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试") 
-
+        return await self.image_msg(event, lambda: self.jx3fun.qiyu(adventureName,self.serverdefault(server)))
+ 
 
     async def jx3_qiyugonglue(self, event: AstrMessageEvent,name: str):
         """剑三 奇遇攻略 奇遇名称"""
@@ -350,48 +244,17 @@ class JX3Commands(Star):
 
     async def jx3_jinjia(self, event: AstrMessageEvent,server: str = "", limit:str = "15"):
         """剑三 金价 服务器"""
-        try:
-            data= await self.jx3fun.jinjia( self.serverdefault(server),limit)
-            if data["code"] == 200:
-                url = await self.html_render(data["temp"], data["data"], options={})
-                yield event.image_result(url)
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试")
+        return await self.image_msg(event, lambda: self.jx3fun.jinjia( self.serverdefault(server),limit))
 
 
     async def jx3_wujia(self, event: AstrMessageEvent,Name: str = "秃盒", server: str = ""):
-        """剑三 物价 外观名称"""     
-        try:
-            data=await self.jx3fun.wujia(Name, self.serverdefault(server))
-            if data["code"] == 200:
-                url = await self.html_render(data["temp"], data["data"], options={})
-                yield event.image_result(url)
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试") 
+        """剑三 物价 外观名称"""    
+        return await self.image_msg(event, lambda: self.jx3fun.wujia(Name, self.serverdefault(server))) 
 
 
     async def jx3_jiaoyihang(self, event: AstrMessageEvent,Name: str = "守缺式",server: str = ""):
         """剑三 交易行 物品名称 服务器"""     
-        try:
-            data=await self.jx3fun.jiaoyihang(Name, self.serverdefault(server))
-            if data["code"] == 200:
-                url = await self.html_render(data["temp"], data["data"], options={})
-                yield event.image_result(url)
-                
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试") 
+        return await self.image_msg(event, lambda: self.jx3fun.jiaoyihang(Name, self.serverdefault(server)))
 
 
     async def jx3_jueshemingpian(self, event: AstrMessageEvent, name: str = "飞翔大野猪", server: str = ""):
@@ -434,148 +297,52 @@ class JX3Commands(Star):
 
     async def jx3_yanhuachaxun(self, event: AstrMessageEvent,name: str = "飞翔大野猪", server: str = ""):
         """剑三 烟花 角色 服务器"""
-        try:
-            data= await self.jx3fun.yanhuachaxun( self.serverdefault(server),name)
-            if data["code"] == 200:
-                url = await self.html_render(data["temp"], data["data"], options={})
-                yield event.image_result(url)
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试")  
+        return await self.image_msg(event, lambda: self.jx3fun.yanhuachaxun( self.serverdefault(server),name))
 
 
     async def jx3_dilujilu(self, event: AstrMessageEvent,server: str = ""):
         """剑三 的卢 服务器"""
-        try:
-            data= await self.jx3fun.dilujilu( self.serverdefault(server))
-            if data["code"] == 200:
-                url = await self.html_render(data["temp"], data["data"], options={})
-                yield event.image_result(url)
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试")  
-
+        return await self.image_msg(event, lambda: self.jx3fun.dilujilu( self.serverdefault(server)))
+  
 
     async def jx3_tuanduizhaomu(self, event: AstrMessageEvent,keyword: str = "25人普通会战弓月城", server: str = ""):
         """剑三 招募 副本 服务器"""
-        try:
-            data= await self.jx3fun.tuanduizhaomu( self.serverdefault(server),keyword)
-            if data["code"] == 200:
-                url = await self.html_render(data["temp"], data["data"], options={})
-                yield event.image_result(url)
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试") 
+        return await self.image_msg(event, lambda: self.jx3fun.tuanduizhaomu( self.serverdefault(server),keyword))
 
 
     async def jx3_zhanji(self, event: AstrMessageEvent,name: str = "飞翔大野猪", server: str = "", mode:str = "33"):
         """剑三 战绩 角色 服务器 类型"""
-        try:
-            data= await self.jx3fun.zhanji(name, self.serverdefault(server),mode)
-            if data["code"] == 200:
-                url = await self.html_render(data["temp"], data["data"], options={})
-                yield event.image_result(url)
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试") 
+        return await self.image_msg(event, lambda: self.jx3fun.zhanji(name, self.serverdefault(server),mode))
 
 
     async def jx3_qiyu(self, event: AstrMessageEvent,name: str = "飞翔大野猪", server: str = ""):
         """剑三 奇遇 角色名称 服务器"""
-        try:
-            data= await self.jx3fun.juesheqiyu(name, self.serverdefault(server))
-            if data["code"] == 200:
-                url = await self.html_render(data["temp"], data["data"], options={})
-                yield event.image_result(url)
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试") 
-
+        return await self.image_msg(event, lambda: self.jx3fun.juesheqiyu(name, self.serverdefault(server)))
+    
 
     async def jx3_zhengyingpaimai(self, event: AstrMessageEvent,name: str = "玄晶", server: str = ""):
         """剑三 阵营拍卖 物品名称 服务器"""
-        try:
-            data= await self.jx3fun.zhengyingpaimai( self.serverdefault(server), name)
-            if data["code"] == 200:
-                url = await self.html_render(data["temp"], data["data"], options={})
-                yield event.image_result(url)
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试") 
-
+        return await self.image_msg(event, lambda: self.jx3fun.zhengyingpaimai( self.serverdefault(server), name))
+ 
 
     async def jx3_fuyaojjiutian(self, event: AstrMessageEvent,server: str = ""):
         """剑三 扶摇九天 服务器"""
-        try:
-            data= await self.jx3fun.fuyaojjiutian( self.serverdefault(server))
-            if data["code"] == 200:
-                yield event.plain_result(data["data"])
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试")
+        return await self.plain_msg(event, lambda: self.jx3fun.fuyaojjiutian( self.serverdefault(server)))
 
 
     async def jx3_shuma(self, event: AstrMessageEvent,server: str = ""): 
         """剑三 刷马 服务器"""
-        try:
-            data= await self.jx3fun.shuma( self.serverdefault(server))
-            if data["code"] == 200:
-                yield event.plain_result(data["data"])
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试")
+        return await self.plain_msg(event, lambda: self.jx3fun.shuma( self.serverdefault(server)))
 
 
     async def jx3_pianzhi(self, event: AstrMessageEvent,qq: str):
         """剑三 骗子 QQ"""
-        try:
-            data= await self.jx3fun.pianzhi(qq)
-            if data["code"] == 200:
-                yield event.plain_result(data["data"])
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试")
+        return await self.plain_msg(event, lambda: self.jx3fun.pianzhi(qq))
 
 
     async def jx3_bagua(self, event: AstrMessageEvent,type: str):
         """剑三 八卦 类型"""
-        try:
-            data= await self.jx3fun.bagua(type)
-            if data["code"] == 200:
-                yield event.plain_result(data["data"])
-            else:
-                yield event.plain_result(data["msg"])
-            return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            yield event.plain_result("猪脑过载，请稍后再试")
+        return await self.plain_msg(event, lambda: self.jx3fun.bagua(type))
 
 
     async def jx3_kaifhujiank(self, event: AstrMessageEvent):

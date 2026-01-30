@@ -156,7 +156,10 @@ class JX3Service:
         except Exception as e:
             logger.error(f"数据处理时出错: {e}")
             return_data["msg"] = "处理接口返回信息时出错"
-
+            return return_data
+        
+        return_data["code"] = 200
+        
         return return_data
     
     async def richangyuche(self) -> Dict[str, Any]:
@@ -201,16 +204,17 @@ class JX3Service:
             return_data["data"]["items"] = items
             return_data["data"]["today"] = data["today"]
         except Exception as e:
-            logger.error(f"richang 数据处理时出错: {e}")
+            logger.error(f"数据处理时出错: {e}")
             return_data["msg"] = "处理接口返回信息时出错"
-            
+            return return_data
+        
         # 加载模板
         try:
             return_data["temp"] = await load_template("richangyuche.html")
         except FileNotFoundError as e:
             logger.error(f"加载模板失败: {e}")
             return_data["msg"] = "系统错误：模板文件不存在"
-
+            return return_data
 
         return_data["code"] = 200
 
@@ -237,8 +241,9 @@ class JX3Service:
             return_data["data"]["items"] = data
             return_data["data"]["name"] = name
         except Exception as e:
-            logger.error(f"richang 数据处理时出错: {e}")
+            logger.error(f"数据处理时出错: {e}")
             return_data["msg"] = "处理接口返回信息时出错"
+            return return_data
             
         # 加载模板
         try:
@@ -246,7 +251,7 @@ class JX3Service:
         except FileNotFoundError as e:
             logger.error(f"加载模板失败: {e}")
             return_data["msg"] = "系统错误：模板文件不存在"
-
+            return return_data
 
         return_data["code"] = 200
 
@@ -277,10 +282,13 @@ class JX3Service:
                 result_msg += f"答案：{m['answer']}\n\n"
 
             return_data["data"] = result_msg
-            return_data["code"] = 200
+            
         except Exception as e:
             logger.error(f"数据处理时出错: {e}")
             return_data["msg"] = "处理接口返回信息时出错"
+            return return_data
+        
+        return_data["code"] = 200
 
         return return_data
 
@@ -304,10 +312,11 @@ class JX3Service:
         try:
             return_data["data"]["data"] = data
             return_data["data"]["server"] = server
-            return_data["code"] = 200
+            
         except Exception as e:
             logger.error(f"数据处理时出错: {e}")
             return_data["msg"] = "处理接口返回信息时出错"
+            return return_data
 
         # 加载模板
         try:
@@ -315,6 +324,9 @@ class JX3Service:
         except FileNotFoundError as e:
             logger.error(f"加载模板失败: {e}")
             return_data["msg"] = "系统错误：模板文件不存在"
+            return return_data
+        
+        return_data["code"] = 200
 
         return return_data
 
@@ -337,17 +349,21 @@ class JX3Service:
         # 3. 处理返回数据
         try:
             return_data["data"]["data"] = data
-            return_data["code"] = 200
+           
         except Exception as e:
             logger.error(f"数据处理时出错: {e}")
             return_data["msg"] = "处理接口返回信息时出错"
-
+            return return_data
+    
         # 加载模板
         try:
             return_data["temp"] = await load_template("zhuangshi.html")
         except FileNotFoundError as e:
             logger.error(f"加载模板失败: {e}")
             return_data["msg"] = "系统错误：模板文件不存在"
+            return return_data
+        
+        return_data["code"] = 200
 
         return return_data
 
@@ -371,17 +387,21 @@ class JX3Service:
         try:
             return_data["data"]["data"] = data
             return_data["data"]["name"] = name
-            return_data["code"] = 200
+            
         except Exception as e:
             logger.error(f"数据处理时出错: {e}")
             return_data["msg"] = "处理接口返回信息时出错"
-
+            return return_data
+        
         # 加载模板
         try:
             return_data["temp"] = await load_template("qiwu.html")
         except FileNotFoundError as e:
             logger.error(f"加载模板失败: {e}")
             return_data["msg"] = "系统错误：模板文件不存在"
+            return return_data
+        
+        return_data["code"] = 200
 
         return return_data
 
@@ -406,10 +426,12 @@ class JX3Service:
         pic_url = data.get("picUrl")
         if pic_url:
             return_data["data"] = pic_url
-            return_data["code"] = 200
         else:
             return_data["msg"] = "接口未返回图片URL"
-            
+            return return_data
+        
+        return_data["code"] = 200    
+
         return return_data
     
 
@@ -445,11 +467,14 @@ class JX3Service:
 
             return_data["status"] = status_bool
             return_data["data"] = status_str
-            return_data["code"] = 200
+            
         except Exception as e:
             logger.error(f"kaifu 数据处理时出错: {e}")
             return_data["msg"] = "处理接口返回信息时出错"
-            
+            return return_data
+        
+        return_data["code"] = 200    
+
         return return_data
 
 
@@ -467,10 +492,12 @@ class JX3Service:
         text = data.get("text")
         if text:
             return_data["data"] = text
-            return_data["code"] = 200
         else:
             return_data["msg"] = "接口未返回文本"
-            
+            return return_data
+
+        return_data["code"] = 200  
+
         return return_data
     
 
@@ -484,23 +511,26 @@ class JX3Service:
         if not data:
             return_data["msg"] = "获取接口信息失败"
             return return_data
-        
-        server_wj = []
-        server_dx = []
-        server_sx = []
+        # 处理返回数据
+        try:
+            server_wj = []
+            server_dx = []
+            server_sx = []
 
-        for itme in data:
-            if itme['zone'] == "无界区":
-                server_wj.append(itme)
-            elif itme['zone'] == "电信区":
-                server_dx.append(itme)
-            elif itme['zone'] == "双线区":
-                server_sx.append(itme)
+            for itme in data:
+                if itme['zone'] == "无界区":
+                    server_wj.append(itme)
+                elif itme['zone'] == "电信区":
+                    server_dx.append(itme)
+                elif itme['zone'] == "双线区":
+                    server_sx.append(itme)
 
-        return_data["data"]["server_wj"] = server_wj
-        return_data["data"]["server_dx"] = server_dx
-        return_data["data"]["server_sx"] = server_sx
-
+            return_data["data"]["server_wj"] = server_wj
+            return_data["data"]["server_dx"] = server_dx
+            return_data["data"]["server_sx"] = server_sx
+        except Exception as e:
+            logger.error(f"数据处理时出错: {e}")
+            return_data["msg"] = "处理接口返回信息时出错"
         # 加载模板
         try:
             return_data["temp"] = await load_template("qufuzhuangtai.html")
@@ -534,11 +564,14 @@ class JX3Service:
                 result_msg += f"链接：{item.get('url', '无链接')}\n\n"
                 
             return_data["data"] = result_msg
-            return_data["code"] = 200
-        except Exception as e:
-            logger.error(f"jigai 数据处理时出错: {e}")
-            return_data["msg"] = "处理接口返回信息时出错"
             
+        except Exception as e:
+            logger.error(f"数据处理时出错: {e}")
+            return_data["msg"] = "处理接口返回信息时出错"
+            return return_data
+        
+        return_data["code"] = 200
+
         return return_data
     
 
@@ -568,11 +601,13 @@ class JX3Service:
                 result_msg += f"链接：{item.get('url', '无链接')}\n"
                 
             return_data["data"] = result_msg
-            return_data["code"] = 200
-        except Exception as e:
-            logger.error(f"jigai 数据处理时出错: {e}")
-            return_data["msg"] = "处理接口返回信息时出错"
             
+        except Exception as e:
+            logger.error(f"数据处理时出错: {e}")
+            return_data["msg"] = "处理接口返回信息时出错"
+
+        return_data["code"] = 200    
+
         return return_data
 
 
@@ -599,11 +634,13 @@ class JX3Service:
             result_msg += f"{new_msg.get('created_at')}\n"
                 
             return_data["data"] = result_msg
-            return_data["code"] = 200
         except Exception as e:
-            logger.error(f"jigai 数据处理时出错: {e}")
+            logger.error(f"数据处理时出错: {e}")
             return_data["msg"] = "处理接口返回信息时出错"
+            return return_data
         
+        return_data["code"] = 200
+
         return return_data
 
 
@@ -634,11 +671,14 @@ class JX3Service:
         # 准备模板渲染数据
         try:
             return_data["data"]["items"] = data_list
-            return_data["code"] = 200
+
         except Exception as e:
-            logger.error(f"jinjia 模板数据准备失败: {e}")
+            logger.error(f"模板数据准备失败: {e}")
             return_data["msg"] = "系统错误：模板渲染数据准备失败"
-            
+            return return_data
+        
+        return_data["code"] = 200  
+
         return return_data
 
 
@@ -654,14 +694,19 @@ class JX3Service:
             return return_data
             
         # 格式化时间
-        for item in data_list:
-            timestamp = item.get("time")
-            if timestamp and isinstance(timestamp, (int, float)):
-                # 修复时间戳：原代码显示这里是毫秒级，除以 1000
-                item["time"] = datetime.fromtimestamp(timestamp / 1000).strftime("%Y-%m-%d %H:%M:%S")
-            else:
-                item["time"] = "未知时间" # 确保即使 time 字段缺失也不会报错
-                
+        try:
+            for item in data_list:
+                timestamp = item.get("time")
+                if timestamp and isinstance(timestamp, (int, float)):
+                    # 修复时间戳：原代码显示这里是毫秒级，除以 1000
+                    item["time"] = datetime.fromtimestamp(timestamp / 1000).strftime("%Y-%m-%d %H:%M:%S")
+                else:
+                    item["time"] = "未知时间" # 确保即使 time 字段缺失也不会报错
+        except Exception as e:
+            logger.error(f"数据处理时出错: {e}")
+            return_data["msg"] = "处理接口返回信息时出错"
+            return return_data     
+
         # 加载模板
         try:
             return_data["temp"] = await  load_template("qiyuliebiao.html")
@@ -680,8 +725,9 @@ class JX3Service:
             }
             return_data["code"] = 200
         except Exception as e:
-            logger.error(f"qiyu 模板数据准备失败: {e}")
+            logger.error(f"模板数据准备失败: {e}")
             return_data["msg"] = "系统错误：模板渲染数据准备失败"
+            return return_data
             
         return return_data
 
@@ -745,11 +791,11 @@ class JX3Service:
                     "created": datetime.fromtimestamp(first.get("created")).strftime("%Y-%m-%d %H:%M:%S"),
                 }
                 result.append(new_item)
+                return_data["data"]["list"] = result
         except Exception as e:
             logger.error(f"处理交易行数据失败: {e}")
             return_data["msg"] = "处理交易行数据失败"
-            
-        return_data["data"]["list"] = result
+            return return_data
 
         # 5. 模板渲染
         try:
@@ -758,6 +804,7 @@ class JX3Service:
         except FileNotFoundError as e:
             logger.error(f"加载模板失败: {e}")
             return_data["msg"] = "系统错误：模板文件不存在"
+            return return_data
 
         return return_data
     
@@ -824,16 +871,22 @@ class JX3Service:
             return_data["msg"] = "获取接口信息失败"
             return return_data
             
-        # 3. 处理返回数据 (直接提取图片 URL)
-                # 格式化时间
-        for item in data:
-            timestamp = item.get("time")
-            if timestamp and isinstance(timestamp, (int, float)):
-                # 修复时间戳：原代码显示这里是毫秒级，除以 1000
-                item["time"] = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
-            else:
-                item["time"] = "未知时间" # 确保即使 time 字段缺失也不会报错
-        
+        # 3. 处理返回数据 
+        try:            
+            for item in data:
+                timestamp = item.get("time")
+                if timestamp and isinstance(timestamp, (int, float)):
+                    # 修复时间戳：原代码显示这里是毫秒级，除以 1000
+                    item["time"] = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+                else:
+                    item["time"] = "未知时间" # 确保即使 time 字段缺失也不会报错
+
+            return_data["data"]["list"] = data
+        except Exception as e:
+            logger.error(f"数据处理时出错: {e}")
+            return_data["msg"] = "处理接口返回信息时出错" 
+            return return_data    
+               
         # 4. 加载模板
         try:
             return_data["temp"] = await load_template("yanhuan.html")
@@ -842,7 +895,6 @@ class JX3Service:
             return_data["msg"] = "系统错误：模板文件不存在"
             return return_data
         
-        return_data["data"]["list"] = data
         return_data["code"] = 200
         
         return return_data
@@ -863,13 +915,19 @@ class JX3Service:
         if not data:
             return_data["msg"] = "获取接口信息失败"
             return return_data
-            
+
         # 3. 处理返回数据 
-        for item in data:
-            item["refresh_time"] = datetime.fromtimestamp(item["refresh_time"]).strftime("%Y-%m-%d %H:%M:%S")
-            item["capture_time"] = datetime.fromtimestamp(item["capture_time"]).strftime("%Y-%m-%d %H:%M:%S")
-            item["auction_time"] = datetime.fromtimestamp(item["auction_time"]).strftime("%Y-%m-%d %H:%M:%S")
-        
+        try:              
+            for item in data:
+                item["refresh_time"] = datetime.fromtimestamp(item["refresh_time"]).strftime("%Y-%m-%d %H:%M:%S")
+                item["capture_time"] = datetime.fromtimestamp(item["capture_time"]).strftime("%Y-%m-%d %H:%M:%S")
+                item["auction_time"] = datetime.fromtimestamp(item["auction_time"]).strftime("%Y-%m-%d %H:%M:%S")
+                return_data["data"]["list"] = data
+        except Exception as e:
+            logger.error(f"数据处理时出错: {e}")
+            return_data["msg"] = "处理接口返回信息时出错" 
+            return return_data
+
         # 4. 加载模板
         try:
             return_data["temp"] = await load_template("dilujilu.html")
@@ -878,7 +936,6 @@ class JX3Service:
             return_data["msg"] = "系统错误：模板文件不存在"
             return return_data
         
-        return_data["data"]["list"] = data
         return_data["code"] = 200
         
         return return_data
@@ -901,9 +958,15 @@ class JX3Service:
             return return_data   
         
         # 3. 处理返回数据 
-        for item in data["data"]:
-            item["createTime"] = datetime.fromtimestamp(item["createTime"]).strftime("%Y-%m-%d %H:%M:%S")
-            item["number"] = f"{item['number']}/{item['maxNumber']}"
+        try: 
+            for item in data["data"]:
+                item["createTime"] = datetime.fromtimestamp(item["createTime"]).strftime("%Y-%m-%d %H:%M:%S")
+                item["number"] = f"{item['number']}/{item['maxNumber']}"
+                return_data["data"]["list"] = data["data"]
+        except Exception as e:
+            logger.error(f"数据处理时出错: {e}")
+            return_data["msg"] = "处理接口返回信息时出错" 
+            return return_data
 
         # 4. 加载模板
         try:
@@ -913,7 +976,6 @@ class JX3Service:
             return_data["msg"] = "系统错误：模板文件不存在"
             return return_data
         
-        return_data["data"]["list"] = data["data"]
         return_data["code"] = 200
         
         return return_data
@@ -992,6 +1054,7 @@ class JX3Service:
         except Exception as e:
             logger.error(f"处理返回数据失败: {e}")
             return_data["msg"] = "处理返回数据失败"
+            return return_data
 
         # 4. 加载模板
         try:
@@ -1022,10 +1085,16 @@ class JX3Service:
             return_data["msg"] = "获取接口信息失败"
             return return_data
             
-        # 3. 处理返回数据 
-        for item in data:
-            item["time"] = datetime.fromtimestamp(item["time"]).strftime("%Y-%m-%d %H:%M:%S")
-        
+        # 3. 处理返回数据  
+        try: 
+            for item in data:
+                item["time"] = datetime.fromtimestamp(item["time"]).strftime("%Y-%m-%d %H:%M:%S")
+            return_data["data"]["list"] = data
+        except Exception as e:
+            logger.error(f"处理返回数据失败: {e}")
+            return_data["msg"] = "处理返回数据失败"
+            return return_data
+
         # 4. 加载模板
         try:
             return_data["temp"] = await load_template("zhengyingpaimai.html")
@@ -1034,7 +1103,7 @@ class JX3Service:
             return_data["msg"] = "系统错误：模板文件不存在"
             return return_data
         
-        return_data["data"]["list"] = data
+        
         return_data["code"] = 200
         
         return return_data
@@ -1063,11 +1132,12 @@ class JX3Service:
             result_msg = f"{server}\n"
             result_msg += f"上次[扶摇九天]开启时间：\n{datetime.fromtimestamp(data_old['time']).strftime('%Y-%m-%d %H:%M:%S')}\n"
             result_msg += f"下次[扶摇九天]开启时间：\n{datetime.fromtimestamp(data_new['time']).strftime('%Y-%m-%d %H:%M:%S')}"
+            return_data["data"] = result_msg
         except Exception as e:
             logger.error(f"处理返回数据失败: {e}")
             return_data["msg"] = "处理返回数据失败"
+            return return_data    
         
-        return_data["data"] = result_msg
         return_data["code"] = 200
         
         return return_data
@@ -1098,11 +1168,12 @@ class JX3Service:
             result_msg += f"鲲鹏岛：\n{_data['鲲鹏岛'][0]}\n"
             result_msg += f"的卢:\n{_data['龙泉府 / 进图（21:10）'][0]}\n"
             result_msg += f"赤兔:\n{data['data']['note']}"
+            return_data["data"] = result_msg
         except Exception as e:
             logger.error(f"处理返回数据失败: {e}")
             return_data["msg"] = "处理返回数据失败"
+            return return_data    
         
-        return_data["data"] = result_msg
         return_data["code"] = 200
         
         return return_data
@@ -1146,12 +1217,12 @@ class JX3Service:
                         )
 
                     result_msg += "\n\n"
-
+            return_data["data"] = result_msg
         except Exception as e:
             logger.error(f"处理返回数据失败: {e}")
             return_data["msg"] = "处理返回数据失败"
-        
-        return_data["data"] = result_msg
+            return return_data
+            
         return_data["code"] = 200
         
         return return_data
@@ -1183,11 +1254,12 @@ class JX3Service:
                     result_msg += f"所属吧：{item['name']}\n"
                     result_msg += f"链接：https://tieba.baidu.com/p/{item['url']}\n"
                     result_msg += f"日期：{item['date']}\n\n"
+            return_data["data"] = result_msg
         except Exception as e:
             logger.exception("处理返回数据失败")
             return_data["msg"] = "处理返回数据失败"
-        
-        return_data["data"] = result_msg
+            return return_data    
+
         return_data["code"] = 200
         
         return return_data
@@ -1229,12 +1301,14 @@ class JX3Service:
         try:
             return_data["data"] = data2["post"]["title"]
             content = data2["post"]["content"]
+            return_data["temp"] = content
         except Exception as e:
             logger.exception("处理返回数据失败")
             return_data["msg"] = "处理返回数据失败"
+            return return_data
 
-        return_data["temp"] = content
         return_data["code"] = 200
+
         return return_data
     
 
@@ -1267,10 +1341,13 @@ class JX3Service:
             return_data["msg"] = msg
             return_data["data"]["pid"] = pid_list
             return_data["data"]["num"] = n
-            return_data["code"] = 200
+
         except Exception as e:
             logger.exception("处理返回数据失败")
             return_data["msg"] = "处理返回数据失败"
+            return return_data
+        
+        return_data["code"] = 200
 
         return return_data
     
@@ -1298,10 +1375,12 @@ class JX3Service:
                 msg += f"【宏脚本】\n{m['macro']}\n\n"
 
             return_data["data"] = msg
-            return_data["code"] = 200
+            
         except Exception as e:
             logger.exception("处理返回数据失败")
             return_data["msg"] = "处理返回数据失败"
+            return return_data
+        
+        return_data["code"] = 200
 
-    
         return return_data
