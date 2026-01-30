@@ -159,7 +159,7 @@ class JX3Service:
             return return_data
         
         return_data["code"] = 200
-        
+
         return return_data
     
     async def richangyuche(self) -> Dict[str, Any]:
@@ -1384,3 +1384,75 @@ class JX3Service:
         return_data["code"] = 200
 
         return return_data
+    
+
+    async def peizhuang(self, name: str = "易筋经") -> Dict[str, Any]:
+        """配装"""
+        return_data = self._init_return_data()
+        
+        name_map = {
+            "冰心诀":10081,
+            "云裳心经":10080,
+            "花间游":10021,
+            "离经易道":10028,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081,
+            "冰心诀":10081
+        }
+
+        # 1. 构造请求参数
+        params = {"per": "10","page": "1","tags": "","client": "20","global_level": "130","mount": "","star": "1"}
+        
+        # 2. 调用基础请求
+        data: Optional[Dict[str, Any]] = await self._base_request(
+            "jx3_bagua", "GET", params=params
+        )
+        
+        # 3. 处理返回数据
+        try:
+            if not data:
+                result_msg = f"未找到相关 {type} 记录。\n"
+                result_msg += f"可选范围：818 616 鬼网三 鬼网3 树洞 记录 教程 街拍 故事 避雷 吐槽 提问"
+            else:
+                result_msg = f"类型：{type} 的最新记录如下：\n\n"
+
+                for item in data:
+                    result_msg += f"{item['title']}\n"
+                    result_msg += f"分区：{item['zone']}  服务器：{item['server']}\n"
+                    result_msg += f"所属吧：{item['name']}\n"
+                    result_msg += f"链接：https://tieba.baidu.com/p/{item['url']}\n"
+                    result_msg += f"日期：{item['date']}\n\n"
+            return_data["data"] = result_msg
+        except Exception as e:
+            logger.exception("处理返回数据失败")
+            return_data["msg"] = "处理返回数据失败"
+            return return_data    
+
+        return_data["code"] = 200
+        
+        return return_data
+    

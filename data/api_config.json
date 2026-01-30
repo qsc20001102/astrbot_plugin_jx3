@@ -307,5 +307,19 @@
             "size": "20",
             "client": "std"
         }
+    },
+    "jx3box_peizhuang":{
+        "url":"https://cms.jx3box.com/api/cms/app/pz",
+        "method":"GET",
+        "description":"魔盒获取宏配置列表",
+        "params":{
+            "per": "10",
+            "page": "1",
+            "tags": "",
+            "client": "20",
+            "global_level": "130",
+            "mount": "",
+            "star": "1"
+        }
     }
 }
