@@ -316,7 +316,7 @@
             "per": "10",
             "page": "1",
             "tags": "",
-            "client": "20",
+            "client": "std",
             "global_level": "130",
             "mount": "",
             "star": "1"

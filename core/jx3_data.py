@@ -826,7 +826,7 @@ class JX3Service:
             return return_data
             
         # 3. 处理返回数据 (直接提取图片 URL)
-        return_data["data"] = data
+        return_data["data"] = data['showAvatar']
         return_data["code"] = 200
         
         return return_data
@@ -849,7 +849,7 @@ class JX3Service:
             return return_data
             
         # 3. 处理返回数据 (直接提取图片 URL)
-        return_data["data"] = data
+        return_data["data"] = data['showAvatar']
         return_data["code"] = 200
         
         return return_data
@@ -1001,7 +1001,7 @@ class JX3Service:
         # 角色名片获取
         datamp = await self.jueshemingpian(server,name)
         if datamp["code"] == 200:
-            data["showAvatar"] = datamp['data']['showAvatar']
+            data["showAvatar"] = datamp['data']
             logger.info("名片获取完成")
         else:
             data["showAvatar"] = ""
@@ -1299,7 +1299,7 @@ class JX3Service:
         
         # 4. 处理数据
         try:
-            return_data["data"] = data2["post"]["title"]
+            return_data["data"] = {}
             content = data2["post"]["content"]
             return_data["temp"] = content
         except Exception as e:
@@ -1386,69 +1386,97 @@ class JX3Service:
         return return_data
     
 
-    async def peizhuang(self, name: str = "易筋经") -> Dict[str, Any]:
+    async def peizhuang(self, name: str, tags: str) -> Dict[str, Any]:
         """配装"""
         return_data = self._init_return_data()
         
         name_map = {
-            "冰心诀":10081,
+            "冰心":10081,
             "云裳心经":10080,
+            "奶秀":10080,
             "花间游":10021,
             "离经易道":10028,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081,
-            "冰心诀":10081
+            "奶花":10028,
+            "毒经":10175,
+            "补天诀":10176,
+            "奶毒":10176,
+            "莫问":10447,
+            "相知":10448,
+            "奶歌":10448,
+            "无方":10627,
+            "灵素":10626,
+            "奶药":10626,
+            "傲血战意":10026,
+            "铁牢律":10062,
+            "策T":10062,
+            "易筋经":10003,
+            "洗髓经":10002,
+            "秃T":10002,
+            "焚影圣诀":10242,
+            "明尊琉璃体":10243,
+            "喵T":10243,
+            "分山劲":10390,
+            "铁骨衣":10389,
+            "苍T":10389,
+            "紫霞功":10014,
+            "气纯":10014,
+            "太虚剑意":10015,
+            "剑纯":10015,
+            "天罗诡道":10225,
+            "惊羽诀":10224,
+            "问水诀":10144,
+            "藏剑":10144,
+            "笑尘诀":10268,
+            "丐帮":10268,
+            "北傲诀":10464,
+            "霸刀":10464,
+            "凌海诀":10533,
+            "蓬莱":10533,
+            "隐龙诀":10585,
+            "凌雪":10585,
+            "太玄经":10615,
+            "衍天":10615,
+            "孤锋诀":10698,
+            "刀宗":10698,
+            "山海心诀":10756,
+            "万灵":10698,
+            "周天功":10786,
+            "段式":10786,
+            "幽罗引":10821,
+            "无相楼":10821
+
         }
 
+        mount = name_map.get(name,None)
+        if mount == None:
+            return_data["msg"] = "未找到该心法配装"
+            return return_data
+        
+        logger.debug(mount)
         # 1. 构造请求参数
-        params = {"per": "10","page": "1","tags": "","client": "20","global_level": "130","mount": "","star": "1"}
+        params = {"mount": mount, "tags": tags}
         
         # 2. 调用基础请求
         data: Optional[Dict[str, Any]] = await self._base_request(
-            "jx3_bagua", "GET", params=params
+            "jx3box_peizhuang", "GET", params=params
         )
+        logger.debug(data)
+        # 验证数据
+        if not data:
+            return_data["msg"] = "配装数据获取异常"
+            return return_data
         
         # 3. 处理返回数据
         try:
-            if not data:
-                result_msg = f"未找到相关 {type} 记录。\n"
-                result_msg += f"可选范围：818 616 鬼网三 鬼网3 树洞 记录 教程 街拍 故事 避雷 吐槽 提问"
-            else:
-                result_msg = f"类型：{type} 的最新记录如下：\n\n"
+            result_msg = f"{name}--配装\n"        
+            for item in data["list"]:
+                result_msg += f"【{item['zlp']}】--{item['title']}\n"
+                result_msg += f"链接：https://www.jx3box.com/pz/view/{item['id']}\n\n"
 
-                for item in data:
-                    result_msg += f"{item['title']}\n"
-                    result_msg += f"分区：{item['zone']}  服务器：{item['server']}\n"
-                    result_msg += f"所属吧：{item['name']}\n"
-                    result_msg += f"链接：https://tieba.baidu.com/p/{item['url']}\n"
-                    result_msg += f"日期：{item['date']}\n\n"
             return_data["data"] = result_msg
+
         except Exception as e:
-            logger.exception("处理返回数据失败")
+            logger.exception("处理返回数据失败:",e)
             return_data["msg"] = "处理返回数据失败"
             return return_data    
 

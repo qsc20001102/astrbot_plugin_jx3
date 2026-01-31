@@ -242,6 +242,7 @@ class Jx3ApiPlugin(Star):
             "奇遇统计": self.jx3com.jx3_qufuqiyu,
             "奇遇攻略": self.jx3com.jx3_qiyugonglue,
             "宏": self.jx3com.jx3_hong,
+            "配装": self.jx3com.jx3_peizhuang,
             "金价": self.jx3com.jx3_jinjia,
             "物价": self.jx3com.jx3_wujia,
             "交易行": self.jx3com.jx3_jiaoyihang,
