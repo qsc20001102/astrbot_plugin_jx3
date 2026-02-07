@@ -11,15 +11,17 @@ from astrbot.api import logger
 from astrbot.api import AstrBotConfig
 
 from .request import APIClient
+from .sqlite import AsyncSQLiteDB
 from .fun_basic import load_template,gold_to_string,week_to_num,compare_date_str
 
 class JX3Service:
     def __init__(self, api_config, config:AstrBotConfig):
         self._api = APIClient()
-        # 获取API配置文件
+        # 引用API配置文件
         self._api_config = api_config
-        # 获取插件配置文件
+        # 引用插件配置文件
         self._config = config
+
         # 获取配置中的 Token
         self.token = self._config.get("jx3api_token", "")
         if  self.token == "":
@@ -1484,3 +1486,4 @@ class JX3Service:
         
         return return_data
     
+        

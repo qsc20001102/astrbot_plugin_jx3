@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>避雷查看</title>
+
+<style>
+    body {
+        font-family: 'Microsoft YaHei', Arial, sans-serif;
+        background: #f1f2f6;
+        margin: 0;
+        padding: 20px;
+    }
+
+    .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        text-align: center; /* ★ 让容器内标题更自然居中 */
+    }
+
+    h1 {
+        font-size: 32px;
+        margin-bottom: 25px;
+        color: #222;
+        font-weight: 800;
+        text-align: center; /* ★ 强制居中 */
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        margin-top: 10px;
+        text-align: left;  /* 不影响表格内容 */
+    }
+
+    thead {
+        background: #d93939;
+        color: white;
+        font-size: 18px;
+    }
+
+    th, td {
+        padding: 14px 12px;
+        border-bottom: 1px solid #eee;
+        font-size: 16px;
+    }
+
+    tbody tr:hover {
+        background: #fff2f2;
+    }
+
+    .text-col {
+        max-width: 360px;
+        line-height: 1.5em;
+        word-break: break-word;
+        font-weight: 600;
+        color: #333;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>避雷查看</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>避雷名称</th>
+                <th>避雷备注</th>
+                <th>添加时间</th>
+                <th>添加人</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for m in lists %}
+            <tr>
+                <td>{{ m.id }}</td>
+                <td>{{ m.name }}</td>
+                <td class="text-col">{{ m.text }}</td>
+                <td>{{ m.time }}</td>
+                <td>{{ m.user }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+
+</body>
+</html>

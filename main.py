@@ -14,8 +14,10 @@ from astrbot.api import logger
 from astrbot.api import AstrBotConfig
 import astrbot.api.message_components as Comp
 
+from .core.sqlite import AsyncSQLiteDB
 from .core.jx3_data import JX3Service
 from .core.async_task import AsyncTask
+from .core.bilei_data import BiLeidata
 from .core.jx3_commands import JX3Commands
 
 @register("astrbot_plugin_jx3", 
@@ -33,7 +35,11 @@ class Jx3ApiPlugin(Star):
         # 本地数据存储路径
         self.local_data_dir = StarTools.get_data_dir("astrbot_plugin_jx3")
 
-        # 插件数据文件路径
+        # SQLite本地路径
+        self.sqlite_path = Path(self.local_data_dir) /"sqlite.db"
+        logger.info(f"SQLite数据文件路径：{self.sqlite_path}")
+
+        # 插件自带数据文件路径
         self.data_file_path = Path(__file__).parent / "data"
 
         # 读取API配置文件
@@ -41,8 +47,9 @@ class Jx3ApiPlugin(Star):
         with open(self.api_file_path, 'r', encoding='utf-8') as f:
             self.api_config = json.load(f) 
 
+
         # 初始化数据
-        # 指令前缀
+        # 指令前缀功能
         self.prefix_en = self.conf.get("prefix").get("enable")
         self.prefix_text = self.conf.get("prefix").get("text")
         if not self.prefix_text:
@@ -78,10 +85,27 @@ class Jx3ApiPlugin(Star):
             raise
 
         try:
+            # sqlite 实例化
+            self.sql_db = AsyncSQLiteDB(self.sqlite_path)
+            await self.sql_db.connect()
+            await self.sql_db.execute("""
+            CREATE TABLE IF NOT EXISTS bilei(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT,
+                text TEXT,
+                time TEXT,
+                user TEXT                                           
+            )
+            """)
+            # 避雷功能 实例化
+            self.bilei = BiLeidata(self.sql_db)
+            # 剑三功能 实例化
             self.jx3fun = JX3Service(self.api_config, self.conf)
+            # 后台推送 实例化
             self.at = AsyncTask(self.context, self.conf, self.jx3fun)
             await self.at.init_tasks()
-            self.jx3com = JX3Commands(self.jx3fun,self.at,self.server)
+            # 发送消息实例化
+            self.jx3com = JX3Commands(self.jx3fun, self.at, self.bilei, self.server)
         except Exception as e:
             if hasattr(self, "at"):
                 await self.at.destroy()  
@@ -103,6 +127,14 @@ class Jx3ApiPlugin(Star):
         if self.jx3fun:
             await self.jx3fun.close()
             self.jx3fun = None
+
+        if self.bilei:
+            await self.bilei.close()
+            self.bilei = None
+
+        if self.sql_db:
+            await self.sql_db.close()
+            self.sql_db = None
         logger.info("jx3api插件已卸载/停用")
 
 
@@ -258,6 +290,11 @@ class Jx3ApiPlugin(Star):
             "刷马": self.jx3com.jx3_shuma,
             "骗子": self.jx3com.jx3_pianzhi,
             "八卦": self.jx3com.jx3_bagua,
+            "避雷添加": self.jx3com.bilei_add,
+            "避雷查看": self.jx3com.bilei_all,
+            "避雷查询": self.jx3com.bilei_select,
+            "避雷修改": self.jx3com.bilei_update,
+            "避雷删除": self.jx3com.bilei_delete,
             "开服监控": self.jx3com.jx3_kaifhujiank,
             "新闻推送": self.jx3com.jx3_xinwenzhixun,
             "刷马推送": self.jx3com.jx3_shuamamsg,

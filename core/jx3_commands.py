@@ -22,12 +22,13 @@ from astrbot.core.utils.session_waiter import (
 
 from .jx3_data import JX3Service
 from .async_task import AsyncTask
-
+from .bilei_data import BiLeidata
 
 class JX3Commands(Star):
-    def __init__(self, jx3_data:JX3Service, at:AsyncTask, server:str):
+    def __init__(self, jx3_data:JX3Service, at:AsyncTask, bilei:BiLeidata, server:str):
         self.jx3fun = jx3_data
         self.jx3at = at
+        self.bilie = bilei
         self.server = server
 
 
@@ -307,9 +308,34 @@ class JX3Commands(Star):
         return await self.plain_msg(event, lambda: self.jx3fun.pianzhi(qq))
 
 
-    async def jx3_bagua(self, event: AstrMessageEvent,type: str):
+    async def jx3_bagua(self, event: AstrMessageEvent,name: str,text: str):
         """剑三 八卦 类型"""
-        return await self.plain_msg(event, lambda: self.jx3fun.bagua(type))
+        return await self.plain_msg(event, lambda: self.jx3fun.bagua(name))
+    
+
+    async def bilei_add(self, event: AstrMessageEvent,name: str, text: str):
+        """避雷添加 名称 备注"""
+        return await self.plain_msg(event, lambda: self.bilie.add(name,text,event.get_sender_name()))
+    
+
+    async def bilei_all(self, event: AstrMessageEvent):
+        """避雷查看"""
+        return await self.T2I_image_msg(event, self.bilie.all)
+    
+
+    async def bilei_select(self, event: AstrMessageEvent, name:str):
+        """避雷查询"""
+        return await self.T2I_image_msg(event, lambda: self.bilie.select(name))
+
+
+    async def bilei_update(self, event: AstrMessageEvent, id:int, name: str, text: str):
+        """避雷修改 ID 名称 备注"""
+        return await self.plain_msg(event, lambda: self.bilie.update(id,name,text,event.get_sender_name()))
+
+
+    async def bilei_delete(self, event: AstrMessageEvent, id:int):
+        """避雷删除 ID"""
+        return await self.plain_msg(event, lambda: self.bilie.delete(id))
 
 
     async def jx3_kaifhujiank(self, event: AstrMessageEvent):
