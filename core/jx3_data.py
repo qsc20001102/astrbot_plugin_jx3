@@ -744,7 +744,7 @@ class JX3Service:
         search_data: Optional[Dict[str, Any]] = await self._base_request("jx3_wujia", "GET", params=params_search)
 
         if not search_data:
-            return_data["msg"] = "未找到改外观"
+            return_data["msg"] = "未找到该外观"
             return return_data
         
         return_data["data"] = search_data
