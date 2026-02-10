@@ -128,10 +128,6 @@ class Jx3ApiPlugin(Star):
             await self.jx3fun.close()
             self.jx3fun = None
 
-        if self.bilei:
-            await self.bilei.close()
-            self.bilei = None
-
         if self.sql_db:
             await self.sql_db.close()
             self.sql_db = None
