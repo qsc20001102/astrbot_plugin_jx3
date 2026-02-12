@@ -86,7 +86,7 @@ class Jx3ApiPlugin(Star):
 
         try:
             # sqlite 实例化
-            self.sql_db = AsyncSQLiteDB(self.sqlite_path)
+            self.sql_db = AsyncSQLiteDB(self.sqlite_path) # pyright: ignore[reportArgumentType]
             await self.sql_db.connect()
             await self.sql_db.execute("""
             CREATE TABLE IF NOT EXISTS bilei(
