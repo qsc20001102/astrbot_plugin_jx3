@@ -1372,7 +1372,7 @@ class JX3Service:
             return_data["temp"] = data["post_content"]
             msg = ""
             for m in data["post_meta"]["data"]:
-                msg += f"【宏名称】{m['name']}\n"
+                msg += f"【宏名称】\n{m['name']}\n"
                 msg += f"【使用说明】\n{m['desc']}\n"
                 msg += f"【宏脚本】\n{m['macro']}\n\n"
 
