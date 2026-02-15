@@ -595,7 +595,7 @@ class Jx3ApiPlugin(Star):
         return await self.plain_msg(event, lambda: self.jx3fun.pianzhi(qq))
 
 
-    async def jx3_bagua(self, event: AstrMessageEvent,name: str,text: str):
+    async def jx3_bagua(self, event: AstrMessageEvent,name: str = "818"):
         """剑三 八卦 类型"""
         return await self.plain_msg(event, lambda: self.jx3fun.bagua(name))
     

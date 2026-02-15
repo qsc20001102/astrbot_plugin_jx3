@@ -1250,7 +1250,7 @@ class JX3Service:
                 result_msg = f"未找到相关 {type} 记录。\n"
                 result_msg += f"可选范围：818 616 鬼网三 鬼网3 树洞 记录 教程 街拍 故事 避雷 吐槽 提问"
             else:
-                result_msg = f"类型：{type} 的最新记录如下：\n\n"
+                result_msg = f"类型：【{type}】\n\n"
 
                 for item in data:
                     result_msg += f"{item['title']}\n"
