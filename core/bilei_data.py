@@ -12,7 +12,7 @@ from astrbot.api import AstrBotConfig
 from .sqlite import AsyncSQLiteDB
 from .fun_basic import load_template
 class BiLeidata:
-    def __init__(self,sqlite:AsyncSQLiteDB):
+    def __init__(self, sqlite:AsyncSQLiteDB):
         # 引用sqlite
         self._sql_db = sqlite
         

@@ -36,16 +36,19 @@ class Jx3ApiPlugin(Star):
 
         # 本地数据存储路径
         self.local_data_dir = StarTools.get_data_dir("astrbot_plugin_jx3")
+        # 插件数据存储路径
+        self.data_file_path = Path(__file__).parent / "data"
 
         # SQLite本地路径
         self.sqlite_path = Path(self.local_data_dir) /"sqlite.db"
-        logger.info(f"SQLite数据文件路径：{self.sqlite_path}")
+        logger.info(f"本地数据文件路径：{self.sqlite_path}")
 
-        # 插件自带数据文件路径
-        self.data_file_path = Path(__file__).parent / "data"
-
+        # SQLite插件路径
+        self.sqlite_plugin = Path(self.data_file_path) /"sqlite.db"
+        logger.info(f"插件数据文件路径：{self.sqlite_plugin}")
+        
         # 读取API配置文件
-        self.api_file_path = Path(__file__).parent / "data" / "api_config.json"
+        self.api_file_path = self.data_file_path / "api_config.json"
         with open(self.api_file_path, 'r', encoding='utf-8') as f:
             self.api_config = json.load(f) 
 
@@ -100,12 +103,14 @@ class Jx3ApiPlugin(Star):
                 user TEXT                                           
             )
             """)
+            self.sql_db_plugin = AsyncSQLiteDB(self.sqlite_plugin) # pyright: ignore[reportArgumentType]
+            await self.sql_db_plugin.connect()
 
             # 避雷功能 实例化
             self.bilei = BiLeidata(self.sql_db)
 
             # 剑三功能 实例化
-            self.jx3fun = JX3Service(self.api_config, self.conf)
+            self.jx3fun = JX3Service(self.api_config, self.conf, self.sql_db_plugin)
             
             # 后台推送 实例化
             self.at = AsyncTask(self.context, self.conf, self.jx3fun)
@@ -136,6 +141,11 @@ class Jx3ApiPlugin(Star):
         if self.sql_db:
             await self.sql_db.close()
             self.sql_db = None
+
+        if self.sql_db_plugin:
+            await self.sql_db_plugin.close()
+            self.sql_db_plugin = None
+
         logger.info("jx3api插件已卸载/停用")
 
 
@@ -345,6 +355,85 @@ class Jx3ApiPlugin(Star):
             await event.send(event.plain_result("猪脑过载，请稍后再试")) 
 
 
+    async def handler_plain_image_msg(self, event: AstrMessageEvent, action1, action2):
+        """两轮会话消息发送通用，先文本列表等反馈序号在发送图片"""
+        # 会话触发
+        try:
+            # 获取一轮数据
+            data = await action1()
+            if data["code"] == 200:
+                # 发送一轮消息
+                await event.send(event.plain_result(data["msg"])) 
+                # 获取触发用户ID
+                user_id = event.get_sender_id()
+
+                # 二轮会话流程
+                @session_waiter(timeout=30)
+                async def macro_select_waiter(controller: SessionController,new_event: AstrMessageEvent):
+                    # 跳过非触发用户消息
+                    if new_event.get_sender_id() != user_id:
+                        return
+                    # 获取用户消息
+                    msg = new_event.get_message_str().strip()
+                    # 判断消息是否为数字
+                    if not msg.isdigit():
+                        await new_event.send(
+                            MessageChain().message("输入异常，结束会话")
+                        )
+                        controller.stop()
+                        return
+                    # 判断数字是否在有效值内
+                    num = int(msg)
+                    if num < 1 or num > data["data"]["num"]:
+                        await new_event.send(
+                            MessageChain().message("无效序号，结束会话")
+                        )
+                        controller.stop()
+                        return
+                    
+                    # 获取二轮数据
+                    try:
+                        data1 = await action2(data["data"]["list"][num])
+                        if data1["code"] != 200:
+                            await new_event.send(
+                                MessageChain().message("获取详细数据失败")
+                            )
+                            controller.stop()
+                            return
+                        
+                        # 消息拼接发送
+                        chain = MessageChain()
+                        msg_text = data1["data"]
+                        chain.message(msg_text)
+                        if data1["temp"] != "":
+                            url = await self.html_render(data1["temp"], {}, options={})
+                            chain.url_image(url)
+                        await new_event.send(chain)
+
+                    except Exception as e:
+                        logger.error(f"功能函数执行错误: {e}")
+                        await new_event.send(
+                            MessageChain().message("猪脑过载，请稍后再试")
+                        )
+
+                    controller.stop()
+
+                # 二轮会话激活
+                try:
+                    await macro_select_waiter(event)  
+                except TimeoutError:
+                    await event.send(event.plain_result("选择超时，已结束会话")) 
+                except Exception:
+                    logger.error("宏选择发生异常", exc_info=True)
+
+            else:
+                await event.send(event.plain_result(f"未搜索到相关内容")) 
+                return
+                
+        except Exception as e:
+            logger.error(f"功能函数执行错误: {e}")
+            await event.send(event.plain_result("猪脑过载，请稍后再试"))
+
 
     async def jx3_helps(self, event: AstrMessageEvent):
         """剑三 功能"""
@@ -426,76 +515,9 @@ class Jx3ApiPlugin(Star):
         return await self.T2I_image_msg(event, lambda: self.jx3fun.qiyugonglue(name))
 
 
-    async def jx3_hong(self, event: AstrMessageEvent, kungfu: str = "易筋经"):
+    async def jx3_hong(self, event: AstrMessageEvent,name: str = "易筋经"):
         """剑三 宏 心法"""
-        # 获取宏列表
-        try:
-            data = await self.jx3fun.hong1(kungfu)
-            if data["code"] == 200:
-                await event.send(event.plain_result(data["msg"])) 
-                # 获取用户ID
-                user_id = event.get_sender_id()
-                # 等等用户回复
-                @session_waiter(timeout=30)
-                async def macro_select_waiter(controller: SessionController,new_event: AstrMessageEvent):
-                    if new_event.get_sender_id() != user_id:
-                        return
-
-                    msg = new_event.get_message_str().strip()
-
-                    if not msg.isdigit():
-                        await new_event.send(
-                            MessageChain().message("输入异常，结束会话")
-                        )
-                        controller.stop()
-                        return
-
-                    num = int(msg)
-                    if num < 1 or num > data["data"]["num"]:
-                        await new_event.send(
-                            MessageChain().message("无效序号，结束会话")
-                        )
-                        controller.stop()
-                        return
-
-                    try:
-                        data1 = await self.jx3fun.hong2(data["data"]["pid"][num])
-                        if data1["code"] != 200:
-                            await new_event.send(
-                                MessageChain().message("获取详细宏数据失败")
-                            )
-                            controller.stop()
-                            return
-                        
-                        chain = MessageChain()
-                        if data1["temp"] != "":
-                            url = await self.html_render(data1["temp"], {}, options={})
-                            chain.url_image(url)
-
-                        msg_text = data1["data"]
-                        chain.message(msg_text)
-                        await new_event.send(chain)
-
-                    except Exception as e:
-                        logger.error(f"功能函数执行错误: {e}")
-                        await new_event.send(
-                            MessageChain().message("猪脑过载，请稍后再试")
-                        )
-
-                    controller.stop()
-
-                try:
-                    await macro_select_waiter(event)  
-                except TimeoutError:
-                    await event.send(event.plain_result("选择宏超时，已结束会话")) 
-                except Exception:
-                    logger.error("宏选择发生异常", exc_info=True)
-            else:
-                await event.send(event.plain_result(f"未搜索到与【{kungfu}】相关的宏")) 
-                return
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            await event.send(event.plain_result("猪脑过载，请稍后再试"))
+        return await self.handler_plain_image_msg(event, lambda: self.jx3fun.hong1(name), self.jx3fun.hong2)
 
 
     async def jx3_peizhuang(self, event: AstrMessageEvent,name: str = "易筋经", tags: str = ""):
@@ -606,24 +628,24 @@ class Jx3ApiPlugin(Star):
     async def jx3_kaifhujiank(self, event: AstrMessageEvent):
         """剑三 开服监控"""     
         return_msg = await self.at.get_task_info("kfjk")
-        yield event.plain_result(return_msg) 
+        await event.send(event.plain_result(return_msg)) 
 
 
     async def jx3_xinwenzhixun(self, event: AstrMessageEvent):
         """剑三 新闻推送"""     
         return_msg = await self.at.get_task_info("xwzx")
-        yield event.plain_result(return_msg) 
+        await event.send(event.plain_result(return_msg)) 
 
 
     async def jx3_shuamamsg(self, event: AstrMessageEvent):
         """剑三 刷马推送"""     
         return_msg = await self.at.get_task_info("smxx")
-        yield event.plain_result(return_msg) 
+        await event.send(event.plain_result(return_msg)) 
 
 
     async def jx3_chitusg(self, event: AstrMessageEvent):
         """剑三 赤兔推送"""     
         return_msg = await self.at.get_task_info("ctxx")
-        yield event.plain_result(return_msg) 
+        await event.send(event.plain_result(return_msg)) 
 
 

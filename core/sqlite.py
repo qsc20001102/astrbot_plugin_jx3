@@ -1,3 +1,5 @@
+# pyright: reportOptionalMemberAccess=false
+
 import aiosqlite
 from typing import Any, Dict, List, Optional, Tuple
 

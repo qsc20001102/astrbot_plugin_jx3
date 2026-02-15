@@ -15,12 +15,14 @@ from .sqlite import AsyncSQLiteDB
 from .fun_basic import load_template,gold_to_string,week_to_num,compare_date_str
 
 class JX3Service:
-    def __init__(self, api_config, config:AstrBotConfig):
+    def __init__(self, api_config, config:AstrBotConfig, sqlite:AsyncSQLiteDB):
         self._api = APIClient()
         # 引用API配置文件
         self._api_config = api_config
         # 引用插件配置文件
         self._config = config
+        # 引用sqlite
+        self._sql_db = sqlite
 
         # 获取配置中的 Token
         self.token = self._config.get("jx3api_token", "")
@@ -48,7 +50,8 @@ class JX3Service:
             return {
                 "code": 0,
                 "msg": "功能函数未执行",
-                "data": {}
+                "data": {},
+                "temp": ""
             }
     
 
@@ -1132,8 +1135,8 @@ class JX3Service:
             data_new =  data[0]
             data_old =  data[1]
             result_msg = f"{server}\n"
-            result_msg += f"上次[扶摇九天]开启时间：\n{datetime.fromtimestamp(data_old['time']).strftime('%Y-%m-%d %H:%M:%S')}\n"
-            result_msg += f"下次[扶摇九天]开启时间：\n{datetime.fromtimestamp(data_new['time']).strftime('%Y-%m-%d %H:%M:%S')}"
+            result_msg += f"上次[扶摇九天]开启时间：{datetime.fromtimestamp(data_old['time']).strftime('%Y-%m-%d %H:%M:%S')}\n"
+            result_msg += f"本次[扶摇九天]开启时间：{datetime.fromtimestamp(data_new['time']).strftime('%Y-%m-%d %H:%M:%S')}"
             return_data["data"] = result_msg
         except Exception as e:
             logger.error(f"处理返回数据失败: {e}")
@@ -1168,8 +1171,7 @@ class JX3Service:
             result_msg += f"黑戈壁：\n{_data['黑戈壁'][0]}\n"
             result_msg += f"阴山大草原：\n{_data['阴山大草原'][0]}\n"
             result_msg += f"鲲鹏岛：\n{_data['鲲鹏岛'][0]}\n"
-            result_msg += f"的卢:\n{_data['龙泉府 / 进图（21:10）'][0]}\n"
-            result_msg += f"赤兔:\n{data['data']['note']}"
+            result_msg += f"{data['data']['note']}"
             return_data["data"] = result_msg
         except Exception as e:
             logger.error(f"处理返回数据失败: {e}")
@@ -1314,10 +1316,24 @@ class JX3Service:
         return return_data
     
 
-    async def hong1(self, kungfu: str) -> Dict[str, Any]:
+    async def hong1(self, name: str) -> Dict[str, Any]:
         """宏 心法"""
         return_data = self._init_return_data()
         
+        # 数据库查询数据
+        result = await self._sql_db.select_one(
+                "kungfu",
+                "name=? OR name1=? OR name2=? OR name3=? OR name4=? OR name5=?",
+                (name, name, name, name, name, name)
+            )
+
+        kungfu = result.get("name",None)
+        if kungfu == None:
+            return_data["msg"] = "未找到该心法"
+            return return_data
+        
+        logger.debug(f"查询到数据：{kungfu}")
+
         # 1. 构造请求参数
         params = {"kungfu": kungfu}
         
@@ -1341,7 +1357,7 @@ class JX3Service:
                 n += 1
             
             return_data["msg"] = msg
-            return_data["data"]["pid"] = pid_list
+            return_data["data"]["list"] = pid_list
             return_data["data"]["num"] = n
 
         except Exception as e:
@@ -1392,69 +1408,20 @@ class JX3Service:
         """配装"""
         return_data = self._init_return_data()
         
-        name_map = {
-            "冰心":10081,
-            "云裳心经":10080,
-            "奶秀":10080,
-            "花间游":10021,
-            "离经易道":10028,
-            "奶花":10028,
-            "毒经":10175,
-            "补天诀":10176,
-            "奶毒":10176,
-            "莫问":10447,
-            "相知":10448,
-            "奶歌":10448,
-            "无方":10627,
-            "灵素":10626,
-            "奶药":10626,
-            "傲血战意":10026,
-            "铁牢律":10062,
-            "策T":10062,
-            "易筋经":10003,
-            "洗髓经":10002,
-            "秃T":10002,
-            "焚影圣诀":10242,
-            "明尊琉璃体":10243,
-            "喵T":10243,
-            "分山劲":10390,
-            "铁骨衣":10389,
-            "苍T":10389,
-            "紫霞功":10014,
-            "气纯":10014,
-            "太虚剑意":10015,
-            "剑纯":10015,
-            "天罗诡道":10225,
-            "惊羽诀":10224,
-            "问水诀":10144,
-            "藏剑":10144,
-            "笑尘诀":10268,
-            "丐帮":10268,
-            "北傲诀":10464,
-            "霸刀":10464,
-            "凌海诀":10533,
-            "蓬莱":10533,
-            "隐龙诀":10585,
-            "凌雪":10585,
-            "太玄经":10615,
-            "衍天":10615,
-            "孤锋诀":10698,
-            "刀宗":10698,
-            "山海心诀":10756,
-            "万灵":10698,
-            "周天功":10786,
-            "段式":10786,
-            "幽罗引":10821,
-            "无相楼":10821
+        # 数据库查询数据
+        result = await self._sql_db.select_one(
+                "kungfu",
+                "name=? OR name1=? OR name2=? OR name3=? OR name4=? OR name5=?",
+                (name, name, name, name, name, name)
+            )
 
-        }
-
-        mount = name_map.get(name,None)
+        mount = result.get("pzid",None)
         if mount == None:
-            return_data["msg"] = "未找到该心法配装"
+            return_data["msg"] = "未找到该心法"
             return return_data
         
-        logger.debug(mount)
+        logger.debug(f"查询到数据：{mount}")
+
         # 1. 构造请求参数
         params = {"mount": mount, "tags": tags}
         
