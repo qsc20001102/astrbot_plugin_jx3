@@ -1,9 +1,4 @@
-
-# pyright: reportArgumentType=false
-# pyright: reportAttributeAccessIssue=false
-# pyright: reportIndexIssue=false
-# pyright: reportOptionalMemberAccess=false
-
+import json
 from datetime import datetime
 from typing import Dict, Any, Optional, List, Union
 
@@ -15,10 +10,16 @@ from .sqlite import AsyncSQLiteDB
 from .fun_basic import load_template,gold_to_string,week_to_num,compare_date_str
 
 class JX3Service:
-    def __init__(self, api_config, config:AstrBotConfig, sqlite:AsyncSQLiteDB):
-        self._api = APIClient()
-        # 引用API配置文件
-        self._api_config = api_config
+    def __init__(self, api_data_path: str, config: AstrBotConfig, sqlite: AsyncSQLiteDB):
+        # 加载API配置文件
+        try:
+            with open(api_data_path, 'r', encoding='utf-8') as f:
+                self._api_config = json.load(f) 
+        except FileNotFoundError as e:
+            logger.error(f"加载API配置文件失败: {e}")
+            self._api_config = {}
+        # 实例化 API Client
+        self._api: APIClient = APIClient()
         # 引用插件配置文件
         self._config = config
         # 引用sqlite
@@ -27,13 +28,13 @@ class JX3Service:
         # 获取配置中的 Token
         self.token = self._config.get("jx3api_token", "")
         if  self.token == "":
-            logger.info("获取配置token失败，请正确填写token,否则部分功能无法正常使用")
+            logger.warning("获取配置token失败，请正确填写token,否则部分功能无法正常使用")
         else:
             logger.debug(f"获取配置token成功。{self.token}")
         # 获取配置中的 ticket
         self.ticket = self._config.get("jx3api_ticket", "")
         if  self.ticket == "":
-            logger.info("获取配置ticket失败，请正确填写ticket,否则部分功能无法正常使用")
+            logger.warning("获取配置ticket失败，请正确填写ticket,否则部分功能无法正常使用")
         else:
             logger.debug(f"获取配置ticket成功。{self.ticket}")
         
@@ -42,7 +43,6 @@ class JX3Service:
         """释放底层 APIClient 资源"""
         if self._api:
             await self._api.close()
-            self._api = None
 
 
     def _init_return_data(self) -> Dict[str, Any]:
@@ -72,12 +72,15 @@ class JX3Service:
         :return: 成功时返回提取后的数据，失败时返回 None。
         """
         try:
+            if not self._api:
+                logger.error("API client is not initialized")
+                return None
+                
             api_config = self._api_config.get(config_key)
             if not api_config:
                 logger.error(f"配置文件中未找到 key: {config_key}")
                 return None
             
-            # 复制 params，避免修改原始配置模板
             request_params = api_config.get("params", {}).copy()
             if params:
                 request_params.update(params)
@@ -185,7 +188,7 @@ class JX3Service:
         # 3. 处理返回数据
         try:
             items = []
-            num_richang  = week_to_num(data["data"][0]["week"])
+            num_richang  = week_to_num(data["data"][0]["week"]) or 0
             # 空白数据
             for _ in range(num_richang):
                 items.append({
@@ -271,7 +274,7 @@ class JX3Service:
         params = {"subject": subject, "limit": limit}
 
         # 2. 调用基础请求
-        data: Optional[Dict[str, Any]] = await self._base_request(
+        data: Optional[List[Dict[str, Any]]] = await self._base_request(
             "jx3_keju", "GET", params=params
         )
         if not data:
@@ -511,7 +514,7 @@ class JX3Service:
         return_data = self._init_return_data()
         
         
-        data: Optional[Dict[str, Any]] = await self._base_request("jx3_zhuangtai", "GET") 
+        data: Optional[List[Dict[str, Any]]] = await self._base_request("jx3_zhuangtai", "GET") 
         
         if not data:
             return_data["msg"] = "获取接口信息失败"
@@ -621,8 +624,8 @@ class JX3Service:
         return_data = self._init_return_data()
 
         params = {"server": server, "type": type, "subtype": subtype}
-        # 提取字段可能返回列表
-        data: Optional[List[Dict[str, Any]]] = await self._base_request(
+        # 提取字段可能返回字典
+        data: Optional[Dict[str, Any]] = await self._base_request(
             "jx3box_shuamamsg", "GET", params=params)
         
         if not data:
@@ -631,7 +634,7 @@ class JX3Service:
         
         try:
             # 
-            new_msg = data.get("list")[0]
+            new_msg = data.get("list",[])[0]
             return_data["status"] = new_msg.get('id')
 
             result_msg = f"{server}\n"
@@ -653,18 +656,14 @@ class JX3Service:
         """区服金价"""
         return_data = self._init_return_data()
         
-        # 获取配置中的 Token
-        token = self._config.get("jx3api_token", "")
-        if  token == "":
-            return_data["msg"] = "系统未配置API访问Token"
-            return return_data
 
-        params = {"server": server, "limit": limit, "token": token}
+        params = {"server": server, "limit": limit, "token": self.token}
         data_list: Optional[List[Dict[str, Any]]] = await self._base_request("jx3_jinjia", "GET", params=params)
         
         if not data_list or not isinstance(data_list, list):
             return_data["msg"] = "获取接口信息失败或数据格式错误"
             return return_data
+        
         # 加载模板
         try:
             return_data["temp"] = await load_template("jinjia.html")
@@ -772,7 +771,7 @@ class JX3Service:
         params = {"server": server, "name": name,"token": self.token}
 
         # 2. 调用基础请求
-        data: Optional[Dict[str, Any]] = await self._base_request(
+        data: Optional[List[Dict[str, Any]]] = await self._base_request(
             "jx3_jiaoyihang", "GET", params=params
         )
 
@@ -785,18 +784,19 @@ class JX3Service:
         
         try:
             for item in data:
-                inner_list = item.get("data", []) 
-                first = inner_list[0] if inner_list else {}
-                new_item = {
-                    "name": item.get("name"),
-                    "icon": f"https://icon.jx3box.com/icon/{item.get('icon')}.png",
-                    "sever": first.get("server"),
-                    "count": len(inner_list),
-                    "unit_price": gold_to_string(first.get("unit_price")),
-                    "created": datetime.fromtimestamp(first.get("created")).strftime("%Y-%m-%d %H:%M:%S"),
-                }
-                result.append(new_item)
-                return_data["data"]["list"] = result
+                if isinstance(item, dict):
+                    inner_list = item.get("data", []) 
+                    first = inner_list[0] if inner_list else {}
+                    new_item = {
+                        "name": item.get("name"),
+                        "icon": f"https://icon.jx3box.com/icon/{item.get('icon')}.png",
+                        "sever": first.get("server"),
+                        "count": len(inner_list),
+                        "unit_price": gold_to_string(first.get("unit_price")),
+                        "created": datetime.fromtimestamp(first.get("created", "")).strftime("%Y-%m-%d %H:%M:%S"),
+                    }
+                    result.append(new_item)
+            return_data["data"]["list"] = result
         except Exception as e:
             logger.error(f"处理交易行数据失败: {e}")
             return_data["msg"] = "处理交易行数据失败"
@@ -868,7 +868,7 @@ class JX3Service:
         params = {"server": server, "name": name,"token": self.token}
         
         # 2. 调用基础请求
-        data: Optional[Dict[str, Any]] = await self._base_request(
+        data: Optional[List[Dict[str, Any]]] = await self._base_request(
             "jx3_yanhuachaxun", "GET", params=params
         )
         
@@ -879,12 +879,12 @@ class JX3Service:
         # 3. 处理返回数据 
         try:            
             for item in data:
-                timestamp = item.get("time")
-                if timestamp and isinstance(timestamp, (int, float)):
-                    # 修复时间戳：原代码显示这里是毫秒级，除以 1000
-                    item["time"] = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
-                else:
-                    item["time"] = "未知时间" # 确保即使 time 字段缺失也不会报错
+                if isinstance(item, dict):
+                    timestamp = item.get("time")
+                    if timestamp and isinstance(timestamp, (int, float)):
+                        item["time"] = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+                    else:
+                        item["time"] = "未知时间" 
 
             return_data["data"]["list"] = data
         except Exception as e:
@@ -913,7 +913,7 @@ class JX3Service:
         params = {"server": server, "token": self.token}
         
         # 2. 调用基础请求
-        data: Optional[Dict[str, Any]] = await self._base_request(
+        data: Optional[List[Dict[str, Any]]] = await self._base_request(
             "jx3_dilujilu", "GET", params=params
         )
         
@@ -927,7 +927,7 @@ class JX3Service:
                 item["refresh_time"] = datetime.fromtimestamp(item["refresh_time"]).strftime("%Y-%m-%d %H:%M:%S")
                 item["capture_time"] = datetime.fromtimestamp(item["capture_time"]).strftime("%Y-%m-%d %H:%M:%S")
                 item["auction_time"] = datetime.fromtimestamp(item["auction_time"]).strftime("%Y-%m-%d %H:%M:%S")
-                return_data["data"]["list"] = data
+            return_data["data"]["list"] = data
         except Exception as e:
             logger.error(f"数据处理时出错: {e}")
             return_data["msg"] = "处理接口返回信息时出错" 
@@ -1034,7 +1034,7 @@ class JX3Service:
         params = {"server": server, "name": name, "token": self.token}
         
         # 2. 调用基础请求
-        data: Optional[Dict[str, Any]] = await self._base_request(
+        data: Optional[List[Dict[str, Any]]] = await self._base_request(
             "jx3_qiyu", "GET", params=params
         )
 
@@ -1082,7 +1082,7 @@ class JX3Service:
         params = {"server": server, "name": name, "token": self.token}
         
         # 2. 调用基础请求
-        data: Optional[Dict[str, Any]] = await self._base_request(
+        data: Optional[List[Dict[str, Any]]] = await self._base_request(
             "jx3_zhengyingpaimai", "GET", params=params
         )
         
@@ -1122,7 +1122,7 @@ class JX3Service:
         params = {"server": server, "token": self.token}
         
         # 2. 调用基础请求
-        data: Optional[Dict[str, Any]] = await self._base_request(
+        data: Optional[list[Dict[str, Any]]] = await self._base_request(
             "jx3_fuyaojiutian", "GET", params=params
         )
         
@@ -1240,7 +1240,7 @@ class JX3Service:
         params = {"class": type, "limit": "5", "token": self.token}
         
         # 2. 调用基础请求
-        data: Optional[Dict[str, Any]] = await self._base_request(
+        data: Optional[list[Dict[str, Any]]] = await self._base_request(
             "jx3_bagua", "GET", params=params
         )
         
@@ -1277,7 +1277,7 @@ class JX3Service:
         params = {"name": name}
         
         # 2. 调用基础请求
-        data: Optional[Dict[str, Any]] = await self._base_request(
+        data: Optional[list[Dict[str, Any]]] = await self._base_request(
             "jx3box_qiyugonglue", "GET", params=params, out_key="list"
         )
         
@@ -1290,11 +1290,10 @@ class JX3Service:
         url = f"https://node.jx3box.com/serendipity/{dwID}/achievement"
         logger.debug(f"获取ID接口地址：{url}")
 
-        # 3. 获取奇遇攻略
-        # 获取achievement_id
         data1 = await self._api.get(url)
         url1 = f"https://cms.jx3box.com/api/cms/wiki/post/type/achievement/source/{data1['achievement_id']}"
         logger.debug(f"获取攻略接口地址：{url1}")
+
         # 获取奇遇攻略
         data2 = await self._api.get(url1, out_key="data")
         if not data2:
@@ -1327,8 +1326,12 @@ class JX3Service:
                 (name, name, name, name, name, name)
             )
 
-        kungfu = result.get("name",None)
-        if kungfu == None:
+        if result is None:
+            return_data["msg"] = "未找到该心法"
+            return return_data
+
+        kungfu = result.get("name", None)
+        if kungfu is None:
             return_data["msg"] = "未找到该心法"
             return return_data
         
@@ -1338,7 +1341,7 @@ class JX3Service:
         params = {"kungfu": kungfu}
         
         # 2. 调用基础请求
-        data: Optional[Dict[str, Any]] = await self._base_request(
+        data: Optional[list[Dict[str, Any]]] = await self._base_request(
             "jx3box_hong", "GET", params=params, out_key=""
         )
         logger.debug(data)
@@ -1377,6 +1380,7 @@ class JX3Service:
         # 发起请求
         url = f"https://cms.jx3box.com/api/cms/post/{pid}"
         logger.debug(f"获取宏接口地址：{url}")
+
         data = await self._api.get(url, out_key="data")
         # 验证数据
         if not data:
@@ -1414,9 +1418,13 @@ class JX3Service:
                 "name=? OR name1=? OR name2=? OR name3=? OR name4=? OR name5=?",
                 (name, name, name, name, name, name)
             )
-
-        mount = result.get("pzid",None)
-        if mount == None:
+        logger.debug(result)
+        if result is None:
+            return_data["msg"] = "未找到该心法"
+            return return_data
+        
+        mount = result.get("pzid", None)
+        if not mount:
             return_data["msg"] = "未找到该心法"
             return return_data
         

@@ -35,7 +35,7 @@
     "default": "",
     "hint": "通过抓包推栏APP账号登录信息获取推栏标识"
   },
-  "kfjk": {
+  "kfts": {
     "description": "开服监控配置",
     "type": "object",
     "items": {
@@ -63,7 +63,7 @@
       }
     }
   },
-  "xwzx": {
+  "xwts": {
     "description": "新闻资讯推送",
     "type": "object",
     "items": {
@@ -91,7 +91,7 @@
       }
     }
   },
-  "smxx": {
+  "smts": {
     "description": "刷马消息推送",
     "type": "object",
     "items": {
@@ -119,7 +119,7 @@
       }
     }
   },
-  "ctxx": {
+  "ctts": {
     "description": "赤兔消息推送",
     "type": "object",
     "items": {

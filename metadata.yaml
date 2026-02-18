@@ -1,6 +1,6 @@
 name: astrbot_plugin_jx3 
 display_name: 剑网三游戏数据查询工具 
-desc: 通过接口调用剑网三API接口获取游戏数据 
-version: v1.0.0 
+desc: 通过接口调用剑网三API接口获取游戏数据，处理发送。
+version: v1.1.0 
 author: 飞翔大野猪 
 repo: https://github.com/qsc20001102/astrbot_plugin_jx3 

@@ -8,10 +8,18 @@ class AsyncSQLiteDB:
     def __init__(self, db_path: str = "data.db"):
         self.db_path = db_path
         self.conn: Optional[aiosqlite.Connection] = None
+        
 
     # ======================
     # 生命周期
     # ======================
+    
+    async def __aenter__(self):
+        await self.connect()
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        await self.close()
 
     async def connect(self):
         self.conn = await aiosqlite.connect(self.db_path)

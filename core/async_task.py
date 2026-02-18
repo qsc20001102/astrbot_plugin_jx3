@@ -11,70 +11,67 @@ from astrbot.api.star import Context, Star, register, StarTools
 from astrbot.api import logger
 from astrbot.api import AstrBotConfig
 
-from .jx3_data import JX3Service
 
+from .jx3_data import JX3Service
+from .sqlite import AsyncSQLiteDB
 
 class AsyncTask:
     """
     基于 APScheduler 的后台异步监控任务管理类
     """
 
-    def __init__(self, context: Context, config: AstrBotConfig, jx3fun: JX3Service):
+    def __init__(self, context: Context, config: AstrBotConfig, jx3api: JX3Service, sqlite: AsyncSQLiteDB):
         self.context = context
         self.conf = config
-        self.jx3fun = jx3fun
+        self.jx3fun = jx3api
+        self.sql = sqlite
 
         self.server = self.conf.get("server", "梦江南")
-        self.file_path = StarTools.get_data_dir("astrbot_plugin_jx3") / "local_async.json"
-        self._file_lock = asyncio.Lock()
         
         self.scheduler = AsyncIOScheduler()
-        self.tasks = {}  # 存储 task_id 对应的状态信息
+        self.tasks = {}  
         
-        logger.info(f"获取后台数据缓存文件路径成功：{self.file_path}")
+        logger.info(f"初始化推送功能成功")
 
     
     """===================== 本地读写 ====================="""
 
     async def set_local_data(self, key: str, value):
-        async with self._file_lock:
-            try:
-                self.file_path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            allowed = {"kfts", "xwts", "smts", "ctts"}
+            if key not in allowed:
+                raise ValueError("非法字段")
+            
+            await self.sql.update(
+                "tuishong",
+                {
+                    key: value,
+                },
+                "id=?",
+                (1,)
+            )
+        except Exception as e:
+            logger.error(f"数据写入失败：{e}")
 
-                if not self.file_path.exists():
-                    local_data = {}
-                else:
-                    async with aiofiles.open(self.file_path, "r", encoding="utf-8") as f:
-                        content = await f.read()
-                        local_data = json.loads(content) if content else {}
 
-                local_data[key] = value
-
-                async with aiofiles.open(self.file_path, "w", encoding="utf-8") as f:
-                    await f.write(
-                        json.dumps(local_data, ensure_ascii=False, indent=4)
-                    )
-
-            except (OSError, json.JSONDecodeError) as e:
-                logger.error(f"数据写入文件失败：{e}")
-
-    async def get_local_data(self, key: str, default=None):
-        async with self._file_lock:
-            try:
-                if not self.file_path.exists():
-                    return default
-
-                async with aiofiles.open(self.file_path, "r", encoding="utf-8") as f:
-                    content = await f.read()
-                    if not content:
-                        return default
-                    local_data = json.loads(content)
-
-                return local_data.get(key, default)
-
-            except (OSError, json.JSONDecodeError) as e:
-                logger.error(f"读取数据文件失败：{e}")
+    async def get_local_data(self, key: str, default: int=0):
+        try:
+            allowed = {"kfts", "xwts", "smts", "ctts"}
+            if key not in allowed:
                 return default
+            
+            data = await self.sql.select_one(
+                    "tuishong",
+                    "id=?",
+                    (1,)
+                )   
+            if data:                    
+                return data.get(key, default)
+            else:
+                return default
+        except Exception as e:
+            logger.error(f"数据读取失败：{e}")
+
 
     """===================== 通用后台任务 ====================="""
 
@@ -112,10 +109,10 @@ class AsyncTask:
 
     async def init_tasks(self):
         settings = [
-            ("kfjk", "开服监控", lambda: self.jx3fun.kaifu(self.server)),
-            ("xwzx", "新闻资讯", lambda: self.jx3fun.xinwen(1)),
-            ("smxx", "刷马消息", lambda: self.jx3fun.shuamamsg(self.server,type="horse",subtype="foreshow")),
-            ("ctxx", "赤兔消息", lambda: self.jx3fun.shuamamsg(self.server,type="chitu-horse",subtype="share_msg")),
+            ("kfts", "开服监控", lambda: self.jx3fun.kaifu(self.server)),
+            ("xwts", "新闻资讯", lambda: self.jx3fun.xinwen(1)),
+            ("smts", "刷马消息", lambda: self.jx3fun.shuamamsg(self.server,type="horse",subtype="foreshow")),
+            ("ctts", "赤兔消息", lambda: self.jx3fun.shuamamsg(self.server,type="chitu-horse",subtype="share_msg")),
         ]
 
         for key, name, fetch in settings:
@@ -131,7 +128,10 @@ class AsyncTask:
             }
 
             if self.tasks[key]["enable"]:
-                self._add_scheduler(key, name, fetch)
+                if self.tasks[key]["umos"]:
+                    self._add_scheduler(key, name, fetch)
+                else:
+                    logger.warning(f"{name} 推送对象为空，任务未启动")
 
         if not self.scheduler.running:
             self.scheduler.start()
