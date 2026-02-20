@@ -61,7 +61,14 @@ class MessageBuilder:
         data = await action()
         try:
             if data["code"] == 200:
-                url = await self.html_render(data["temp"], data["data"], options={})
+                options = {
+                    "quality": 100,
+                    "device_scale_factor_level": "normal",
+                    "full_page": True,
+                    "omit_background": False,
+                    "type": "jpeg"
+                }
+                url = await self.html_render(data["temp"], data["data"], options=options)
                 await event.send(event.image_result(url)) 
             else:
                 await event.send(event.plain_result(data["msg"])) 
