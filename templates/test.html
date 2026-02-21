@@ -79,11 +79,7 @@
         <div class="card-container">
             {% for item in ptqy %}
             <div class="card">
-                {% if 1 %}
                 <img src="{{ icons.serendipity.劝学记 }}" alt="{{ item.event }}">
-                {% else %}
-                <div class="event-name">{{ item.event }}</div>
-                {% endif %}
                 <div class="time">{{ item.time }}</div>
             </div>
             {% endfor %}
