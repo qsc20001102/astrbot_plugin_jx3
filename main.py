@@ -11,6 +11,7 @@ from .core.jx3_data import JX3Service
 from .core.async_task import AsyncTask
 from .core.bilei_data import BiLeidata
 from .core.message import MessageBuilder
+from .core.fun_basic import load_as_base64
 
 @register("astrbot_plugin_jx3", 
           "fxdyz", 
@@ -37,8 +38,11 @@ class Jx3ApiPlugin(Star):
 
         # 获取数据文件路径
         self.get_data_path()
+        # 加载图片base64编码
+        self.load_local_base64()
         # 构造所有类
         self.create_all()
+
 
         # 声明指令集
         self.command_map = {}
@@ -95,6 +99,7 @@ class Jx3ApiPlugin(Star):
         self.local_data_dir = StarTools.get_data_dir("astrbot_plugin_jx3")
         # 插件数据存储路径
         self.plugin_data_dir = Path(__file__).parent / "data"
+        self.plugin_temp_dir = Path(__file__).parent /"templates"
 
         # SQLite本地路径
         self.local_data_path = self.local_data_dir / "local_data.db"
@@ -102,11 +107,31 @@ class Jx3ApiPlugin(Star):
         self.plugin_data_path = self.plugin_data_dir /"plugin_data.db"
         # API配置文件路径
         self.api_data_path = self.plugin_data_dir / "api_config.json"
+        # 图片文件路径
+        self.plugin_temp_img = self.plugin_temp_dir / "img"
+        self.plugin_temp_sect = self.plugin_temp_dir / "sect"
+        self.plugin_temp_serendipity = self.plugin_temp_dir / "serendipity"
 
         # 数据路径打印
         logger.debug(f"本地数据路径: {self.local_data_path}")
         logger.debug(f"插件数据路径: {self.plugin_data_path}")
         logger.debug(f"API配置文件路径: {self.api_data_path}")
+        logger.debug(f"图片文件路径: {self.plugin_temp_img}")
+        logger.debug(f"图片文件路径: {self.plugin_temp_sect}")
+        logger.debug(f"图片文件路径: {self.plugin_temp_serendipity}")
+
+
+    def load_local_base64(self):
+        """加载图片文件的base64编码"""
+        img = load_as_base64(str(self.plugin_temp_img))
+        sect = load_as_base64(str(self.plugin_temp_sect))
+        serendipity = load_as_base64(str(self.plugin_temp_serendipity))
+        self.icons =  {
+            "img": img,
+            "sect": sect,
+            "serendipity": serendipity
+        }        
+        logger.debug(f"图片base64编码加载完成: {self.icons}")
 
 
     def create_all(self):
@@ -119,7 +144,7 @@ class Jx3ApiPlugin(Star):
         self.bilei = BiLeidata(self.local_sql_db)
         self.jx3api = JX3Service(str(self.api_data_path), self.conf, self.plugin_sql_db)
         self.jx3at = AsyncTask(self.context, self.conf, self.jx3api, self.local_sql_db)
-        self.jx3cmd = MessageBuilder(self.server, self.jx3api, self.bilei, self.jx3at)
+        self.jx3cmd = MessageBuilder(self.server, self.jx3api, self.bilei, self.jx3at, self.icons)
 
 
     async def init_bilei_data(self):

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>角色奇遇一览</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 24px;
+            background: #f5f7fb;
+            color: #2c2c33;
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+        }
+
+        .section {
+            margin-bottom: 32px;
+        }
+
+        .section-title {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 16px;
+            border-left: 4px solid #4f7cff;
+            padding-left: 10px;
+            color: #1f2a44;
+        }
+
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 16px 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            min-height: 90px;
+        }
+
+        .card img {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+            margin-bottom: 6px;
+        }
+
+        .event-name {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #2b3a67;
+        }
+
+        .time {
+            font-size: 22px;
+            color: #7a7f99;
+        }
+
+        .empty {
+            color: #999;
+            font-size: 14px;
+            padding: 10px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 普通奇遇 -->
+    <div class="section">
+        <div class="section-title">普通奇遇（{{ ptqy|length if ptqy else 0 }}）</div>
+        {% if ptqy %}
+        <div class="card-container">
+            {% for item in ptqy %}
+            <div class="card">
+                {% if icons.get(item.event) %}
+                <img src="{{ icons.serendipity[item.event] }}" alt="{{ item.event }}">
+                {% else %}
+                <div class="event-name">{{ item.event }}</div>
+                {% endif %}
+                <div class="time">{{ item.time }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty">暂无普通奇遇</div>
+        {% endif %}
+    </div>
+
+    <!-- 绝世奇遇 -->
+    <div class="section">
+        <div class="section-title">绝世奇遇（{{ jsqy|length if jsqy else 0 }}）</div>
+        {% if jsqy %}
+        <div class="card-container">
+            {% for item in jsqy %}
+            <div class="card">
+                {% if icons.get(item.event) %}
+                <img src="{{ icons.serendipity[item.event] }}" alt="{{ item.event }}">
+                {% else %}
+                <div class="event-name">{{ item.event }}</div>
+                {% endif %}
+                <div class="time">{{ item.time }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty">暂无绝世奇遇</div>
+        {% endif %}
+    </div>
+
+    <!-- 宠物奇遇 -->
+    <div class="section">
+        <div class="section-title">宠物奇遇（{{ cwqy|length if cwqy else 0 }}）</div>
+        {% if cwqy %}
+        <div class="card-container">
+            {% for item in cwqy %}
+            <div class="card">
+                {% if icons.get(item.event) %}
+                <img src="{{ icons.serendipity[item.event] }}" alt="{{ item.event }}">
+                {% else %}
+                <div class="event-name">{{ item.event }}</div>
+                {% endif %}
+                <div class="time">{{ item.time }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty">暂无宠物奇遇</div>
+        {% endif %}
+    </div>
+
+</body>
+</html>

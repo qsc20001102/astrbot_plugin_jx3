@@ -1,6 +1,8 @@
 from pathlib import Path
 from datetime import datetime,date
 import aiofiles
+import base64
+import os
 
 async def load_template(template_name: str) -> str:
     """
@@ -58,6 +60,7 @@ def week_to_num(week :str):
     }
     return week_map.get(week,None)
 
+
 def compare_date_str(date_str: str) -> str:
     """
     date_str 格式：YYYY-MM-DD
@@ -71,3 +74,40 @@ def compare_date_str(date_str: str) -> str:
         return "今天"
     else:
         return "将来"
+
+
+def load_as_base64(icons_dir: str) -> dict[str, str]:
+    """
+    将指定目录下的图标文件转换为 base64 字符串。
+    返回 {"文件名（不含扩展名）": "data:image/xxx;base64,xxx"} 的字典。
+    """
+    supported_ext = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".ico"}
+    icons = {}
+
+    for filename in os.listdir(icons_dir):
+        name, ext = os.path.splitext(filename)
+        if ext.lower() not in supported_ext:
+            continue
+
+        # 用原始文件名（系统实际存储的）打开文件
+        filepath = os.path.join(icons_dir, filename)
+        with open(filepath, "rb") as f:
+            data = base64.b64encode(f.read()).decode()
+
+        # 尝试修正显示用的 key（如果文件名是 GBK 乱码）
+        display_name = name
+        try:
+            display_name = name.encode("latin-1").decode("gbk")
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            pass  # 本来就是正确的 UTF-8
+
+        if ext.lower() == ".svg":
+            mime = "image/svg+xml"
+        elif ext.lower() == ".jpg":
+            mime = "image/jpeg"
+        else:
+            mime = f"image/{ext.lower().lstrip('.')}"
+
+        icons[display_name] = f"data:{mime};base64,{data}"
+
+    return icons

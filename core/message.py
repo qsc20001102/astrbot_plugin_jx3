@@ -13,11 +13,12 @@ from .bilei_data import BiLeidata
 
 class MessageBuilder:
     """回复消息构建"""
-    def __init__(self, server: str, jx3api: JX3Service, bilei: BiLeidata, jx3at: AsyncTask):
+    def __init__(self, server: str, jx3api: JX3Service, bilei: BiLeidata, jx3at: AsyncTask, icons: dict[str, dict[str, str]]):
         self.server = server
         self.jx3api = jx3api
         self.bilei = bilei
         self.jx3at = jx3at
+        self.icons = icons
 
 
     async def html_render(
@@ -68,6 +69,7 @@ class MessageBuilder:
                     "omit_background": False,
                     "type": "jpeg"
                 }
+                data["data"]["icons"] = self.icons
                 url = await self.html_render(data["temp"], data["data"], options=options)
                 await event.send(event.image_result(url)) 
             else:

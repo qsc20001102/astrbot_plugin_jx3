@@ -1,13 +1,11 @@
 # pyright: reportArgumentType=false
 import asyncio
-import json
-import aiofiles
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
-from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult, MessageChain
-from astrbot.api.star import Context, Star, register, StarTools
+from astrbot.api.event import MessageChain
+from astrbot.api.star import Context 
 from astrbot.api import logger
 from astrbot.api import AstrBotConfig
 

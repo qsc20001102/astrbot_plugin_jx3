@@ -51,7 +51,8 @@ class JX3Service:
                 "code": 0,
                 "msg": "功能函数未执行",
                 "data": {},
-                "temp": ""
+                "temp": "",
+                "icons": {}
             }
     
 
@@ -1063,7 +1064,7 @@ class JX3Service:
 
         # 4. 加载模板
         try:
-            return_data["temp"] = await load_template("juesheqiyu.html")
+            return_data["temp"] = await load_template("test.html")
         except FileNotFoundError as e:
             logger.error(f"加载模板失败: {e}")
             return_data["msg"] = "系统错误：模板文件不存在"
