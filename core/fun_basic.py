@@ -109,7 +109,5 @@ def load_as_base64(icons_dir: str) -> dict[str, str]:
             mime = f"image/{ext.lower().lstrip('.')}"
 
         icons[display_name] = f"data:{mime};base64,{data}"
-        # ↓ 加这行
-        logger.debug(f"加载图标: 原始文件名={filename!r} → key={display_name!r}")
 
     return icons
