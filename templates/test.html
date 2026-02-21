@@ -45,8 +45,9 @@
         }
 
         .card img {
-            width: 48px;
-            height: 48px;
+            width: 100%;
+            max-width: 180px;
+            height: auto;   /* 自动保持比例 */
             object-fit: contain;
             margin-bottom: 6px;
         }
@@ -79,7 +80,11 @@
         <div class="card-container">
             {% for item in ptqy %}
             <div class="card">
-                <img src="{{ icons.serendipity.劝学记 }}" alt="{{ item.event }}">
+                {% if icons.serendipity.get(item.event) %}
+                <img src="{{ icons.serendipity[item.event] }}" alt="{{ item.event }}">
+                {% else %}
+                <div class="event-name">{{ item.event }}</div>
+                {% endif %}
                 <div class="time">{{ item.time }}</div>
             </div>
             {% endfor %}
