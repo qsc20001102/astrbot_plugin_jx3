@@ -79,7 +79,7 @@
         <div class="card-container">
             {% for item in ptqy %}
             <div class="card">
-                {% if icons.get(item.event) %}
+                {% if icons.serendipity.get(item.event) %}
                 <img src="{{ icons.serendipity[item.event] }}" alt="{{ item.event }}">
                 {% else %}
                 <div class="event-name">{{ item.event }}</div>
@@ -100,7 +100,7 @@
         <div class="card-container">
             {% for item in jsqy %}
             <div class="card">
-                {% if icons.get(item.event) %}
+                {% if icons.serendipity.get(item.event) %}
                 <img src="{{ icons.serendipity[item.event] }}" alt="{{ item.event }}">
                 {% else %}
                 <div class="event-name">{{ item.event }}</div>
@@ -121,7 +121,7 @@
         <div class="card-container">
             {% for item in cwqy %}
             <div class="card">
-                {% if icons.get(item.event) %}
+                {% if icons.serendipity.get(item.event) %}
                 <img src="{{ icons.serendipity[item.event] }}" alt="{{ item.event }}">
                 {% else %}
                 <div class="event-name">{{ item.event }}</div>
