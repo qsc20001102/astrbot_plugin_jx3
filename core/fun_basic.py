@@ -4,6 +4,8 @@ import aiofiles
 import base64
 import os
 
+from astrbot import logger
+
 async def load_template(template_name: str) -> str:
     """
     异步加载模板内容（非阻塞）
@@ -89,17 +91,15 @@ def load_as_base64(icons_dir: str) -> dict[str, str]:
         if ext.lower() not in supported_ext:
             continue
 
-        # 用原始文件名（系统实际存储的）打开文件
         filepath = os.path.join(icons_dir, filename)
         with open(filepath, "rb") as f:
             data = base64.b64encode(f.read()).decode()
 
-        # 尝试修正显示用的 key（如果文件名是 GBK 乱码）
         display_name = name
         try:
             display_name = name.encode("latin-1").decode("gbk")
         except (UnicodeEncodeError, UnicodeDecodeError):
-            pass  # 本来就是正确的 UTF-8
+            pass
 
         if ext.lower() == ".svg":
             mime = "image/svg+xml"
@@ -109,5 +109,7 @@ def load_as_base64(icons_dir: str) -> dict[str, str]:
             mime = f"image/{ext.lower().lstrip('.')}"
 
         icons[display_name] = f"data:{mime};base64,{data}"
+        # ↓ 加这行
+        logger.debug(f"加载图标: 原始文件名={filename!r} → key={display_name!r}")
 
     return icons
