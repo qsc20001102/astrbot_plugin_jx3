@@ -4,6 +4,7 @@ from typing import Dict, Any, Optional, List, Union
 
 from astrbot.api import logger
 from astrbot.api import AstrBotConfig
+import astrbot.api.message_components as Comp
 
 from .request import APIClient
 from .sqlite import AsyncSQLiteDB
@@ -823,8 +824,8 @@ class JX3Service:
         params = {"server": server, "name": name,"token": self.token}
         
         # 2. 调用基础请求
-        data: Optional[Dict[str, Any]] = await self._base_request(
-            "jx3_jieshemingpian", "GET", params=params
+        data: Optional[list[Dict[str, Any]]] = await self._base_request(
+            "jx3_allmingpian", "GET", params=params
         )
         
         if not data:
@@ -832,7 +833,35 @@ class JX3Service:
             return return_data
             
         # 3. 处理返回数据 (直接提取图片 URL)
-        return_data["data"] = data['showAvatar']
+        list_msg = []
+        list_url = []
+
+        try:
+            for m in data:
+                msg = f"第{m.get('showIndex')}张 "
+                if m.get('showActive'):
+                    msg += "未启用"
+                else:
+                    msg += "已启用"
+                list_msg.append(msg)
+                list_url.append(m.get('showAvatar'))
+
+            chain = [
+                Comp.Plain(list_msg[0]),
+                Comp.Image.fromURL(list_url[0]),
+                Comp.Plain(list_msg[1]),
+                Comp.Image.fromURL(list_url[1]),
+                Comp.Plain(list_msg[2]),
+                Comp.Image.fromURL(list_url[2]),
+            ]
+        except Exception as e:
+            logger.error(f"数据处理时出错: {e}")
+            return_data["msg"] = "处理接口返回信息时出错" 
+            return return_data   
+
+        return_data["data"] = chain 
+
+        
         return_data["code"] = 200
         
         return return_data
@@ -856,6 +885,7 @@ class JX3Service:
             
         # 3. 处理返回数据 (直接提取图片 URL)
         return_data["data"] = data['showAvatar']
+
         return_data["code"] = 200
         
         return return_data

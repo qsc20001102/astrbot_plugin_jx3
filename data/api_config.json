@@ -321,5 +321,15 @@
             "mount": "",
             "star": "1"
         }
+    },
+    "jx3_allmingpian":{
+        "url":"https://www.jx3api.com/data/show/records",
+        "method":"GET",
+        "description":"获取角色全部名片",
+        "params":{
+            "server": "",
+            "name": "",
+            "token": ""
+        }
     }
 }

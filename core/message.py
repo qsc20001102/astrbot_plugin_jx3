@@ -94,6 +94,19 @@ class MessageBuilder:
             await event.send(event.plain_result("猪脑过载，请稍后再试")) 
 
 
+    async def plain_chain(self, event: AstrMessageEvent, action):
+        """富媒体消息"""
+        data= await action()
+        try:
+            if data["code"] == 200:
+                await event.send(event.chain_result(data["data"]))
+            else:
+                await event.send(event.plain_result(data["msg"])) 
+        except Exception as e:
+            logger.error(f"功能函数执行错误: {e}")
+            await event.send(event.plain_result("猪脑过载，请稍后再试")) 
+
+
     async def handler_plain_image_msg(self, event: AstrMessageEvent, action1, action2):
         """两轮会话消息发送通用，先文本列表等反馈序号在发送图片"""
         # 会话触发
@@ -281,7 +294,7 @@ class MessageBuilder:
 
     async def jx3_jueshemingpian(self, event: AstrMessageEvent, name: str = "飞翔大野猪", server: str = ""):
         """剑三 名片 角色 服务器"""
-        return await self.image_msg(event, lambda: self.jx3api.jueshemingpian( self.serverdefault(server),name)) 
+        return await self.plain_chain(event, lambda: self.jx3api.jueshemingpian( self.serverdefault(server),name)) 
 
 
     async def jx3_shuijimingpian(self, event: AstrMessageEvent,force: str = "万花", body: str = "萝莉", server: str = ""):
