@@ -840,9 +840,9 @@ class JX3Service:
             for m in data:
                 msg = f"第{m.get('showIndex')}张 "
                 if m.get('showActive'):
-                    msg += "未启用"
-                else:
                     msg += "已启用"
+                else:
+                    msg += "未启用"
                 list_msg.append(msg)
                 list_url.append(m.get('showAvatar'))
 
@@ -1035,13 +1035,8 @@ class JX3Service:
         logger.info("战绩获取完成")
 
         # 角色名片获取
-        datamp = await self.jueshemingpian(server,name)
-        if datamp["code"] == 200:
-            data["showAvatar"] = datamp['data']
-            logger.info("名片获取完成")
-        else:
-            data["showAvatar"] = ""
-            logger.info("名片获取失败")
+        
+        data["showAvatar"] = ""
 
         # 4. 加载模板
         try:

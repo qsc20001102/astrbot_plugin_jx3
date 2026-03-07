@@ -176,7 +176,7 @@ class MessageBuilder:
                 except TimeoutError:
                     await event.send(event.plain_result("选择超时，已结束会话")) 
                 except Exception:
-                    logger.error("宏选择发生异常", exc_info=True)
+                    logger.error("选择发生异常", exc_info=True)
 
             else:
                 await event.send(event.plain_result(f"未搜索到相关内容")) 
