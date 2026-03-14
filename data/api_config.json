@@ -331,5 +331,15 @@
             "name": "",
             "token": ""
         }
+    },
+    "jx3_jueshexinxi":{
+        "url":"https://www.jx3api.com/data/role/detailed",
+        "method":"GET",
+        "description":"获取角色信息",
+        "params":{
+            "server": "",
+            "name": "",
+            "token": ""
+        }
     }
 }

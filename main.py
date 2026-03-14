@@ -16,7 +16,7 @@ from .core.fun_basic import load_as_base64
 @register("astrbot_plugin_jx3", 
           "fxdyz", 
           "通过调用剑网三API接口获取游戏数据，处理发送。", 
-          "1.2.2",
+          "1.2.3",
           "https://github.com/qsc20001102/astrbot_plugin_jx3api"
 )
 class Jx3ApiPlugin(Star):
@@ -211,12 +211,13 @@ class Jx3ApiPlugin(Star):
             "的卢": self.jx3cmd.jx3_dilujilu,
             "招募": self.jx3cmd.jx3_tuanduizhaomu,
             "战绩": self.jx3cmd.jx3_zhanji,
-            "奇遇": self.jx3cmd.jx3_qiyu,
+            "查询": self.jx3cmd.jx3_qiyu,
             "拍卖": self.jx3cmd.jx3_zhengyingpaimai,
             "扶摇九天": self.jx3cmd.jx3_fuyaojjiutian,
             "刷马": self.jx3cmd.jx3_shuma,
             "骗子": self.jx3cmd.jx3_pianzhi,
             "八卦": self.jx3cmd.jx3_bagua,
+            "角色": self.jx3cmd.jx3_jueshe,
             "开服推送": self.jx3cmd.jx3_kaifhujiank,
             "新闻推送": self.jx3cmd.jx3_xinwenzhixun,
             "刷马推送": self.jx3cmd.jx3_shuamamsg,

@@ -351,7 +351,10 @@ class MessageBuilder:
         """剑三 八卦 类型"""
         return await self.plain_msg(event, lambda: self.jx3api.bagua(name))
     
-
+    async def jx3_jueshe(self, event: AstrMessageEvent,name: str, server: str = ""):
+        """剑三 角色 名称 服务器"""
+        return await self.plain_msg(event, lambda: self.jx3api.jueshe(name, self.serverdefault(server)))
+    
     async def bilei_add(self, event: AstrMessageEvent,name: str, text: str):
         """避雷添加 名称 备注"""
         return await self.plain_msg(event, lambda: self.bilei.add(name,text,event.get_sender_name()))

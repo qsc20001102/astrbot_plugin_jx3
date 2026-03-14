@@ -1488,3 +1488,42 @@ class JX3Service:
         return return_data
     
         
+    async def jueshe(self,name: str, server: str) -> Dict[str, Any]:
+        """角色"""
+        return_data = self._init_return_data()
+
+        # 1. 构造请求参数
+        params = {"server": server, "name": name, "token": self.token}
+
+        # 2. 调用基础请求
+        data: Optional[Dict[str, Any]] = await self._base_request(
+            "jx3_jueshexinxi", "GET", params=params
+        )
+        if not data:
+            return_data["msg"] = "获取接口信息失败"
+            return return_data
+    
+        # 3. 处理返回数据
+        try:
+            # 格式化字符串，利用字典的 get 方法提供默认值
+            result_msg = (
+                f"大区：{data.get('zoneName', '无')}\n"
+                f"服务器：{data.get('serverName', '无')}\n"
+                f"名称：{data.get('roleName', '无')}\n"
+                f"ID：{data.get('roleId', '无')}\n"
+                f"门派：{data.get('forceName', '无')}\n"
+                f"体型：{data.get('bodyName', '无')}\n"
+                f"帮会：{data.get('tongName', '无')}\n"
+                f"阵营：{data.get('campName', '无')}\n"
+            )
+
+            return_data["data"] = result_msg
+            return_data["code"] = 200
+        except Exception as e:
+            logger.error(f"数据处理时出错: {e}")
+            return_data["msg"] = "处理接口返回信息时出错"
+            return return_data
+        
+        return_data["code"] = 200
+
+        return return_data
