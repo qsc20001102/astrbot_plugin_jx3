@@ -816,54 +816,51 @@ class JX3Service:
         return return_data
     
 
-    async def jueshemingpian(self, server: str, name:str ) -> Dict[str, Any]:
+    async def jueshemingpian(self, server: str, name: str) -> Dict[str, Any]:
         """角色名片"""
         return_data = self._init_return_data()
-        
+
         # 1. 构造请求参数
-        params = {"server": server, "name": name,"token": self.token}
-        
+        params = {"server": server, "name": name, "token": self.token}
+
         # 2. 调用基础请求
         data: Optional[list[Dict[str, Any]]] = await self._base_request(
             "jx3_allmingpian", "GET", params=params
         )
-        
+
         if not data:
             return_data["msg"] = "未找到该角色"
             return return_data
-            
-        # 3. 处理返回数据 (直接提取图片 URL)
-        list_msg = []
-        list_url = []
 
+        # 3. 处理返回数据
         try:
+            chain = []
             for m in data:
-                msg = f"第{m.get('showIndex')}张 "
-                if m.get('showActive'):
-                    msg += "已启用"
-                else:
-                    msg += "未启用"
-                list_msg.append(msg)
-                list_url.append(m.get('showAvatar'))
+                status = "已启用" if m.get("showActive") else "未启用"
+                msg = f"第{m.get('showIndex')}张 {status}"
+                url = m.get("showAvatar")
 
-            chain = [
-                Comp.Plain(list_msg[0]),
-                Comp.Image.fromURL(list_url[0]),
-                Comp.Plain(list_msg[1]),
-                Comp.Image.fromURL(list_url[1]),
-                Comp.Plain(list_msg[2]),
-                Comp.Image.fromURL(list_url[2]),
-            ]
+                if not url:
+                    logger.warning(f"第{m.get('showIndex')}张名片缺少图片URL，已跳过")
+                    continue
+
+                chain.extend([
+                    Comp.Plain(msg),
+                    Comp.Image.fromURL(url),
+                ])
+
+            if not chain:
+                return_data["msg"] = "未获取到有效的名片数据"
+                return return_data
+
         except Exception as e:
             logger.error(f"数据处理时出错: {e}")
-            return_data["msg"] = "处理接口返回信息时出错" 
-            return return_data   
+            return_data["msg"] = "处理接口返回信息时出错"
+            return return_data
 
-        return_data["data"] = chain 
-
-        
+        return_data["data"] = chain
         return_data["code"] = 200
-        
+
         return return_data
     
 
@@ -1507,12 +1504,11 @@ class JX3Service:
         try:
             # 格式化字符串，利用字典的 get 方法提供默认值
             result_msg = (
-                f"大区：{data.get('zoneName', '无')}\n"
-                f"服务器：{data.get('serverName', '无')}\n"
+                f"服务器：{data.get('zoneName', '无')}·{data.get('serverName', '无')}\n"
                 f"名称：{data.get('roleName', '无')}\n"
-                f"ID：{data.get('roleId', '无')}\n"
-                f"门派：{data.get('forceName', '无')}\n"
-                f"体型：{data.get('bodyName', '无')}\n"
+                f"角色ID：{data.get('roleId', '无')}\n"
+                f"全区ID：{data.get('globalRoleId', '无')}\n"
+                f"职业：{data.get('forceName', '无')}·{data.get('bodyName', '无')}\n"
                 f"帮会：{data.get('tongName', '无')}\n"
                 f"阵营：{data.get('campName', '无')}\n"
             )
