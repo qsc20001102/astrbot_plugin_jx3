@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>百战异闻录</title>
+
+<style>
+    body {
+        font-family: 'Microsoft YaHei', Arial, sans-serif;
+        background: #f5f6fa;
+        margin: 0;
+        padding: 20px;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        text-align: center;
+    }
+
+    h1 {
+        margin-bottom: 20px;
+        font-size: 32px;
+        font-weight: 800;
+    }
+
+    /* ===== 顶部信息 ===== */
+    .info-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: white;
+        padding: 16px 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+    }
+
+    .time {
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .boss-final {
+        font-size: 22px;
+        font-weight: 800;
+        color: #d63031;
+    }
+
+    /* ===== 网格 ===== */
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(10, 1fr);
+        gap: 10px;
+    }
+
+    .cell {
+        background: white;
+        border-radius: 10px;
+        padding: 12px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        min-height: 110px;
+
+        /* 核心：全部居中 */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+
+        text-align: center;
+    }
+
+    .index {
+        font-weight: bold;
+        font-size: 18px;
+        color: #333;
+        margin-bottom: 4px;
+    }
+
+    .boss {
+        color: #d63031;
+        font-weight: 700;
+        font-size: 16px;
+        margin-bottom: 6px;
+    }
+
+    .buff {
+        color: #0984e3;
+        font-size: 14px;
+        line-height: 1.5em;
+        word-break: break-word;
+    }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>百战异闻录</h1>
+
+    <!-- 顶部信息（同一行） -->
+    <div class="info-bar"> 
+        <div class="time"> 
+            开始时间：{{ start }} &nbsp;&nbsp;|&nbsp;&nbsp;
+            结束时间：{{ end }}
+        </div> 
+
+        <div class="boss-final"> 
+            最终Boss：{{ boss }} 
+        </div> 
+    </div>
+
+    <div class="grid">
+
+        {% for row in range(0, list|length, 10) %}
+            {% set slice = list[row:row+10] %}
+
+            {% if (row // 10) % 2 == 1 %}
+                {% set slice = slice[::-1] %}
+            {% endif %}
+
+            {% for item in slice %}
+            <div class="cell">
+                <div class="index">第{{ item.index }}层</div>
+                <div class="boss">{{ item.name }}</div>
+
+                {% if item.data.list %}
+                    <div class="buff">
+                        {% for b in item.data.list %}
+                            {{ b }}{% if not loop.last %} / {% endif %}
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="buff">无</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+        {% endfor %}
+
+    </div>
+</div>
+
+</body>
+</html>

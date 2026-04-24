@@ -272,6 +272,11 @@ class MessageBuilder:
         return await self.image_msg(event, lambda: self.jx3api.shapan(self.serverdefault(server)))  
 
 
+    async def jx3_baizhan(self, event: AstrMessageEvent):
+        """剑三 百战"""
+        return await self.T2I_image_msg(event, self.jx3api.baizhan)
+
+
     async def jx3_qufuqiyu(self, event: AstrMessageEvent,adventureName: str = "阴阳两界", server: str = ""):
         """剑三 奇遇统计 奇遇名称 服务器"""
         return await self.T2I_image_msg(event, lambda: self.jx3api.qiyu(adventureName,self.serverdefault(server)))

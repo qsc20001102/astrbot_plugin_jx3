@@ -106,14 +106,6 @@
         "params":{
         }
     },
-    "aijx3_shapan":{
-        "url":"https://www.jianxiachaguan.cn/api2/aijx3-jxcg/game/get-sand-table-img",
-        "method":"POST",
-        "description":"获取剑网三沙盘状态",
-        "params":{
-            "serverName": "眉间雪"
-        }
-    },
     "jx3_shaohua":{
         "url":"https://www.jx3api.com/data/saohua/random",
         "method":"GET",
@@ -122,6 +114,22 @@
             "name": "万花" 
         }
     },
+    "aijx3_shapan":{
+        "url":"https://www.jianxiachaguan.cn/api2/aijx3-jxcg/game/get-sand-table-img",
+        "method":"POST",
+        "description":"获取剑网三沙盘状态",
+        "params":{
+            "serverName": "眉间雪"
+        }
+    },
+    "jx3_baizhan":{
+        "url":"https://www.jx3api.com/data/active/monster",
+        "method":"GET",
+        "description":"获取本周百战异闻录玩法中刷新的首领列表及其特殊技能效果",
+        "params":{
+            "token":""
+        }
+    },    
     "aijx3_qiyu":{
         "url":"https://www.jianxiachaguan.cn/api2/aijx3-jxcg/game/get-adventure-record",
         "method":"POST",

@@ -751,16 +751,42 @@ class JX3Service:
         return_data["code"] = 200    
 
         return return_data
-    
-
-
-    
 
 
 
+    async def baizhan(self) -> Dict[str, Any]:
+        """百战首领"""
+        return_data = self._init_return_data()
+        
+        # 1. 构造请求参数
+        params = { "token": self.token}
+        
+        data: Optional[Dict[str, Any]] = await self._base_request("jx3_baizhan", "GET", params=params) 
 
+        if not data:
+            return_data["msg"] = "获取接口信息失败"
+            return return_data
+        # 处理返回数据
 
-    
+        try:
+            return_data["data"] = data
+            return_data["data"]["start"]  = datetime.fromtimestamp(float(data["start"])).strftime("%Y-%m-%d %H:%M:%S")
+            return_data["data"]["end"]  = datetime.fromtimestamp(float(data["end"])).strftime("%Y-%m-%d %H:%M:%S")
+
+        except Exception as e:
+            logger.error(f"数据处理时出错: {e}")
+            return_data["msg"] = "处理接口返回信息时出错"
+        # 加载模板
+        try:
+            return_data["temp"] = await load_template("baizhan.html")
+        except FileNotFoundError as e:
+            logger.error(f"加载模板失败: {e}")
+            return_data["msg"] = "系统错误：模板文件不存在"
+            return return_data
+        
+        return_data["code"] = 200
+            
+        return return_data
 
 
     async def shuamamsg(self,server:str,type:str,subtype:str) -> Dict[str, Any]:
