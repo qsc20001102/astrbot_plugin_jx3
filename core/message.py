@@ -207,31 +207,6 @@ class MessageBuilder:
         return await self.T2I_image_msg(event, lambda: self.jx3api.xingxiashijian(name))
 
 
-    async def jx3_kaifu(self, event: AstrMessageEvent,server: str = ""):
-        """剑三 开服 服务器"""
-        return await self.plain_msg(event, lambda: self.jx3api.kaifu(self.serverdefault(server)))
-
-
-    async def jx3_zhuangtai(self, event: AstrMessageEvent):
-        """剑三 状态"""
-        return await self.T2I_image_msg(event, self.jx3api.zhuangtai)
-
-     
-    async def jx3_shaohua(self, event: AstrMessageEvent,):
-        """剑三 骚话"""
-        return await self.plain_msg(event, self.jx3api.shaohua)
-
-
-    async def jx3_jigai(self, event: AstrMessageEvent,):
-        """剑三 技改"""
-        return await self.plain_msg(event, self.jx3api.jigai)
-
-
-    async def jx3_xinwen(self, event: AstrMessageEvent,num:int = 5):
-        """剑三 新闻"""
-        return await self.plain_msg(event, lambda: self.jx3api.xinwen(num))
- 
-
     async def jx3_keju(self, event: AstrMessageEvent,subject: str, limit: int = 5):
         """剑三 科举"""
         return await self.plain_msg(event, lambda: self.jx3api.keju(subject,limit))
@@ -250,7 +225,47 @@ class MessageBuilder:
     async def jx3_qiwu(self, event: AstrMessageEvent,  name: str):
         """剑三 器物 地图名称"""
         return await self.T2I_image_msg(event, lambda: self.jx3api.qiwu(name))
-            
+
+
+    async def jx3_xinwen(self, event: AstrMessageEvent,num:int = 5):
+        """剑三 新闻"""
+        return await self.plain_msg(event, lambda: self.jx3api.xinwen(num))
+
+
+    async def jx3_weihu(self, event: AstrMessageEvent,num:int = 5):
+        """剑三 维护"""
+        return await self.plain_msg(event, lambda: self.jx3api.weihu(num))
+    
+
+    async def jx3_qufu(self, event: AstrMessageEvent,name: str = "双梦镇"):
+        """剑三 区服"""
+        return await self.plain_msg(event, lambda: self.jx3api.qufu(name))
+
+
+    async def jx3_kaifu(self, event: AstrMessageEvent,server: str = ""):
+        """剑三 开服 服务器"""
+        return await self.plain_msg(event, lambda: self.jx3api.kaifu(self.serverdefault(server)))
+
+
+    async def jx3_zhuangtai(self, event: AstrMessageEvent):
+        """剑三 状态"""
+        return await self.T2I_image_msg(event, self.jx3api.zhuangtai)
+
+
+    async def jx3_jigai(self, event: AstrMessageEvent,):
+        """剑三 技改"""
+        return await self.plain_msg(event, self.jx3api.jigai)
+
+
+    async def jx3_xiaoyao(self, event: AstrMessageEvent):
+        """剑三 小药"""
+        return await self.T2I_image_msg(event, self.jx3api.xiaoyao)
+
+
+    async def jx3_shaohua(self, event: AstrMessageEvent,):
+        """剑三 骚话"""
+        return await self.plain_msg(event, self.jx3api.shaohua)
+
 
     async def jx3_shapan(self, event: AstrMessageEvent,server: str = ""):
         """剑三 沙盘 服务器"""

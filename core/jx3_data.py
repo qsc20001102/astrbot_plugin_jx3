@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 from typing import Dict, Any, Optional, List, Union
+from collections import defaultdict
 
 from astrbot.api import logger
 from astrbot.api import AstrBotConfig
@@ -144,7 +145,7 @@ class JX3Service:
         try:
             # 格式化字符串，利用字典的 get 方法提供默认值
             result_msg = (
-                f"{server}\n{data.get('date', '未知日期')}-星期{data.get('week', '未知')}\n"
+                f"{server}\n{data.get('date', '未知日期')} 星期{data.get('week', '未知')}\n"
                 f"大战：{data.get('war', '无')}\n"
                 f"战场：{data.get('battle', '无')}\n"
                 f"阵营：{data.get('orecar', '无')}\n"
@@ -159,7 +160,7 @@ class JX3Service:
             card = data.get('card', [])
             card_msg = f"【家园声望·加倍道具】\n{', '.join(card)}\n"
             team = data.get('team', [None, None, None])
-            team_msg = f"【武林通鉴·公共任务】\n{team[0] or '无'}\n【武林通鉴·团队秘境】\n{team[2] or '无'}\n"
+            team_msg = f"【武林通鉴·公共任务】\n{team[0] or '无'}\n【武林通鉴·团队秘境】\n{team[1] or '无'}\n"
 
             return_data["data"] = result_msg + luck_msg + card_msg + team_msg
             return_data["code"] = 200
@@ -342,7 +343,7 @@ class JX3Service:
 
 
     async def zhuangshi(self,name: str) -> Dict[str, Any]:
-        """花价"""
+        """装饰"""
         return_data = self._init_return_data()
 
         # 1. 构造请求参数
@@ -416,31 +417,113 @@ class JX3Service:
         return return_data
 
 
-    async def shapan(self, server: str ) -> Dict[str, Any]:
-        """区服沙盘"""
+    async def xinwen(self, num:int) -> Dict[str, Any]:
+        """新闻资讯"""
         return_data = self._init_return_data()
+
+        params = {"limit": num}
+        # 提取字段可能返回列表
+        data: Optional[List[Dict[str, Any]]] = await self._base_request(
+            "jx3_xinweng", "GET", params=params)
         
+        if not data or not isinstance(data, list):
+            return_data["msg"] = "获取接口信息失败或数据格式错误"
+            return return_data
+        
+        try:
+            # 
+            result = data[0]
+            return_data["status"] = result.get('id')
+
+            result_msg = "新闻资讯推送\n"
+            # 仅展示前1条，避免消息过长
+            for i, item in enumerate(data[:num], 1): 
+                result_msg += f"{i}. 【{item.get('type', '无类型')}】\n"
+                result_msg += f"标题：{item.get('title', '未知时间')}\n"
+                result_msg += f"时间：{item.get('date', '未知时间')}\n"
+                result_msg += f"链接：{item.get('url', '无链接')}\n"
+                
+            return_data["data"] = result_msg
+            
+        except Exception as e:
+            logger.error(f"数据处理时出错: {e}")
+            return_data["msg"] = "处理接口返回信息时出错"
+
+        return_data["code"] = 200    
+
+        return return_data
+
+
+    async def weihu(self, num:int) -> Dict[str, Any]:
+        """维护"""
+        return_data = self._init_return_data()
+
+        params = {"limit": num}
+        # 提取字段可能返回列表
+        data: Optional[List[Dict[str, Any]]] = await self._base_request(
+            "jx3_weihu", "GET", params=params)
+        
+        if not data or not isinstance(data, list):
+            return_data["msg"] = "获取接口信息失败或数据格式错误"
+            return return_data
+        
+        try:
+            # 
+            result = data[0]
+            return_data["status"] = result.get('id')
+
+            result_msg = "维护推送\n"
+            # 仅展示前1条，避免消息过长
+            for i, item in enumerate(data[:num], 1): 
+                result_msg += f"{i}. 【{item.get('type', '无类型')}】\n"
+                result_msg += f"标题：{item.get('title', '未知时间')}\n"
+                result_msg += f"时间：{item.get('date', '未知时间')}\n"
+                result_msg += f"链接：{item.get('url', '无链接')}\n"
+                
+            return_data["data"] = result_msg
+            
+        except Exception as e:
+            logger.error(f"数据处理时出错: {e}")
+            return_data["msg"] = "处理接口返回信息时出错"
+
+        return_data["code"] = 200    
+
+        return return_data
+
+    async def qufu(self,name: str) -> Dict[str, Any]:
+        """区服信息"""
+        return_data = self._init_return_data()
+
         # 1. 构造请求参数
-        params = {"serverName": server}
-        
+        params = {"name": name}
+
         # 2. 调用基础请求
         data: Optional[Dict[str, Any]] = await self._base_request(
-            "aijx3_shapan", "POST", params=params
+            "jx3_qufu", "GET", params=params
         )
-        
         if not data:
             return_data["msg"] = "获取接口信息失败"
             return return_data
+    
+        # 3. 处理返回数据
+        try:
+            # 格式化字符串，利用字典的 get 方法提供默认值
+            result_msg = f"主服：{data.get('zone', '无')}-{data.get('name', '无')}\n"
             
-        # 3. 处理返回数据 (直接提取图片 URL)
-        pic_url = data.get("picUrl")
-        if pic_url:
-            return_data["data"] = pic_url
-        else:
-            return_data["msg"] = "接口未返回图片URL"
+            slave = data.get('slave', [])
+            slave_msg = f"区服：{', '.join(slave)}\n"
+
+            alias = data.get('alias', [])
+            alias_msg = f"别名：{', '.join(alias)}\n"
+
+            return_data["data"] = result_msg + slave_msg + alias_msg
+            return_data["code"] = 200
+        except Exception as e:
+            logger.error(f"数据处理时出错: {e}")
+            return_data["msg"] = "处理接口返回信息时出错"
             return return_data
         
-        return_data["code"] = 200    
+        return_data["code"] = 200
 
         return return_data
     
@@ -450,11 +533,11 @@ class JX3Service:
         return_data = self._init_return_data()
         
         # 1. 构造请求参数
-        params = {"server": server}
+        params = {"server": server,"type": "1"}
         
         # 2. 调用基础请求
         data: Optional[Dict[str, Union[int, str]]] = await self._base_request(
-            "jx3_kaifu", "GET", params=params
+            "jx3_zhuangtai", "GET", params=params
         )
         
         if not data:
@@ -464,15 +547,17 @@ class JX3Service:
         # 3. 处理返回数据
         try:
             status = data.get("status", 0)
-            timestamp = data.get("time", 0)
+            lasttime = data.get("lasttime", 0)
+            shuttime = data.get("shuttime", 0)
             
-            status_time = datetime.fromtimestamp(float(timestamp)).strftime("%Y-%m-%d %H:%M:%S")
+            lasttime_t = datetime.fromtimestamp(float(lasttime)).strftime("%Y-%m-%d %H:%M:%S")
+            shuttime_t = datetime.fromtimestamp(float(shuttime)).strftime("%Y-%m-%d %H:%M:%S")
             
             if status == 1:
-                status_str = f"{server}服务器已开服，快冲，快冲！\n开服时间：{status_time}"
+                status_str = f"{server}服务器已开服，快冲，快冲！\n开服时间：{lasttime_t}"
                 status_bool = True
             else:
-                status_str = f"{server}服务器当前维护中，等会再来吧！\n维护时间：{status_time}"
+                status_str = f"{server}服务器当前维护中，等会再来吧！\n维护时间：{shuttime_t}"
                 status_bool = False
 
             return_data["status"] = status_bool
@@ -488,36 +573,15 @@ class JX3Service:
         return return_data
 
 
-    async def shaohua(self) -> Dict[str, Any]:
-        """骚话"""
-        return_data = self._init_return_data()
-        
-        # 因为没有参数，所以 params=None
-        data: Optional[Dict[str, Any]] = await self._base_request("jx3_shaohua", "GET") 
-        
-        if not data:
-            return_data["msg"] = "获取接口信息失败"
-            return return_data
-            
-        text = data.get("text")
-        if text:
-            return_data["data"] = text
-        else:
-            return_data["msg"] = "接口未返回文本"
-            return return_data
-
-        return_data["code"] = 200  
-
-        return return_data
-    
-
     async def zhuangtai(self) -> Dict[str, Any]:
         """区服状态"""
         return_data = self._init_return_data()
         
+        # 1. 构造请求参数
+        params = {"server": "","type": "2"}
         
-        data: Optional[List[Dict[str, Any]]] = await self._base_request("jx3_zhuangtai", "GET") 
-        
+        data: Optional[List[Dict[str, Any]]] = await self._base_request("jx3_zhuangtai", "GET", params=params) 
+
         if not data:
             return_data["msg"] = "获取接口信息失败"
             return return_data
@@ -566,9 +630,9 @@ class JX3Service:
             return return_data
         
         try:
-            result_msg = "剑网三最近技改\n"
-            # 仅展示前1条，避免消息过长
-            for i, item in enumerate(data[:1], 1): 
+            result_msg = "最近技改\n"
+            
+            for i, item in enumerate(data[:3], 1): 
                 result_msg += f"{i}. {item.get('title', '无标题')}\n"
                 result_msg += f"时间：{item.get('time', '未知时间')}\n"
                 result_msg += f"链接：{item.get('url', '无链接')}\n\n"
@@ -583,42 +647,120 @@ class JX3Service:
         return_data["code"] = 200
 
         return return_data
-    
 
-    async def xinwen(self, num:int) -> Dict[str, Any]:
-        """新闻资讯"""
+
+    async def xiaoyao(self) -> Dict[str, Any]:
+        """小药"""
         return_data = self._init_return_data()
-
-        params = {"limit": num}
-        # 提取字段可能返回列表
-        data: Optional[List[Dict[str, Any]]] = await self._base_request(
-            "jx3_xinweng", "GET", params=params)
         
-        if not data or not isinstance(data, list):
-            return_data["msg"] = "获取接口信息失败或数据格式错误"
+        data: Optional[List[Dict[str, Any]]] = await self._base_request("jx3_xiaoyao", "GET") 
+        logger.debug(data)
+        if not data:
+            return_data["msg"] = "获取接口信息失败"
             return return_data
         
+        # 处理返回数据
         try:
-            # 
-            result = data[0]
-            return_data["status"] = result.get('id')
+            result = {}
 
-            result_msg = "新闻资讯推送\n"
-            # 仅展示前1条，避免消息过长
-            for i, item in enumerate(data[:num], 1): 
-                result_msg += f"{i}. {item.get('title', '无标题')}\n"
-                result_msg += f"时间：{item.get('date', '未知时间')}\n"
-                result_msg += f"链接：{item.get('url', '无链接')}\n"
-                
-            return_data["data"] = result_msg
-            
+            for item in data:
+                k = item["kungfu"]
+                color = item["color"]
+                cls = item["class"]
+                name = item["name"]
+
+                if k not in result:
+                    result[k] = {
+                        "kungfu": k,
+                        "purple": {},
+                        "blue": {}
+                    }
+
+                if color == "紫":
+                    result[k]["purple"][cls] = name
+                else:
+                    result[k]["blue"][cls] = name
+
+            return_data["data"]["items"] = list(result.values())
+            logger.debug(return_data["data"])
+
         except Exception as e:
             logger.error(f"数据处理时出错: {e}")
             return_data["msg"] = "处理接口返回信息时出错"
 
+        # 加载模板
+        try:
+            return_data["temp"] = await load_template("xiaoyao.html")
+        except FileNotFoundError as e:
+            logger.error(f"加载模板失败: {e}")
+            return_data["msg"] = "系统错误：模板文件不存在"
+            return return_data
+        
+        return_data["code"] = 200
+            
+        return return_data
+
+
+    async def shaohua(self) -> Dict[str, Any]:
+        """骚话"""
+        return_data = self._init_return_data()
+        
+        # 因为没有参数，所以 params=None
+        data: Optional[Dict[str, Any]] = await self._base_request("jx3_shaohua", "GET") 
+        
+        if not data:
+            return_data["msg"] = "获取接口信息失败"
+            return return_data
+            
+        text = data.get("text")
+        if text:
+            return_data["data"] = text
+        else:
+            return_data["msg"] = "接口未返回文本"
+            return return_data
+
+        return_data["code"] = 200  
+
+        return return_data
+
+
+    async def shapan(self, server: str ) -> Dict[str, Any]:
+        """区服沙盘"""
+        return_data = self._init_return_data()
+        
+        # 1. 构造请求参数
+        params = {"serverName": server}
+        
+        # 2. 调用基础请求
+        data: Optional[Dict[str, Any]] = await self._base_request(
+            "aijx3_shapan", "POST", params=params
+        )
+        
+        if not data:
+            return_data["msg"] = "获取接口信息失败"
+            return return_data
+            
+        # 3. 处理返回数据 (直接提取图片 URL)
+        pic_url = data.get("picUrl")
+        if pic_url:
+            return_data["data"] = pic_url
+        else:
+            return_data["msg"] = "接口未返回图片URL"
+            return return_data
+        
         return_data["code"] = 200    
 
         return return_data
+    
+
+
+    
+
+
+
+
+
+    
 
 
     async def shuamamsg(self,server:str,type:str,subtype:str) -> Dict[str, Any]:

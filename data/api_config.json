@@ -8,27 +8,102 @@
             "num": 0  
         }
     },
-    "jx3_shaohua":{
-        "url":"https://www.jx3api.com/data/saohua/random",
+    "jx3_richangyuche":{
+        "url":"https://www.jx3api.com/data/active/list/calendar",
         "method":"GET",
-        "description":"获取剑网三骚话",
+        "description":"该 API 用于预测每天的日常任务，您可以通过指定时间范围来获取相关任务数据。",
         "params":{
-            "name": "万花" 
+            "num": "30"
+        }
+    },
+    "jx3_xingxiashijian":{
+        "url":"https://www.jx3api.com/data/active/celebs",
+        "method":"GET",
+        "description":"查询当前时间的楚天社或云从社的进度。",
+        "params":{
+            "name": "穹野卫"
+        }
+    },
+    "jx3_keju":{
+        "url":"https://www.jx3api.com/data/exam/search",
+        "method":"GET",
+        "description":"此接口用于科举考试时的答案查询，支持模糊查询和拼音首字母查询。",
+        "params":{
+            "subject": "",
+            "limit": "5"
+        }
+    },
+    "jx3_huajia":{
+        "url":"https://www.jx3api.com/data/home/flower",
+        "method":"GET",
+        "description":"此接口用于查询家园系统中特定鲜花的最高价格及其对应的采集线路，包括区服和地图信息。",
+        "params":{
+            "server": "",
+            "name": "",
+            "map": ""
+        }
+    },
+    "jx3_zhuangshi":{
+        "url":"https://www.jx3api.com/data/home/furniture",
+        "method":"GET",
+        "description":"此接口用于查询家园系统中特定装饰的详细信息，包括来源、属性和外观等内容。",
+        "params":{
+            "name": ""
+        }
+    },
+    "jx3_qiwu":{
+        "url":"https://www.jx3api.com/data/home/travel",
+        "method":"GET",
+        "description":"此接口用于查询指定地图的装饰物品产出信息，包括装饰的属性、来源和外观等内容。",
+        "params":{
+            "name": ""
+        }
+    },
+    "jx3_xinweng":{
+        "url":"https://www.jx3api.com/data/news/allnews",
+        "method":"GET",
+        "description":"此接口用于获取官方最新公告及新闻内容，包括新闻分类、标题及链接等信息。",
+        "params":{
+            "limit": 1
+        }
+    },
+    "jx3_weihu":{
+        "url":"https://www.jx3api.com/data/news/announce",
+        "method":"GET",
+        "description":"获取《剑网3》官方发布的最新维护与版本更新公告列表，包含公告标题、发布日期及原文链接",
+        "params":{
+            "limit": 1
+        }
+    },
+    "jx3_qufu":{
+        "url":"https://www.jx3api.com/data/master/search",
+        "method":"GET",
+        "description":"此接口用于根据区服简称搜索主服务器及其附属服务器的详细信息",
+        "params":{
+            "name": "双梦镇"
+        }
+    },
+    "jx3_zhuangtai":{
+        "url":"https://www.jx3api.com/data/status/check",
+        "method":"GET",
+        "description":"此接口用于根据区服简称搜索主服务器及其附属服务器的详细信息",
+        "params":{
+            "type": "",
+            "server": ""
         }
     },
     "jx3_jigai":{
-        "url":"https://www.jx3api.com/data/skills/records",
+        "url":"https://www.jx3api.com/data/skill/rework",
         "method":"GET",
         "description":"获取剑网三技能记录",
         "params":{
         }
     },
-    "jx3_kaifu":{
-        "url":"https://www.jx3api.com/data/server/check",
+    "jx3_xiaoyao":{
+        "url":"https://www.jx3api.com/data/school/foods",
         "method":"GET",
-        "description":"剑网三开服查询",
+        "description":"小药",
         "params":{
-            "server": "梦江南"
         }
     },
     "aijx3_shapan":{
@@ -37,6 +112,14 @@
         "description":"获取剑网三沙盘状态",
         "params":{
             "serverName": "眉间雪"
+        }
+    },
+    "jx3_shaohua":{
+        "url":"https://www.jx3api.com/data/saohua/random",
+        "method":"GET",
+        "description":"获取剑网三骚话",
+        "params":{
+            "name": "万花" 
         }
     },
     "aijx3_qiyu":{
@@ -141,22 +224,6 @@
             "token":""
         }
     },
-    "jx3_xinweng":{
-        "url":"https://www.jx3api.com/data/news/allnews",
-        "method":"GET",
-        "description":"此接口用于获取官方最新公告及新闻内容，包括新闻分类、标题及链接等信息。",
-        "params":{
-            "limit": 1
-        }
-    },
-    "jx3_weihu":{
-        "url":"https://www.jx3api.com/data/news/announce",
-        "method":"GET",
-        "description":"此接口用于获取官方最新维护公告，包括公告标题、发布日期及链接等信息。",
-        "params":{
-            "limit": 1
-        }
-    },
     "jx3_zhengyingpaimai":{
         "url":"https://www.jx3api.com/data/auction/records",
         "method":"GET",
@@ -196,30 +263,6 @@
             "token": ""
         }
     },
-    "jx3_zhuangtai":{
-        "url":"https://www.jx3api.com/data/server/status",
-        "method":"GET",
-        "description":"此接口用于查询指定服务器的当前状态，包括 维护、正常、繁忙 和 爆满 等状态信息。",
-        "params":{
-            "server": ""
-        }
-    },
-    "jx3_richangyuche":{
-        "url":"https://www.jx3api.com/data/active/list/calendar",
-        "method":"GET",
-        "description":"该 API 用于预测每天的日常任务，您可以通过指定时间范围来获取相关任务数据。",
-        "params":{
-            "num": "30"
-        }
-    },
-    "jx3_xingxiashijian":{
-        "url":"https://www.jx3api.com/data/active/celebs",
-        "method":"GET",
-        "description":"查询当前时间的楚天社或云从社的进度。",
-        "params":{
-            "name": "穹野卫"
-        }
-    },
     "jx3_pianzhi":{
         "url":"https://www.jx3api.com/data/fraud/detailed",
         "method":"GET",
@@ -238,41 +281,6 @@
             "server": "",
             "limit": "10",
             "token": ""
-        }
-    },
-    "jx3_keju":{
-        "url":"https://www.jx3api.com/data/exam/answer",
-        "method":"GET",
-        "description":"此接口用于科举考试时的答案查询，支持模糊查询和拼音首字母查询。",
-        "params":{
-            "subject": "",
-            "limit": "5"
-        }
-    },
-    "jx3_huajia":{
-        "url":"https://www.jx3api.com/data/home/flower",
-        "method":"GET",
-        "description":"此接口用于查询家园系统中特定鲜花的最高价格及其对应的采集线路，包括区服和地图信息。",
-        "params":{
-            "server": "",
-            "name": "",
-            "map": ""
-        }
-    },
-    "jx3_zhuangshi":{
-        "url":"https://www.jx3api.com/data/home/furniture",
-        "method":"GET",
-        "description":"此接口用于查询家园系统中特定装饰的详细信息，包括来源、属性和外观等内容。",
-        "params":{
-            "name": ""
-        }
-    },
-    "jx3_qiwu":{
-        "url":"https://www.jx3api.com/data/home/travel",
-        "method":"GET",
-        "description":"此接口用于查询指定地图的装饰物品产出信息，包括装饰的属性、来源和外观等内容。",
-        "params":{
-            "name": ""
         }
     },
     "jx3box_qiyugonglue":{

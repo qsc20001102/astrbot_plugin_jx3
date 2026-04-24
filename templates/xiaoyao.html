@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>小药表</title>
+
+<style>
+    body {
+        font-family: 'Microsoft YaHei', Arial, sans-serif;
+        background: #f1f2f6;
+        margin: 0;
+        padding: 20px;
+    }
+
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        text-align: center;
+    }
+
+    h1 {
+        font-size: 32px;
+        margin-bottom: 25px;
+        color: #222;
+        font-weight: 800;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        text-align: center;
+    }
+
+    thead {
+        background: #d93939;
+        color: white;
+        font-size: 16px;
+    }
+
+    th, td {
+        padding: 12px 10px;
+        border-bottom: 1px solid #eee;
+    }
+
+    tbody tr:hover {
+        background: #fff2f2;
+    }
+
+    .purple {
+        color: #a020f0;
+        font-weight: 600;
+    }
+
+    .blue {
+        color: #1e90ff;
+        font-weight: 600;
+    }
+
+    .kungfu {
+        font-weight: bold;
+        color: #333;
+    }
+
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>心法小药表</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th rowspan="2">心法</th>
+                <th colspan="4">紫色小药</th>
+                <th colspan="4">蓝色小药</th>
+            </tr>
+            <tr>
+                <th>增强食品</th>
+                <th>增强药品</th>
+                <th>辅助食品</th>
+                <th>辅助药品</th>
+
+                <th>增强食品</th>
+                <th>增强药品</th>
+                <th>辅助食品</th>
+                <th>辅助药品</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for m in items %}
+            <tr>
+                <td class="kungfu">{{ m.kungfu }}</td>
+
+                <!-- 紫色 -->
+                <td class="purple">{{ m.purple["增强食品"] }}</td>
+                <td class="purple">{{ m.purple["增强药品"] }}</td>
+                <td class="purple">{{ m.purple["辅助食品"] }}</td>
+                <td class="purple">{{ m.purple["辅助药品"] }}</td>
+
+                <!-- 蓝色 -->
+                <td class="blue">{{ m.blue["增强食品"] }}</td>
+                <td class="blue">{{ m.blue["增强药品"] }}</td>
+                <td class="blue">{{ m.blue["辅助食品"] }}</td>
+                <td class="blue">{{ m.blue["辅助药品"] }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+
+</body>
+</html>
