@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>竞技排行榜</title>
+
+<style>
+    body {
+        font-family: 'Microsoft YaHei', Arial, sans-serif;
+        background: #f1f2f6;
+        margin: 0;
+        padding: 20px;
+    }
+
+    .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        text-align: center;
+    }
+
+    h1 {
+        font-size: 32px;
+        margin-bottom: 25px;
+        color: #222;
+        font-weight: 800;
+        text-align: center;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        margin-top: 10px;
+        text-align: left;
+    }
+
+    thead {
+        background: #d93939;
+        color: white;
+        font-size: 18px;
+    }
+
+    th, td {
+        padding: 14px 12px;
+        border-bottom: 1px solid #eee;
+        font-size: 15px;
+        vertical-align: middle;
+    }
+
+    tbody tr:hover {
+        background: #fff2f2;
+    }
+
+    .avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+    }
+
+    .rank-1 { color: gold; font-weight: bold; }
+    .rank-2 { color: silver; font-weight: bold; }
+    .rank-3 { color: #cd7f32; font-weight: bold; }
+
+    .winrate {
+        color: #27ae60;
+        font-weight: bold;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>名剑排行榜</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th>排名</th>
+                <th>头像</th>
+                <th>角色</th>
+                <th>区服</th>
+                <th>门派</th>
+                <th>分数</th>
+                <th>胜率</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for m in lists %}
+            <tr>
+                <td class="
+                    {% if m.rankNum == '1' %}rank-1{% endif %}
+                    {% if m.rankNum == '2' %}rank-2{% endif %}
+                    {% if m.rankNum == '3' %}rank-3{% endif %}
+                ">
+                    {{ m.rankNum }}
+                </td>
+
+                <td>
+                    <img class="avatar" src="{{ m.avatarUrl }}">
+                </td>
+
+                <td>{{ m.roleName }}</td>
+
+                <td>{{ m.zoneName }} · {{ m.serverName }}</td>
+
+                <td>{{ m.forceName }}</td>
+
+                <td>{{ m.score }}</td>
+
+                <td class="winrate">{{ m.winRate }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+
+</body>
+</html>

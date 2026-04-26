@@ -1,5 +1,6 @@
 import inspect
 from pathlib import Path
+from typing import cast
 
 from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api.star import Context, Star, register, StarTools
@@ -16,7 +17,7 @@ from .core.fun_basic import load_as_base64
 @register("astrbot_plugin_jx3", 
           "fxdyz", 
           "通过调用剑网三API接口获取游戏数据，处理发送。", 
-          "2.1",
+          "2.2",
           "https://github.com/qsc20001102/astrbot_plugin_jx3api"
 )
 class Jx3ApiPlugin(Star):
@@ -139,11 +140,11 @@ class Jx3ApiPlugin(Star):
         # 数据库实例化
         self.local_sql_db = AsyncSQLiteDB(str(self.local_data_path))
         self.plugin_sql_db = AsyncSQLiteDB(str(self.plugin_data_path))
-
         # 剑网三功能实例化
         self.bilei = BiLeidata(self.local_sql_db)
         self.jx3api = JX3Service(str(self.api_data_path), self.conf, self.plugin_sql_db)
-        self.jx3at = AsyncTask(self.context, self.conf, self.jx3api, self.local_sql_db)
+        self.jx3at = AsyncTask(cast(Context, self.context), self.conf, self.jx3api, self.local_sql_db)
+        self.jx3cmd = MessageBuilder(self.server, self.jx3api, self.bilei, self.jx3at, self.icons)
         self.jx3cmd = MessageBuilder(self.server, self.jx3api, self.bilei, self.jx3at, self.icons)
 
 
@@ -186,7 +187,7 @@ class Jx3ApiPlugin(Star):
         self.command_map = {
             "功能": self.jx3cmd.jx3_helps,
             "日常": self.jx3cmd.jx3_richang,
-            "日常预测": self.jx3cmd.jx3_richangyuche,
+            "月历": self.jx3cmd.jx3_richangyuche,
             "名望": self.jx3cmd.jx3_xingxiashijian,
             "科举": self.jx3cmd.jx3_keju,
             "花价": self.jx3cmd.jx3_huajia,
@@ -201,27 +202,28 @@ class Jx3ApiPlugin(Star):
             "小药": self.jx3cmd.jx3_xiaoyao,
             "骚话": self.jx3cmd.jx3_shaohua,
             "沙盘": self.jx3cmd.jx3_shapan,
-            "统计": self.jx3cmd.jx3_qufuqiyu,
             "攻略": self.jx3cmd.jx3_qiyugonglue,
             "宏": self.jx3cmd.jx3_hong,
             "配装": self.jx3cmd.jx3_peizhuang,
             "百战": self.jx3cmd.jx3_baizhan,
+            "扶摇": self.jx3cmd.jx3_fuyaojjiutian,
+            "拍卖": self.jx3cmd.jx3_zhengyingpaimai,
+            "的卢": self.jx3cmd.jx3_dilujilu,
+            "烟花": self.jx3cmd.jx3_yanhuachaxun,
+            "骗子": self.jx3cmd.jx3_pianzhi,
+            "查询": self.jx3cmd.jx3_juesheqiyu,
+            "统计": self.jx3cmd.jx3_qiyutongji,
+            "战绩": self.jx3cmd.jx3_zhanji,
+            "排行": self.jx3cmd.jx3_mingjianpaihang,
+            "招募": self.jx3cmd.jx3_tuanduizhaomu,
+            "角色": self.jx3cmd.jx3_jueshe,
+            "名片": self.jx3cmd.jx3_jueshemingpian,
+            "随机": self.jx3cmd.jx3_shuijimingpian,
+            "刷马": self.jx3cmd.jx3_shuma,
             "金价": self.jx3cmd.jx3_jinjia,
             "物价": self.jx3cmd.jx3_wujia,
-            "交易行": self.jx3cmd.jx3_jiaoyihang,
-            "名片": self.jx3cmd.jx3_jueshemingpian,
-            "随机名片": self.jx3cmd.jx3_shuijimingpian,
-            "烟花": self.jx3cmd.jx3_yanhuachaxun,
-            "的卢": self.jx3cmd.jx3_dilujilu,
-            "招募": self.jx3cmd.jx3_tuanduizhaomu,
-            "战绩": self.jx3cmd.jx3_zhanji,
-            "查询": self.jx3cmd.jx3_qiyu,
-            "拍卖": self.jx3cmd.jx3_zhengyingpaimai,
-            "扶摇九天": self.jx3cmd.jx3_fuyaojjiutian,
-            "刷马": self.jx3cmd.jx3_shuma,
-            "骗子": self.jx3cmd.jx3_pianzhi,
             "八卦": self.jx3cmd.jx3_bagua,
-            "角色": self.jx3cmd.jx3_jueshe,
+            "交易行": self.jx3cmd.jx3_jiaoyihang,
             "开服推送": self.jx3cmd.jx3_kaifhujiank,
             "新闻推送": self.jx3cmd.jx3_xinwenzhixun,
             "刷马推送": self.jx3cmd.jx3_shuamamsg,

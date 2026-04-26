@@ -130,38 +130,37 @@
             "token":""
         }
     },    
-    "aijx3_qiyu":{
-        "url":"https://www.jianxiachaguan.cn/api2/aijx3-jxcg/game/get-adventure-record",
-        "method":"POST",
-        "description":"获取剑网三某区服奇遇触发记录",
+    "jx3_fuyaojiutian":{
+        "url":"https://www.jx3api.com/data/active/next/event",
+        "method":"GET",
+        "description":"获取某区服扶摇九天的下次开启时间",
         "params":{
-            "adventureName": "阴阳两界",  
-            "serverName": "眉间雪"  
+            "server": "梦江南",
+            "token": ""
         }
     },
-    "jx3_jieshemingpian":{
-        "url":"https://www.jx3api.com/data/show/card",
+    "jx3_zhengyingpaimai":{
+        "url":"https://www.jx3api.com/data/auction/records",
         "method":"GET",
-        "description":"此接口用于查询指定角色的名片墙信息，包括角色展示图片和展示数据的唯一标识。",
+        "description":"此接口用于查询阵营拍卖的记录，包括拍卖的物品名称、金额以及相关信息。支持通过区服名称和物品名称进行精确或模糊查询。",
         "params":{
-            "server": "眉间雪",
-            "name": "夜温言@长安城",
-            "token":""
+            "server": "梦江南",
+            "name": "玄晶",
+            "limit": 20,
+            "token": ""
         }
     },
-    "jx3_shuijimingpian":{
-        "url":"https://www.jx3api.com/data/show/random",
+    "jx3_dilujilu":{
+        "url":"https://www.jx3api.com/data/steed/records",
         "method":"GET",
-        "description":"此接口用于随机读取一张符合条件的角色名片。",
+        "description":"此接口用于查询的卢马的刷新、捕获及拍卖记录，包括捕获者、拍卖价格及相关时间信息",
         "params":{
             "server": "唯我独尊",
-            "body": "萝莉",
-            "force":"万花",
             "token":""
         }
     },
     "jx3_yanhuachaxun":{
-        "url":"https://www.jx3api.com/data/fireworks/records",
+        "url":"https://www.jx3api.com/data/show/records",
         "method":"GET",
         "description":"此接口用于查询烟花赠送与接收的历史记录，数据可能存在遗漏",
         "params":{
@@ -170,44 +169,34 @@
             "token":""
         }
     },
-    "jx3_dilujilu":{
-        "url":"https://www.jx3api.com/data/dilu/records",
+    "jx3_pianzhi":{
+        "url":"https://www.jx3api.com/data/fraud/detailed",
         "method":"GET",
-        "description":"此接口用于查询的卢马的刷新、捕获及拍卖记录，包括捕获者、拍卖价格及相关时间信息",
+        "description":"此接口用于通过用户的 QQ 号搜索其在贴吧上的行骗记录，包括贴吧名称、记录标题和详细内容。",
         "params":{
-            "server": "唯我独尊",
+            "uid": "",
+            "token": ""
+        }
+    },
+    "jx3_juesheqiyu":{
+        "url":"https://www.jx3api.com/data/event/records",
+        "method":"GET",
+        "description":"此接口用于查询指定角色的奇遇触发记录，包括奇遇事件、状态及触发时间。注意，数据可能存在遗漏",
+        "params":{
+            "server": "梦江南",
+            "name": "飞翔大野猪",
             "token":""
         }
     },
-    "jx3_tuanduizhaomu":{
-        "url":"https://www.jx3api.com/data/member/recruit",
-        "method":"GET",
-        "description":"此接口用于查询指定区服的团队招募信息，包括活动类型、队长信息及当前队伍状态。",
+    "jx3_qiyutongji":{
+        "url":"https://www.jx3api.com/data/event/statistics",
+        "method":"POST",
+        "description":"获取剑网三某区服奇遇触发记录",
         "params":{
+            "name": "阴阳两界",  
             "server": "梦江南",
-            "keyword": "25人普通会战弓月城",
-            "table": 1,
-            "token":""
-        }
-    },
-    "jx3_jinjia":{
-        "url":"https://www.jx3api.com/data/trade/demon",
-        "method":"GET",
-        "description":"金价比例信息",
-        "params":{
-            "server": "梦江南",
-            "limit": "10",
-            "token":""
-        }
-    },
-    "jx3_wujia":{
-        "url":"https://www.jx3api.com/data/trade/records",
-        "method":"GET",
-        "description":"此接口用于统计指定物品的黑市价格信息，包括成交、出售、收购等详细记录。",
-        "params":{
-            "server": "梦江南",
-            "name": "秃盒",
-            "token":""
+            "limit": "10",  
+            "token": ""
         }
     },
     "jx3_zhanji":{
@@ -222,25 +211,96 @@
             "token":""
         }
     },
-    "jx3_qiyu":{
-        "url":"https://www.jx3api.com/data/luck/adventure",
+    "jx3_mingjianpaihang":{
+        "url":"https://www.jx3api.com/data/arena/awesome",
         "method":"GET",
-        "description":"此接口用于查询指定角色的奇遇触发记录，包括奇遇事件、状态及触发时间。注意，数据可能存在遗漏",
+        "description":"查询名剑大会的排行榜信息，包括玩家排名、分数、胜率等详细竞技数据",
         "params":{
-            "server": "梦江南",
-            "name": "飞翔大野猪",
+            "limit": "50",
+            "mode": "33",
+            "ticket": "",
             "token":""
         }
     },
-    "jx3_zhengyingpaimai":{
-        "url":"https://www.jx3api.com/data/auction/records",
+    "jx3_tuanduizhaomu":{
+        "url":"https://www.jx3api.com/data/recruit/search",
         "method":"GET",
-        "description":"此接口用于查询阵营拍卖的记录，包括拍卖的物品名称、金额以及相关信息。支持通过区服名称和物品名称进行精确或模糊查询。",
+        "description":"此接口用于查询指定区服的团队招募信息，包括活动类型、队长信息及当前队伍状态。",
         "params":{
             "server": "梦江南",
-            "name": "玄晶",
-            "limit": 20,
+            "keyword": "25人普通会战弓月城",
+            "table": 1,
+            "token":""
+        }
+    },
+    "jx3_jueshexinxi":{
+        "url":"https://www.jx3api.com/data/role/detail",
+        "method":"GET",
+        "description":"获取角色信息",
+        "params":{
+            "server": "",
+            "name": "",
             "token": ""
+        }
+    },
+    "jx3_jieshemingpian":{
+        "url":"https://www.jx3api.com/data/card/record",
+        "method":"GET",
+        "description":"此接口用于查询指定角色的名片墙信息，包括角色展示图片和展示数据的唯一标识。",
+        "params":{
+            "server": "眉间雪",
+            "name": "夜温言@长安城",
+            "token":""
+        }
+    },
+    "jx3_allmingpian":{
+        "url":"https://www.jx3api.com/data/card/records",
+        "method":"GET",
+        "description":"获取角色全部名片",
+        "params":{
+            "server": "",
+            "name": "",
+            "token": ""
+        }
+    },
+    "jx3_shuijimingpian":{
+        "url":"https://www.jx3api.com/data/card/random",
+        "method":"GET",
+        "description":"此接口用于随机读取一张符合条件的角色名片。",
+        "params":{
+            "server": "唯我独尊",
+            "body": "萝莉",
+            "force":"万花",
+            "token":""
+        }
+    },
+    "jx3_jinjia":{
+        "url":"https://www.jx3api.com/data/trade/demon",
+        "method":"GET",
+        "description":"金价比例信息",
+        "params":{
+            "server": "梦江南",
+            "limit": "10",
+            "token":""
+        }
+    },
+    "jx3_waiguan":{
+        "url":"https://www.jx3api.com/data/trade/item/search",
+        "method":"GET",
+        "description":"统计外观物品的模糊搜索结果",
+        "params":{
+            "name": "秃盒",
+            "token":""
+        }
+    },
+    "jx3_wujia":{
+        "url":"https://www.jx3api.com/data/trade/records",
+        "method":"GET",
+        "description":"此接口用于统计指定物品的黑市价格信息，包括成交、出售、收购等详细记录。",
+        "params":{
+            "server": "梦江南",
+            "name": "秃盒",
+            "token":""
         }
     },
     "jx3_jiaoyihang":{
@@ -253,30 +313,12 @@
             "token": ""
         }
     },
-    "jx3_fuyaojiutian":{
-        "url":"https://www.jx3api.com/data/active/next/event",
-        "method":"GET",
-        "description":"获取某区服扶摇九天的下次开启时间",
-        "params":{
-            "server": "梦江南",
-            "token": ""
-        }
-    },
     "jx3_shuama":{
-        "url":"https://www.jx3api.com/data/horse/ranch",
+        "url":"https://www.jx3api.com/data/ranch/records",
         "method":"GET",
         "description":"获取某区服坐骑刷新时间",
         "params":{
             "server": "梦江南",
-            "token": ""
-        }
-    },
-    "jx3_pianzhi":{
-        "url":"https://www.jx3api.com/data/fraud/detailed",
-        "method":"GET",
-        "description":"此接口用于通过用户的 QQ 号搜索其在贴吧上的行骗记录，包括贴吧名称、记录标题和详细内容。",
-        "params":{
-            "uid": "",
             "token": ""
         }
     },
@@ -337,25 +379,7 @@
             "mount": "",
             "star": "1"
         }
-    },
-    "jx3_allmingpian":{
-        "url":"https://www.jx3api.com/data/show/records",
-        "method":"GET",
-        "description":"获取角色全部名片",
-        "params":{
-            "server": "",
-            "name": "",
-            "token": ""
-        }
-    },
-    "jx3_jueshexinxi":{
-        "url":"https://www.jx3api.com/data/role/detailed",
-        "method":"GET",
-        "description":"获取角色信息",
-        "params":{
-            "server": "",
-            "name": "",
-            "token": ""
-        }
     }
+
+
 }

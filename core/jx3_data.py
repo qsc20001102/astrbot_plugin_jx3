@@ -789,6 +789,531 @@ class JX3Service:
         return return_data
 
 
+    async def fuyaojjiutian(self, server: str) -> Dict[str, Any]:
+        """扶摇九天"""
+        return_data = self._init_return_data()
+        
+        # 1. 构造请求参数
+        params = {"server": server, "token": self.token}
+        
+        # 2. 调用基础请求
+        data: Optional[list[Dict[str, Any]]] = await self._base_request(
+            "jx3_fuyaojiutian", "GET", params=params
+        )
+        
+        if not data:
+            return_data["msg"] = "获取接口信息失败"
+            return return_data
+            
+        # 3. 处理返回数据
+        try:
+            data_new =  data[0]
+            data_time =  datetime.fromtimestamp(data_new['time']).strftime('%Y-%m-%d %H:%M:%S')
+            result_msg = f"{server}\n"
+            if data_new["status"] == 0:
+                result_msg += f"本轮扶摇九天尚未开启\n"
+            if data_new["status"] == 1:
+                result_msg += f"本轮扶摇九天正在进行\n"
+            if data_new["status"] == 2:
+                result_msg += f"本轮扶摇九天已经结束\n"
+            result_msg += f"开启时间：{data_time}\n"
+            return_data["data"] = result_msg
+        except Exception as e:
+            logger.error(f"处理返回数据失败: {e}")
+            return_data["msg"] = "处理返回数据失败"
+            return return_data    
+        
+        return_data["code"] = 200
+        
+        return return_data
+
+
+    async def zhengyingpaimai(self, server: str, name: str) -> Dict[str, Any]:
+        """阵营拍卖"""
+        return_data = self._init_return_data()
+        
+        # 1. 构造请求参数
+        params = {"server": server, "name": name, "token": self.token}
+        
+        # 2. 调用基础请求
+        data: Optional[List[Dict[str, Any]]] = await self._base_request(
+            "jx3_zhengyingpaimai", "GET", params=params
+        )
+        
+        if not data:
+            return_data["msg"] = "获取接口信息失败"
+            return return_data
+            
+        # 3. 处理返回数据  
+        try: 
+            for item in data:
+                item["time"] = datetime.fromtimestamp(item["time"]).strftime("%Y-%m-%d %H:%M:%S")
+            return_data["data"]["list"] = data
+        except Exception as e:
+            logger.error(f"处理返回数据失败: {e}")
+            return_data["msg"] = "处理返回数据失败"
+            return return_data
+
+        # 4. 加载模板
+        try:
+            return_data["temp"] = await load_template("zhengyingpaimai.html")
+        except FileNotFoundError as e:
+            logger.error(f"加载模板失败: {e}")
+            return_data["msg"] = "系统错误：模板文件不存在"
+            return return_data
+        
+        
+        return_data["code"] = 200
+        
+        return return_data
+    
+
+    async def dilujilu(self, server: str) -> Dict[str, Any]:
+        """的卢记录"""
+        return_data = self._init_return_data()
+        
+        # 1. 构造请求参数
+        params = {"server": server, "token": self.token}
+        
+        # 2. 调用基础请求
+        data: Optional[List[Dict[str, Any]]] = await self._base_request(
+            "jx3_dilujilu", "GET", params=params
+        )
+        
+        if not data:
+            return_data["msg"] = "获取接口信息失败"
+            return return_data
+
+        # 3. 处理返回数据 
+        try:              
+            for item in data:
+                item["refresh_time"] = datetime.fromtimestamp(item["refresh_time"]).strftime("%Y-%m-%d %H:%M:%S")
+                item["capture_time"] = datetime.fromtimestamp(item["capture_time"]).strftime("%Y-%m-%d %H:%M:%S")
+                item["auction_time"] = datetime.fromtimestamp(item["auction_time"]).strftime("%Y-%m-%d %H:%M:%S")
+            return_data["data"]["list"] = data
+        except Exception as e:
+            logger.error(f"数据处理时出错: {e}")
+            return_data["msg"] = "处理接口返回信息时出错" 
+            return return_data
+
+        # 4. 加载模板
+        try:
+            return_data["temp"] = await load_template("dilujilu.html")
+        except FileNotFoundError as e:
+            logger.error(f"加载模板失败: {e}")
+            return_data["msg"] = "系统错误：模板文件不存在"
+            return return_data
+        
+        return_data["code"] = 200
+        
+        return return_data
+
+
+    async def yanhuachaxun(self, server: str, name:str ) -> Dict[str, Any]:
+        """烟花查询"""
+        return_data = self._init_return_data()
+        
+        # 1. 构造请求参数
+        params = {"server": server, "name": name,"token": self.token}
+        
+        # 2. 调用基础请求
+        data: Optional[List[Dict[str, Any]]] = await self._base_request(
+            "jx3_yanhuachaxun", "GET", params=params
+        )
+        
+        if not data:
+            return_data["msg"] = "获取接口信息失败"
+            return return_data
+            
+        # 3. 处理返回数据 
+        try:            
+            for item in data:
+                if isinstance(item, dict):
+                    timestamp = item.get("time")
+                    if timestamp and isinstance(timestamp, (int, float)):
+                        item["time"] = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
+                    else:
+                        item["time"] = "未知时间" 
+
+            return_data["data"]["list"] = data
+        except Exception as e:
+            logger.error(f"数据处理时出错: {e}")
+            return_data["msg"] = "处理接口返回信息时出错" 
+            return return_data    
+               
+        # 4. 加载模板
+        try:
+            return_data["temp"] = await load_template("yanhuan.html")
+        except FileNotFoundError as e:
+            logger.error(f"加载模板失败: {e}")
+            return_data["msg"] = "系统错误：模板文件不存在"
+            return return_data
+        
+        return_data["code"] = 200
+        
+        return return_data
+
+
+    async def pianzhi(self, uid: str) -> Dict[str, Any]:
+        """骗子查询"""
+        return_data = self._init_return_data()
+        
+        # 1. 构造请求参数
+        params = {"uid": uid, "token": self.token}
+        
+        # 2. 调用基础请求
+        data: Optional[Dict[str, Any]] = await self._base_request(
+            "jx3_pianzhi", "GET", params=params
+        )
+        
+        if not data:
+            return_data["msg"] = "获取接口信息失败"
+            return return_data
+            
+        # 3. 处理返回数据
+        try:
+            records = data["records"]
+
+            if not records:
+                result_msg = "未找到该用户行骗记录，很棒！继续保持！"
+            else:
+                result_msg = ""
+
+                for record in records:
+                    result_msg += f"区服：{record['server']}  标签：{record['tieba']}\n\n"
+
+                    for item in record["data"]:
+                        result_msg += f"标题：{item['title']}\n"
+                        result_msg += f"地址：{item['url']}\n"
+                        result_msg += f"ID：{item['tid']}\n"
+                        result_msg += f"内容：{item['text']}\n"
+                        result_msg += (
+                            f"时间：{datetime.fromtimestamp(item['time']).strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+                        )
+
+                    result_msg += "\n\n"
+            return_data["data"] = result_msg
+        except Exception as e:
+            logger.error(f"处理返回数据失败: {e}")
+            return_data["msg"] = "处理返回数据失败"
+            return return_data
+            
+        return_data["code"] = 200
+        
+        return return_data
+
+
+    async def juesheqiyu(self, name: str, server: str) -> Dict[str, Any]:
+        """角色奇遇"""
+        return_data = self._init_return_data()
+        
+        # 1. 构造请求参数
+        params = {"server": server, "name": name, "token": self.token}
+        
+        # 2. 调用基础请求
+        data: Optional[List[Dict[str, Any]]] = await self._base_request(
+            "jx3_juesheqiyu", "GET", params=params
+        )
+
+        if not data:
+            return_data["msg"] = "未找到改角色奇遇信息"
+            return return_data   
+        
+        # 3. 处理返回数据 
+        try:
+            return_data["data"]["ptqy"] = []
+            return_data["data"]["jsqy"] = []
+            return_data["data"]["cwqy"] = []
+
+            for item in data:
+                item["time"] = datetime.fromtimestamp(item["time"]).strftime("%Y-%m-%d %H:%M:%S")
+                if item["level"] == 1:
+                    return_data["data"]["ptqy"].append(item)
+                if item["level"] == 2:
+                    return_data["data"]["jsqy"].append(item)
+                if item["level"] == 3:
+                    return_data["data"]["cwqy"].append(item)
+        except Exception as e:
+            logger.error(f"处理返回数据失败: {e}")
+            return_data["msg"] = "处理返回数据失败"
+            return return_data
+
+        # 4. 加载模板
+        try:
+            return_data["temp"] = await load_template("juesheqiyu.html")
+        except FileNotFoundError as e:
+            logger.error(f"加载模板失败: {e}")
+            return_data["msg"] = "系统错误：模板文件不存在"
+            return return_data
+        
+        return_data["code"] = 200
+        
+        return return_data
+
+
+    async def qiyutongji(self, name: str, server: str) -> Dict[str, Any]:
+        """奇遇统计"""
+        return_data = self._init_return_data()
+        
+        params = {"server": server, "name": name, "token": self.token}
+        
+        data_list: Optional[List[Dict[str, Any]]] = await self._base_request("jx3_qiyutongji", "GET", params=params)
+        
+        if not data_list or not isinstance(data_list, list):
+            return_data["msg"] = "获取接口信息失败或数据格式错误"
+            return return_data
+            
+        # 格式化时间
+        try:
+            for item in data_list:
+                item["time"] = datetime.fromtimestamp(item["time"]).strftime("%Y-%m-%d %H:%M:%S")
+
+        except Exception as e:
+            logger.error(f"数据处理时出错: {e}")
+            return_data["msg"] = "处理接口返回信息时出错"
+            return return_data     
+
+        # 准备模板渲染数据
+        try: 
+            return_data["data"] = {
+                "items": data_list,
+                "server": server,
+                "update_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "qiyuname": name
+            }
+
+        except Exception as e:
+            logger.error(f"模板数据准备失败: {e}")
+            return_data["msg"] = "系统错误：模板渲染数据准备失败"
+            return return_data
+        
+        # 加载模板
+        try:
+            return_data["temp"] = await  load_template("qiyuliebiao.html")
+        except FileNotFoundError as e:
+            logger.error(f"加载模板失败: {e}")
+            return_data["msg"] = "系统错误：模板文件不存在"
+            return return_data
+
+        return_data["code"] = 200
+
+        return return_data
+
+
+    async def zhanji(self, name: str, server:str, mode:str) -> Dict[str, Any]:
+        """战绩"""
+        return_data = self._init_return_data()
+        
+        # 1. 构造请求参数
+        params = {"server": server, "name":name, "mode":mode, "token": self.token, "ticket": self.ticket}
+        
+        # 2. 调用基础请求
+        data: Optional[Dict[str, Any]] = await self._base_request(
+            "jx3_zhanji", "GET", params=params
+        )
+
+        if not data:
+            return_data["msg"] = "查询角色战绩失败"
+            return return_data
+        
+        # 4. 加载模板
+        try:
+            return_data["temp"] = await load_template("zhanji.html")
+        except FileNotFoundError as e:
+            logger.error(f"加载模板失败: {e}")
+            return_data["msg"] = "系统错误：模板文件不存在"
+            return return_data
+    
+        return_data["data"] = data
+        return_data["code"] = 200
+        
+        return return_data
+
+
+    async def mingjianpaihang(self, limit: str, mode:str) -> Dict[str, Any]:
+        """名剑排行"""
+        return_data = self._init_return_data()
+        
+        # 1. 构造请求参数
+        params = {"limit": limit, "mode":mode, "token": self.token, "ticket": self.ticket}
+        
+        # 2. 调用基础请求
+        data: Optional[Dict[str, Any]] = await self._base_request(
+            "jx3_mingjianpaihang", "GET", params=params
+        )
+
+        if not data:
+            return_data["msg"] = "获取接口数据失败"
+            return return_data
+        
+        return_data["data"]["lists"] = data
+
+        # 4. 加载模板
+        try:
+            return_data["temp"] = await load_template("mingjianpaihang.html")
+        except FileNotFoundError as e:
+            logger.error(f"加载模板失败: {e}")
+            return_data["msg"] = "系统错误：模板文件不存在"
+            return return_data
+    
+        
+        return_data["code"] = 200
+        
+        return return_data
+
+
+    async def tuanduizhaomu(self, server: str, keyword: str) -> Dict[str, Any]:
+        """团队招募"""
+        return_data = self._init_return_data()
+        
+        # 1. 构造请求参数
+        params = {"server": server, "keyword": keyword, "token": self.token}
+        
+        # 2. 调用基础请求
+        data: Optional[Dict[str, Any]] = await self._base_request(
+            "jx3_tuanduizhaomu", "GET", params=params
+        )
+
+        if not data:
+            return_data["msg"] = "获取接口信息失败"
+            return return_data   
+        
+        # 3. 处理返回数据 
+        try: 
+            for item in data["data"]:
+                item["createTime"] = datetime.fromtimestamp(item["createTime"]).strftime("%Y-%m-%d %H:%M:%S")
+                item["number"] = f"{item['number']}/{item['maxNumber']}"
+                return_data["data"]["list"] = data["data"]
+        except Exception as e:
+            logger.error(f"数据处理时出错: {e}")
+            return_data["msg"] = "处理接口返回信息时出错" 
+            return return_data
+
+        # 4. 加载模板
+        try:
+            return_data["temp"] = await load_template("tuanduizhaomu.html")
+        except FileNotFoundError as e:
+            logger.error(f"加载模板失败: {e}")
+            return_data["msg"] = "系统错误：模板文件不存在"
+            return return_data
+        
+        return_data["code"] = 200
+        
+        return return_data
+
+
+    async def jueshe(self,name: str, server: str) -> Dict[str, Any]:
+        """角色"""
+        return_data = self._init_return_data()
+
+        # 1. 构造请求参数
+        params = {"server": server, "name": name, "token": self.token}
+
+        # 2. 调用基础请求
+        data: Optional[Dict[str, Any]] = await self._base_request(
+            "jx3_jueshexinxi", "GET", params=params
+        )
+        if not data:
+            return_data["msg"] = "获取接口信息失败"
+            return return_data
+    
+        # 3. 处理返回数据
+        try:
+            # 格式化字符串，利用字典的 get 方法提供默认值
+            result_msg = (
+                f"服务器：{data.get('zoneName', '无')}·{data.get('serverName', '无')}\n"
+                f"名称：{data.get('roleName', '无')}\n"
+                f"角色ID：{data.get('roleId', '无')}\n"
+                f"全区ID：{data.get('globalRoleId', '无')}\n"
+                f"职业：{data.get('forceName', '无')}·{data.get('bodyName', '无')}\n"
+                f"帮会：{data.get('tongName', '无')}\n"
+                f"阵营：{data.get('campName', '无')}\n"
+            )
+
+            return_data["data"] = result_msg
+            return_data["code"] = 200
+        except Exception as e:
+            logger.error(f"数据处理时出错: {e}")
+            return_data["msg"] = "处理接口返回信息时出错"
+            return return_data
+        
+        return_data["code"] = 200
+
+        return return_data
+
+
+    async def jueshemingpian(self, server: str, name: str) -> Dict[str, Any]:
+        """角色名片"""
+        return_data = self._init_return_data()
+
+        # 1. 构造请求参数
+        params = {"server": server, "name": name, "token": self.token}
+
+        # 2. 调用基础请求
+        data: Optional[list[Dict[str, Any]]] = await self._base_request(
+            "jx3_allmingpian", "GET", params=params
+        )
+
+        if not data:
+            return_data["msg"] = "未找到该角色"
+            return return_data
+
+        # 3. 处理返回数据
+        try:
+            chain = []
+            for m in data:
+                status = "已启用" if m.get("showActive") else "未启用"
+                msg = f"第{m.get('showIndex')}张 {status}"
+                url = m.get("showAvatar")
+
+                if not url:
+                    logger.warning(f"第{m.get('showIndex')}张名片缺少图片URL，已跳过")
+                    continue
+
+                chain.extend([
+                    Comp.Plain(msg),
+                    Comp.Image.fromURL(url),
+                ])
+
+            if not chain:
+                return_data["msg"] = "未获取到有效的名片数据"
+                return return_data
+
+        except Exception as e:
+            logger.error(f"数据处理时出错: {e}")
+            return_data["msg"] = "处理接口返回信息时出错"
+            return return_data
+
+        return_data["data"] = chain
+        return_data["code"] = 200
+
+        return return_data
+
+
+    async def shuijimingpian(self, force: str, body:str, server:str) -> Dict[str, Any]:
+        """随机名片"""
+        return_data = self._init_return_data()
+
+        # 1. 构造请求参数
+        params = {"server": server, "body": body, "force":force, "token": self.token}
+        
+        # 2. 调用基础请求
+        data: Optional[Dict[str, Any]] = await self._base_request(
+            "jx3_shuijimingpian", "GET", params=params
+        )
+        
+        if not data:
+            return_data["msg"] = "获取接口信息失败"
+            return return_data
+            
+        # 3. 处理返回数据 (直接提取图片 URL)
+        return_data["data"] = data['showAvatar']
+
+        return_data["code"] = 200
+        
+        return return_data
+
+
     async def shuamamsg(self,server:str,type:str,subtype:str) -> Dict[str, Any]:
         """刷马消息"""
         return_data = self._init_return_data()
@@ -821,6 +1346,41 @@ class JX3Service:
 
         return return_data
 
+
+    async def shuma(self, server: str) -> Dict[str, Any]:
+        """刷马"""
+        return_data = self._init_return_data()
+        
+        # 1. 构造请求参数
+        params = {"server": server, "token": self.token}
+        
+        # 2. 调用基础请求
+        data: Optional[Dict[str, Any]] = await self._base_request(
+            "jx3_shuama", "GET", params=params, out_key=""
+        )
+        
+        if not data:
+            return_data["msg"] = "获取接口信息失败"
+            return return_data
+            
+        # 3. 处理返回数据
+        try:
+            _data =  data["data"]["data"]
+            result_msg = f"{server}\n"
+            result_msg += f"黑戈壁：\n{_data['黑戈壁'][0]}\n"
+            result_msg += f"阴山大草原：\n{_data['阴山大草原'][0]}\n"
+            result_msg += f"鲲鹏岛：\n{_data['鲲鹏岛'][0]}\n"
+            result_msg += f"\n{data['data']['note']}"
+            return_data["data"] = result_msg
+        except Exception as e:
+            logger.error(f"处理返回数据失败: {e}")
+            return_data["msg"] = "处理返回数据失败"
+            return return_data    
+        
+        return_data["code"] = 200
+        
+        return return_data
+    
 
     async def jinjia(self, server: str, limit:str) -> Dict[str, Any]:
         """区服金价"""
@@ -856,62 +1416,12 @@ class JX3Service:
         return return_data
 
 
-    async def qiyu(self, adventureName: str, serverName: str) -> Dict[str, Any]:
-        """区服奇遇"""
-        return_data = self._init_return_data()
-        
-        params = {"adventureName": adventureName, "serverName": serverName}
-        data_list: Optional[List[Dict[str, Any]]] = await self._base_request("aijx3_qiyu", "POST", params=params)
-        
-        if not data_list or not isinstance(data_list, list):
-            return_data["msg"] = "获取接口信息失败或数据格式错误"
-            return return_data
-            
-        # 格式化时间
-        try:
-            for item in data_list:
-                timestamp = item.get("time")
-                if timestamp and isinstance(timestamp, (int, float)):
-                    # 修复时间戳：原代码显示这里是毫秒级，除以 1000
-                    item["time"] = datetime.fromtimestamp(timestamp / 1000).strftime("%Y-%m-%d %H:%M:%S")
-                else:
-                    item["time"] = "未知时间" # 确保即使 time 字段缺失也不会报错
-        except Exception as e:
-            logger.error(f"数据处理时出错: {e}")
-            return_data["msg"] = "处理接口返回信息时出错"
-            return return_data     
-
-        # 加载模板
-        try:
-            return_data["temp"] = await  load_template("qiyuliebiao.html")
-        except FileNotFoundError as e:
-            logger.error(f"加载模板失败: {e}")
-            return_data["msg"] = "系统错误：模板文件不存在"
-            return return_data
-            
-        # 准备模板渲染数据
-        try: 
-            return_data["data"] = {
-                "items": data_list,
-                "server": serverName,
-                "update_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "qiyuname": adventureName
-            }
-            return_data["code"] = 200
-        except Exception as e:
-            logger.error(f"模板数据准备失败: {e}")
-            return_data["msg"] = "系统错误：模板渲染数据准备失败"
-            return return_data
-            
-        return return_data
-
-
     async def wujia(self, Name: str, server:str) -> Dict[str, Any]:
         """物价查询"""
         return_data = self._init_return_data()
         
         # 2. 确定外观名称和 ID
-        
+
         params_search = {"name": Name,"token": self.token, "server": server}
         search_data: Optional[Dict[str, Any]] = await self._base_request("jx3_wujia", "GET", params=params_search)
 
@@ -984,445 +1494,6 @@ class JX3Service:
         return return_data
     
 
-    async def jueshemingpian(self, server: str, name: str) -> Dict[str, Any]:
-        """角色名片"""
-        return_data = self._init_return_data()
-
-        # 1. 构造请求参数
-        params = {"server": server, "name": name, "token": self.token}
-
-        # 2. 调用基础请求
-        data: Optional[list[Dict[str, Any]]] = await self._base_request(
-            "jx3_allmingpian", "GET", params=params
-        )
-
-        if not data:
-            return_data["msg"] = "未找到该角色"
-            return return_data
-
-        # 3. 处理返回数据
-        try:
-            chain = []
-            for m in data:
-                status = "已启用" if m.get("showActive") else "未启用"
-                msg = f"第{m.get('showIndex')}张 {status}"
-                url = m.get("showAvatar")
-
-                if not url:
-                    logger.warning(f"第{m.get('showIndex')}张名片缺少图片URL，已跳过")
-                    continue
-
-                chain.extend([
-                    Comp.Plain(msg),
-                    Comp.Image.fromURL(url),
-                ])
-
-            if not chain:
-                return_data["msg"] = "未获取到有效的名片数据"
-                return return_data
-
-        except Exception as e:
-            logger.error(f"数据处理时出错: {e}")
-            return_data["msg"] = "处理接口返回信息时出错"
-            return return_data
-
-        return_data["data"] = chain
-        return_data["code"] = 200
-
-        return return_data
-    
-
-    async def shuijimingpian(self, force: str, body:str, server:str) -> Dict[str, Any]:
-        """随机名片"""
-        return_data = self._init_return_data()
-
-        # 1. 构造请求参数
-        params = {"server": server, "body": body, "force":force, "token": self.token}
-        
-        # 2. 调用基础请求
-        data: Optional[Dict[str, Any]] = await self._base_request(
-            "jx3_shuijimingpian", "GET", params=params
-        )
-        
-        if not data:
-            return_data["msg"] = "获取接口信息失败"
-            return return_data
-            
-        # 3. 处理返回数据 (直接提取图片 URL)
-        return_data["data"] = data['showAvatar']
-
-        return_data["code"] = 200
-        
-        return return_data
-
-
-    async def yanhuachaxun(self, server: str, name:str ) -> Dict[str, Any]:
-        """烟花查询"""
-        return_data = self._init_return_data()
-        
-        # 1. 构造请求参数
-        params = {"server": server, "name": name,"token": self.token}
-        
-        # 2. 调用基础请求
-        data: Optional[List[Dict[str, Any]]] = await self._base_request(
-            "jx3_yanhuachaxun", "GET", params=params
-        )
-        
-        if not data:
-            return_data["msg"] = "获取接口信息失败"
-            return return_data
-            
-        # 3. 处理返回数据 
-        try:            
-            for item in data:
-                if isinstance(item, dict):
-                    timestamp = item.get("time")
-                    if timestamp and isinstance(timestamp, (int, float)):
-                        item["time"] = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
-                    else:
-                        item["time"] = "未知时间" 
-
-            return_data["data"]["list"] = data
-        except Exception as e:
-            logger.error(f"数据处理时出错: {e}")
-            return_data["msg"] = "处理接口返回信息时出错" 
-            return return_data    
-               
-        # 4. 加载模板
-        try:
-            return_data["temp"] = await load_template("yanhuan.html")
-        except FileNotFoundError as e:
-            logger.error(f"加载模板失败: {e}")
-            return_data["msg"] = "系统错误：模板文件不存在"
-            return return_data
-        
-        return_data["code"] = 200
-        
-        return return_data
-
-
-    async def dilujilu(self, server: str) -> Dict[str, Any]:
-        """的卢记录"""
-        return_data = self._init_return_data()
-        
-        # 1. 构造请求参数
-        params = {"server": server, "token": self.token}
-        
-        # 2. 调用基础请求
-        data: Optional[List[Dict[str, Any]]] = await self._base_request(
-            "jx3_dilujilu", "GET", params=params
-        )
-        
-        if not data:
-            return_data["msg"] = "获取接口信息失败"
-            return return_data
-
-        # 3. 处理返回数据 
-        try:              
-            for item in data:
-                item["refresh_time"] = datetime.fromtimestamp(item["refresh_time"]).strftime("%Y-%m-%d %H:%M:%S")
-                item["capture_time"] = datetime.fromtimestamp(item["capture_time"]).strftime("%Y-%m-%d %H:%M:%S")
-                item["auction_time"] = datetime.fromtimestamp(item["auction_time"]).strftime("%Y-%m-%d %H:%M:%S")
-            return_data["data"]["list"] = data
-        except Exception as e:
-            logger.error(f"数据处理时出错: {e}")
-            return_data["msg"] = "处理接口返回信息时出错" 
-            return return_data
-
-        # 4. 加载模板
-        try:
-            return_data["temp"] = await load_template("dilujilu.html")
-        except FileNotFoundError as e:
-            logger.error(f"加载模板失败: {e}")
-            return_data["msg"] = "系统错误：模板文件不存在"
-            return return_data
-        
-        return_data["code"] = 200
-        
-        return return_data
-    
-
-    async def tuanduizhaomu(self, server: str, keyword: str) -> Dict[str, Any]:
-        """团队招募"""
-        return_data = self._init_return_data()
-        
-        # 1. 构造请求参数
-        params = {"server": server, "keyword": keyword, "token": self.token}
-        
-        # 2. 调用基础请求
-        data: Optional[Dict[str, Any]] = await self._base_request(
-            "jx3_tuanduizhaomu", "GET", params=params
-        )
-
-        if not data:
-            return_data["msg"] = "获取接口信息失败"
-            return return_data   
-        
-        # 3. 处理返回数据 
-        try: 
-            for item in data["data"]:
-                item["createTime"] = datetime.fromtimestamp(item["createTime"]).strftime("%Y-%m-%d %H:%M:%S")
-                item["number"] = f"{item['number']}/{item['maxNumber']}"
-                return_data["data"]["list"] = data["data"]
-        except Exception as e:
-            logger.error(f"数据处理时出错: {e}")
-            return_data["msg"] = "处理接口返回信息时出错" 
-            return return_data
-
-        # 4. 加载模板
-        try:
-            return_data["temp"] = await load_template("tuanduizhaomu.html")
-        except FileNotFoundError as e:
-            logger.error(f"加载模板失败: {e}")
-            return_data["msg"] = "系统错误：模板文件不存在"
-            return return_data
-        
-        return_data["code"] = 200
-        
-        return return_data
-    
-
-    async def zhanji(self, name: str, server:str, mode:str) -> Dict[str, Any]:
-        """战绩+名片"""
-        return_data = self._init_return_data()
-        
-        # 1. 构造请求参数
-        params = {"server": server, "name":name, "mode":mode, "token": self.token, "ticket": self.ticket}
-        
-        # 2. 调用基础请求
-        data: Optional[Dict[str, Any]] = await self._base_request(
-            "jx3_zhanji", "GET", params=params
-        )
-
-        if not data:
-            return_data["msg"] = "查询角色战绩失败"
-            return return_data
-        logger.info("战绩获取完成")
-
-        # 角色名片获取
-        
-        data["showAvatar"] = ""
-
-        # 4. 加载模板
-        try:
-            return_data["temp"] = await load_template("zhanji.html")
-        except FileNotFoundError as e:
-            logger.error(f"加载模板失败: {e}")
-            return_data["msg"] = "系统错误：模板文件不存在"
-            return return_data
-    
-        return_data["data"] = data
-        return_data["code"] = 200
-        
-        return return_data
-
-
-    async def juesheqiyu(self, name: str, server: str) -> Dict[str, Any]:
-        """角色奇遇"""
-        return_data = self._init_return_data()
-        
-        # 1. 构造请求参数
-        params = {"server": server, "name": name, "token": self.token}
-        
-        # 2. 调用基础请求
-        data: Optional[List[Dict[str, Any]]] = await self._base_request(
-            "jx3_qiyu", "GET", params=params
-        )
-
-        if not data:
-            return_data["msg"] = "未找到改角色奇遇信息"
-            return return_data   
-        
-        # 3. 处理返回数据 
-        try:
-            return_data["data"]["ptqy"] = []
-            return_data["data"]["jsqy"] = []
-            return_data["data"]["cwqy"] = []
-
-            for item in data:
-                item["time"] = datetime.fromtimestamp(item["time"]).strftime("%Y-%m-%d %H:%M:%S")
-                if item["level"] == 1:
-                    return_data["data"]["ptqy"].append(item)
-                if item["level"] == 2:
-                    return_data["data"]["jsqy"].append(item)
-                if item["level"] == 3:
-                    return_data["data"]["cwqy"].append(item)
-        except Exception as e:
-            logger.error(f"处理返回数据失败: {e}")
-            return_data["msg"] = "处理返回数据失败"
-            return return_data
-
-        # 4. 加载模板
-        try:
-            return_data["temp"] = await load_template("juesheqiyu.html")
-        except FileNotFoundError as e:
-            logger.error(f"加载模板失败: {e}")
-            return_data["msg"] = "系统错误：模板文件不存在"
-            return return_data
-        
-        return_data["code"] = 200
-        
-        return return_data
-
-
-    async def zhengyingpaimai(self, server: str, name: str) -> Dict[str, Any]:
-        """阵营拍卖"""
-        return_data = self._init_return_data()
-        
-        # 1. 构造请求参数
-        params = {"server": server, "name": name, "token": self.token}
-        
-        # 2. 调用基础请求
-        data: Optional[List[Dict[str, Any]]] = await self._base_request(
-            "jx3_zhengyingpaimai", "GET", params=params
-        )
-        
-        if not data:
-            return_data["msg"] = "获取接口信息失败"
-            return return_data
-            
-        # 3. 处理返回数据  
-        try: 
-            for item in data:
-                item["time"] = datetime.fromtimestamp(item["time"]).strftime("%Y-%m-%d %H:%M:%S")
-            return_data["data"]["list"] = data
-        except Exception as e:
-            logger.error(f"处理返回数据失败: {e}")
-            return_data["msg"] = "处理返回数据失败"
-            return return_data
-
-        # 4. 加载模板
-        try:
-            return_data["temp"] = await load_template("zhengyingpaimai.html")
-        except FileNotFoundError as e:
-            logger.error(f"加载模板失败: {e}")
-            return_data["msg"] = "系统错误：模板文件不存在"
-            return return_data
-        
-        
-        return_data["code"] = 200
-        
-        return return_data
-    
-
-    async def fuyaojjiutian(self, server: str) -> Dict[str, Any]:
-        """扶摇九天"""
-        return_data = self._init_return_data()
-        
-        # 1. 构造请求参数
-        params = {"server": server, "token": self.token}
-        
-        # 2. 调用基础请求
-        data: Optional[list[Dict[str, Any]]] = await self._base_request(
-            "jx3_fuyaojiutian", "GET", params=params
-        )
-        
-        if not data:
-            return_data["msg"] = "获取接口信息失败"
-            return return_data
-            
-        # 3. 处理返回数据
-        try:
-            data_new =  data[0]
-            data_old =  data[1]
-            result_msg = f"{server}\n"
-            result_msg += f"上次[扶摇九天]开启时间：{datetime.fromtimestamp(data_old['time']).strftime('%Y-%m-%d %H:%M:%S')}\n"
-            result_msg += f"本次[扶摇九天]开启时间：{datetime.fromtimestamp(data_new['time']).strftime('%Y-%m-%d %H:%M:%S')}"
-            return_data["data"] = result_msg
-        except Exception as e:
-            logger.error(f"处理返回数据失败: {e}")
-            return_data["msg"] = "处理返回数据失败"
-            return return_data    
-        
-        return_data["code"] = 200
-        
-        return return_data
-    
-
-    async def shuma(self, server: str) -> Dict[str, Any]:
-        """刷马"""
-        return_data = self._init_return_data()
-        
-        # 1. 构造请求参数
-        params = {"server": server, "token": self.token}
-        
-        # 2. 调用基础请求
-        data: Optional[Dict[str, Any]] = await self._base_request(
-            "jx3_shuama", "GET", params=params, out_key=""
-        )
-        
-        if not data:
-            return_data["msg"] = "获取接口信息失败"
-            return return_data
-            
-        # 3. 处理返回数据
-        try:
-            _data =  data["data"]["data"]
-            result_msg = f"{server}\n"
-            result_msg += f"黑戈壁：\n{_data['黑戈壁'][0]}\n"
-            result_msg += f"阴山大草原：\n{_data['阴山大草原'][0]}\n"
-            result_msg += f"鲲鹏岛：\n{_data['鲲鹏岛'][0]}\n"
-            result_msg += f"{data['data']['note']}"
-            return_data["data"] = result_msg
-        except Exception as e:
-            logger.error(f"处理返回数据失败: {e}")
-            return_data["msg"] = "处理返回数据失败"
-            return return_data    
-        
-        return_data["code"] = 200
-        
-        return return_data
-    
-
-    async def pianzhi(self, uid: str) -> Dict[str, Any]:
-        """骗子查询"""
-        return_data = self._init_return_data()
-        
-        # 1. 构造请求参数
-        params = {"uid": uid, "token": self.token}
-        
-        # 2. 调用基础请求
-        data: Optional[Dict[str, Any]] = await self._base_request(
-            "jx3_pianzhi", "GET", params=params
-        )
-        
-        if not data:
-            return_data["msg"] = "获取接口信息失败"
-            return return_data
-            
-        # 3. 处理返回数据
-        try:
-            records = data["records"]
-
-            if not records:
-                result_msg = "未找到该用户行骗记录，很棒！继续保持！"
-            else:
-                result_msg = ""
-
-                for record in records:
-                    result_msg += f"区服：{record['server']}  标签：{record['tieba']}\n\n"
-
-                    for item in record["data"]:
-                        result_msg += f"标题：{item['title']}\n"
-                        result_msg += f"地址：{item['url']}\n"
-                        result_msg += f"ID：{item['tid']}\n"
-                        result_msg += f"内容：{item['text']}\n"
-                        result_msg += (
-                            f"时间：{datetime.fromtimestamp(item['time']).strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-                        )
-
-                    result_msg += "\n\n"
-            return_data["data"] = result_msg
-        except Exception as e:
-            logger.error(f"处理返回数据失败: {e}")
-            return_data["msg"] = "处理返回数据失败"
-            return return_data
-            
-        return_data["code"] = 200
-        
-        return return_data
-    
-
     async def bagua(self, type: str) -> Dict[str, Any]:
         """八卦"""
         return_data = self._init_return_data()
@@ -1458,7 +1529,7 @@ class JX3Service:
         return_data["code"] = 200
         
         return return_data
-    
+
 
     async def qiyugonglue(self, name: str) -> Dict[str, Any]:
         """奇遇攻略"""
@@ -1653,41 +1724,3 @@ class JX3Service:
         return return_data
     
         
-    async def jueshe(self,name: str, server: str) -> Dict[str, Any]:
-        """角色"""
-        return_data = self._init_return_data()
-
-        # 1. 构造请求参数
-        params = {"server": server, "name": name, "token": self.token}
-
-        # 2. 调用基础请求
-        data: Optional[Dict[str, Any]] = await self._base_request(
-            "jx3_jueshexinxi", "GET", params=params
-        )
-        if not data:
-            return_data["msg"] = "获取接口信息失败"
-            return return_data
-    
-        # 3. 处理返回数据
-        try:
-            # 格式化字符串，利用字典的 get 方法提供默认值
-            result_msg = (
-                f"服务器：{data.get('zoneName', '无')}·{data.get('serverName', '无')}\n"
-                f"名称：{data.get('roleName', '无')}\n"
-                f"角色ID：{data.get('roleId', '无')}\n"
-                f"全区ID：{data.get('globalRoleId', '无')}\n"
-                f"职业：{data.get('forceName', '无')}·{data.get('bodyName', '无')}\n"
-                f"帮会：{data.get('tongName', '无')}\n"
-                f"阵营：{data.get('campName', '无')}\n"
-            )
-
-            return_data["data"] = result_msg
-            return_data["code"] = 200
-        except Exception as e:
-            logger.error(f"数据处理时出错: {e}")
-            return_data["msg"] = "处理接口返回信息时出错"
-            return return_data
-        
-        return_data["code"] = 200
-
-        return return_data
