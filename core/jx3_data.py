@@ -1600,11 +1600,11 @@ class JX3Service:
         logger.debug(f"查询到数据：{kungfu}")
 
         # 1. 构造请求参数
-        params = {"kungfu": kungfu}
+        params = {"subtype": kungfu}
         
         # 2. 调用基础请求
-        data: Optional[list[Dict[str, Any]]] = await self._base_request(
-            "jx3box_hong", "GET", params=params, out_key=""
+        data: Optional[Dict[str, Any]] = await self._base_request(
+            "jx3box_hong", "GET", params=params
         )
         logger.debug(data)
         if not data:
@@ -1616,9 +1616,9 @@ class JX3Service:
         msg = "按照热度排列\n"
         n = 1
         try:
-            for m in data:
-                msg += f"{n}、{m['author']}\t{m['item_version']}\n"
-                pid_list.append(m["pid"])
+            for m in data.get('list',[]):
+                msg += f"{n}、{m['author']}\t{m['post_title']}\n"
+                pid_list.append(m["ID"])
                 n += 1
             
             return_data["msg"] = msg

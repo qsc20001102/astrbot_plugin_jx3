@@ -357,12 +357,15 @@
         }
     },
     "jx3box_hong":{
-        "url":"https://next2.jx3box.com/api/macro/tops",
+        "url":"https://cms.jx3box.com/api/cms/posts",
         "method":"GET",
         "description":"魔盒获取宏推荐列表",
         "params":{
-            "kungfu": "易筋经",
-            "size": "20",
+            "subtype": "易筋经",
+            "type": "macro",
+            "per": "10",
+            "order": "update",
+            "sticky": "1",
             "client": "std"
         }
     },
