@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>未做奇遇</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 24px;
+            background: #f5f7fb;
+            color: #2c2c33;
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+        }
+
+        .header {
+            margin-bottom: 24px;
+            color: #1f2a44;
+        }
+
+        .title {
+            font-size: 34px;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        .meta {
+            font-size: 20px;
+            color: #7a7f99;
+        }
+
+        .section {
+            margin-bottom: 32px;
+        }
+
+        .section-title {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 16px;
+            border-left: 4px solid #4f7cff;
+            padding-left: 10px;
+            color: #1f2a44;
+        }
+
+        .card-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 16px 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            min-height: 90px;
+        }
+
+        .card img {
+            width: 100%;
+            max-width: 180px;
+            height: auto;
+            object-fit: contain;
+            margin-bottom: 6px;
+        }
+
+        .event-name {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #2b3a67;
+        }
+
+        .time {
+            font-size: 22px;
+            color: #7a7f99;
+        }
+
+        .empty {
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+            color: #7a7f99;
+            font-size: 20px;
+            padding: 22px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">未做奇遇</div>
+        <div class="meta">{{ server }} · {{ name }}</div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">普通奇遇（{{ ptqy|length if ptqy else 0 }}）</div>
+        {% if ptqy %}
+        <div class="card-container">
+            {% for item in ptqy %}
+            <div class="card">
+                {% if icons.serendipity.get(item.event) %}
+                <img src="{{ icons.serendipity[item.event] }}" alt="{{ item.event }}">
+                {% else %}
+                <div class="event-name">{{ item.event }}</div>
+                {% endif %}
+                <div class="time">{{ item.time }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty">暂无未做普通奇遇</div>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <div class="section-title">绝世奇遇（{{ jsqy|length if jsqy else 0 }}）</div>
+        {% if jsqy %}
+        <div class="card-container">
+            {% for item in jsqy %}
+            <div class="card">
+                {% if icons.serendipity.get(item.event) %}
+                <img src="{{ icons.serendipity[item.event] }}" alt="{{ item.event }}">
+                {% else %}
+                <div class="event-name">{{ item.event }}</div>
+                {% endif %}
+                <div class="time">{{ item.time }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty">暂无未做绝世奇遇</div>
+        {% endif %}
+    </div>
+</body>
+</html>

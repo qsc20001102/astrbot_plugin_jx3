@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>角色榜单</title>
+
+<style>
+    body {
+        font-family: "Microsoft YaHei", Arial, sans-serif;
+        background: #f1f2f6;
+        margin: 0;
+        padding: 20px;
+        color: #2c2c33;
+    }
+
+    .container {
+        max-width: 1120px;
+        margin: 0 auto;
+    }
+
+    h1 {
+        font-size: 32px;
+        margin: 0 0 8px 0;
+        color: #222;
+        font-weight: 800;
+        text-align: center;
+    }
+
+    .meta {
+        margin-bottom: 24px;
+        color: #7a7f99;
+        font-size: 16px;
+        text-align: center;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        text-align: left;
+    }
+
+    thead {
+        background: #d93939;
+        color: white;
+        font-size: 17px;
+    }
+
+    th, td {
+        padding: 12px 10px;
+        border-bottom: 1px solid #eee;
+        font-size: 15px;
+        vertical-align: middle;
+    }
+
+    tbody tr:nth-child(even) {
+        background: #fafafa;
+    }
+
+    .rank-col,
+    .level-col,
+    .camp-col,
+    .score-col {
+        white-space: nowrap;
+        text-align: center;
+    }
+
+    .rank-col {
+        width: 56px;
+        color: #d93939;
+        font-weight: 800;
+    }
+
+    .force {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 108px;
+        font-weight: 700;
+        color: #333;
+        white-space: nowrap;
+    }
+
+    .force-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        object-fit: contain;
+        flex: 0 0 auto;
+    }
+
+    .role-col {
+        min-width: 120px;
+        font-weight: 700;
+        color: #333;
+        white-space: nowrap;
+    }
+
+    .tong-col {
+        max-width: 260px;
+        word-break: break-word;
+        color: #333;
+    }
+
+    .score-col {
+        color: #d93939;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>{{ rank_name }}</h1>
+    <div class="meta">{{ server }} · 更新时间：{{ update_time }}</div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>排名</th>
+                <th>职业</th>
+                <th>角色名称</th>
+                <th>等级</th>
+                <th>阵营</th>
+                <th>帮会</th>
+                <th>排行积分</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for item in items %}
+            <tr>
+                <td class="rank-col">{{ loop.index }}</td>
+                <td>
+                    <div class="force">
+                        {% if icons.sect.get(item.force_name) %}
+                        <img class="force-icon" src="{{ icons.sect[item.force_name] }}" alt="{{ item.force_name }}">
+                        {% endif %}
+                        <span>{{ item.force_name }}</span>
+                    </div>
+                </td>
+                <td class="role-col">{{ item.role_name }}</td>
+                <td class="level-col">{{ item.role_level }}</td>
+                <td class="camp-col">{{ item.camp_name }}</td>
+                <td class="tong-col">{{ item.tong_name }}</td>
+                <td class="score-col">{{ item.total_score }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>名剑统计</title>
+
+<style>
+    body {
+        font-family: "Microsoft YaHei", Arial, sans-serif;
+        background: #f1f2f6;
+        margin: 0;
+        padding: 20px;
+        color: #2c2c33;
+    }
+
+    .container {
+        max-width: 640px;
+        margin: 0 auto;
+    }
+
+    h1 {
+        font-size: 30px;
+        margin: 0 0 8px 0;
+        color: #222;
+        font-weight: 800;
+        text-align: center;
+    }
+
+    .meta {
+        margin-bottom: 24px;
+        color: #7a7f99;
+        font-size: 16px;
+        text-align: center;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        text-align: left;
+    }
+
+    thead {
+        background: #d93939;
+        color: white;
+        font-size: 18px;
+    }
+
+    th, td {
+        padding: 12px 10px;
+        border-bottom: 1px solid #eee;
+        font-size: 15px;
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+
+    tbody tr:nth-child(even) {
+        background: #fafafa;
+    }
+
+    .school {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+        color: #333;
+    }
+
+    .school-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: contain;
+        flex: 0 0 auto;
+    }
+
+    .num-col {
+        color: #d93939;
+        font-weight: 700;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>名剑统计(前1000) · {{ mode }}</h1>
+    <div class="meta">更新时间：{{ update_time }}</div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>门派</th>
+                <th>当前赛季数量</th>
+                <th>上赛季数量</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for m in items %}
+            <tr>
+                <td>
+                    <div class="school">
+                        {% if icons.sect.get(m.name) %}
+                        <img class="school-icon" src="{{ icons.sect[m.name] }}" alt="{{ m.name }}">
+                        {% endif %}
+                        <span>{{ m.name }}</span>
+                    </div>
+                </td>
+                <td class="num-col">{{ m.this }}</td>
+                <td class="num-col">{{ m.last }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+
+</body>
+</html>

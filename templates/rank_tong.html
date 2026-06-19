@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>帮会榜单</title>
+
+<style>
+    body {
+        font-family: "Microsoft YaHei", Arial, sans-serif;
+        background: #f1f2f6;
+        margin: 0;
+        padding: 20px;
+        color: #2c2c33;
+    }
+
+    .container {
+        max-width: 1040px;
+        margin: 0 auto;
+    }
+
+    h1 {
+        font-size: 32px;
+        margin: 0 0 8px 0;
+        color: #222;
+        font-weight: 800;
+        text-align: center;
+    }
+
+    .meta {
+        margin-bottom: 24px;
+        color: #7a7f99;
+        font-size: 16px;
+        text-align: center;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        text-align: left;
+    }
+
+    thead {
+        background: #d93939;
+        color: white;
+        font-size: 17px;
+    }
+
+    th, td {
+        padding: 12px 10px;
+        border-bottom: 1px solid #eee;
+        font-size: 15px;
+        vertical-align: middle;
+    }
+
+    tbody tr:nth-child(even) {
+        background: #fafafa;
+    }
+
+    .rank-col,
+    .people-col,
+    .score-col {
+        white-space: nowrap;
+        text-align: center;
+    }
+
+    .rank-col {
+        width: 56px;
+        color: #d93939;
+        font-weight: 800;
+    }
+
+    .tong-col {
+        min-width: 220px;
+        font-weight: 800;
+        color: #333;
+        word-break: break-word;
+    }
+
+    .master-col {
+        min-width: 150px;
+        color: #333;
+        word-break: break-word;
+    }
+
+    .castle-col {
+        min-width: 110px;
+        color: #60657a;
+        word-break: break-word;
+    }
+
+    .people-col {
+        color: #333;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .score-col {
+        color: #d93939;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>{{ rank_name }}</h1>
+    <div class="meta">{{ server }} · 更新时间：{{ update_time }}</div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>排名</th>
+                <th>帮会名称</th>
+                <th>帮主</th>
+                <th>据点</th>
+                <th>人数</th>
+                <th>排行积分</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for item in items %}
+            <tr>
+                <td class="rank-col">{{ loop.index }}</td>
+                <td class="tong-col">{{ item.tong_name }}</td>
+                <td class="master-col">{{ item.master_name }}</td>
+                <td class="castle-col">{{ item.castle_name }}</td>
+                <td class="people-col">{{ item.now_count }}/{{ item.max_count }}</td>
+                <td class="score-col">{{ item.total_score }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>

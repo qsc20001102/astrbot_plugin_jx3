@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>奇穴详情</title>
+
+<style>
+    body {
+        font-family: "Microsoft YaHei", Arial, sans-serif;
+        background: #f1f2f6;
+        margin: 0;
+        padding: 20px;
+        color: #2c2c33;
+    }
+
+    .container {
+        max-width: 1120px;
+        margin: 0 auto;
+    }
+
+    h1 {
+        font-size: 34px;
+        margin: 0 0 8px 0;
+        color: #222;
+        font-weight: 800;
+        text-align: center;
+    }
+
+    .meta {
+        margin-bottom: 24px;
+        color: #7a7f99;
+        font-size: 16px;
+        text-align: center;
+    }
+
+    .section {
+        margin-bottom: 24px;
+    }
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0 0 12px 0;
+        color: #222;
+        font-size: 24px;
+        font-weight: 800;
+    }
+
+    .section-title::before {
+        content: "";
+        display: block;
+        width: 5px;
+        height: 30px;
+        background: #d93939;
+        border-radius: 3px;
+    }
+
+    .cards {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .card {
+        display: grid;
+        grid-template-columns: 54px minmax(0, 1fr);
+        gap: 12px;
+        background: white;
+        border-radius: 12px;
+        padding: 14px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+
+    .icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        object-fit: cover;
+        background: #f1f2f6;
+    }
+
+    .head {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    .name {
+        color: #222;
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 1.25;
+    }
+
+    .tag {
+        color: white;
+        background: #d93939;
+        border-radius: 999px;
+        padding: 2px 8px;
+        font-size: 13px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .interval {
+        color: #7a7f99;
+        background: #f1f2f6;
+        border-radius: 999px;
+        padding: 2px 8px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    .desc {
+        color: #333;
+        font-size: 15px;
+        line-height: 1.55;
+        word-break: break-word;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>{{ name }} 奇穴详情</h1>
+    <div class="meta">更新时间：{{ update_time }}</div>
+
+    {% for group in groups %}
+    <div class="section">
+        <div class="section-title">{{ group['title'] }}</div>
+        <div class="cards">
+            {% for item in group.talents %}
+            <div class="card">
+                {% if item['icon'] %}
+                <img class="icon" src="{{ item['icon'] }}" alt="{{ item['name'] }}">
+                {% else %}
+                <div class="icon"></div>
+                {% endif %}
+                <div>
+                    <div class="head">
+                        <span class="name">{{ item['name'] }}</span>
+                        <span class="tag">{{ item['class_text'] }}</span>
+                        {% if item['interval'] %}
+                        <span class="interval">{{ item['interval'] }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="desc">{{ item['desc'] }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+</body>
+</html>

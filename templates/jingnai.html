@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>精耐查询</title>
+
+<style>
+    body {
+        font-family: "Microsoft YaHei", Arial, sans-serif;
+        background: #f1f2f6;
+        margin: 0;
+        padding: 20px;
+        color: #2c2c33;
+    }
+
+    .container {
+        max-width: 980px;
+        margin: 0 auto;
+    }
+
+    h1 {
+        font-size: 32px;
+        margin: 0 0 8px 0;
+        color: #222;
+        font-weight: 800;
+        text-align: center;
+    }
+
+    .meta {
+        margin-bottom: 22px;
+        color: #7a7f99;
+        font-size: 16px;
+        text-align: center;
+    }
+
+    .summary {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        margin-bottom: 22px;
+    }
+
+    .stat {
+        background: white;
+        border-radius: 12px;
+        padding: 18px 14px;
+        text-align: center;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+
+    .label {
+        color: #7a7f99;
+        font-size: 16px;
+        margin-bottom: 8px;
+    }
+
+    .value {
+        color: #d93939;
+        font-size: 30px;
+        line-height: 1;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        text-align: left;
+    }
+
+    thead {
+        background: #d93939;
+        color: white;
+        font-size: 17px;
+    }
+
+    th, td {
+        padding: 12px 10px;
+        border-bottom: 1px solid #eee;
+        font-size: 15px;
+        vertical-align: middle;
+    }
+
+    tbody tr:nth-child(even) {
+        background: #fafafa;
+    }
+
+    .skill-col {
+        width: 34%;
+        font-weight: 800;
+        color: #333;
+        word-break: break-word;
+        line-height: 1.45;
+    }
+
+    .leader-col {
+        width: 30%;
+        color: #333;
+        word-break: break-word;
+        line-height: 1.45;
+    }
+
+    .color-col,
+    .level-col {
+        text-align: center;
+        white-space: nowrap;
+        font-weight: 700;
+    }
+
+    .level-col {
+        color: #d93939;
+        font-variant-numeric: tabular-nums;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>{{ server }} - {{ role_name }}</h1>
+    <div class="meta">更新时间：{{ update_time }}</div>
+
+    <div class="summary">
+        <div class="stat">
+            <div class="label">精力</div>
+            <div class="value">{{ skill_energy }}</div>
+        </div>
+        <div class="stat">
+            <div class="label">耐力</div>
+            <div class="value">{{ skill_stamina }}</div>
+        </div>
+        <div class="stat">
+            <div class="label">技能数量</div>
+            <div class="value">{{ skill_count }}</div>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>技能名称</th>
+                <th>首领</th>
+                <th>破绽颜色</th>
+                <th>技能等级</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for item in items %}
+            <tr>
+                <td class="skill-col">{{ item.skill_name }}</td>
+                <td class="leader-col">{{ item.leader_name }}</td>
+                <td class="color-col">{{ item.skill_color_text }}</td>
+                <td class="level-col">{{ item.skill_level }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>

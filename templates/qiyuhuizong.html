@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>奇遇汇总</title>
+
+<style>
+    body {
+        font-family: "Microsoft YaHei", Arial, sans-serif;
+        background: #f1f2f6;
+        margin: 0;
+        padding: 20px;
+        color: #2c2c33;
+    }
+
+    .container {
+        max-width: 1080px;
+        margin: 0 auto;
+    }
+
+    h1 {
+        font-size: 32px;
+        margin: 0 0 8px 0;
+        color: #222;
+        font-weight: 800;
+        text-align: center;
+    }
+
+    .meta {
+        margin-bottom: 24px;
+        color: #7a7f99;
+        font-size: 16px;
+        text-align: center;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        text-align: left;
+    }
+
+    thead {
+        background: #d93939;
+        color: white;
+        font-size: 18px;
+    }
+
+    th, td {
+        padding: 14px 12px;
+        border-bottom: 1px solid #eee;
+        font-size: 16px;
+        white-space: nowrap;
+    }
+
+    tbody tr:nth-child(even) {
+        background: #fafafa;
+    }
+
+    .event-col {
+        font-weight: 700;
+        color: #333;
+    }
+
+    .count-col {
+        color: #d93939;
+        font-weight: 700;
+        text-align: center;
+    }
+
+    .role-col {
+        color: #333;
+    }
+
+    .time-col {
+        color: #60657a;
+        font-variant-numeric: tabular-nums;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>{{ server }} 奇遇汇总</h1>
+    <div class="meta">最近 {{ num }} 天 · 更新时间：{{ update_time }}</div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>区服</th>
+                <th>奇遇名称</th>
+                <th>触发次数</th>
+                <th>最近角色</th>
+                <th>最近时间</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for m in items %}
+            <tr>
+                <td>{{ m.server }}</td>
+                <td class="event-col">{{ m.event }}</td>
+                <td class="count-col">{{ m.count }}</td>
+                <td class="role-col">{{ m.latest_name }}</td>
+                <td class="time-col">{{ m.latest_time }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+
+</body>
+</html>

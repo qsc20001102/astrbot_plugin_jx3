@@ -106,6 +106,47 @@
         "params":{
         }
     },
+    "jx3_zhenyan":{
+        "url":"https://www.jx3api.com/data/school/matrix",
+        "method":"GET",
+        "description":"查询指定心法的阵眼效果",
+        "params":{
+            "name": "易筋经",
+            "ticket": "",
+            "token":""
+        }
+    },
+    "jx3_qixue":{
+        "url":"https://www.jx3api.com/data/school/talent",
+        "method":"GET",
+        "description":"查询指定心法的奇穴详细效果",
+        "params":{
+            "name": "易筋经",
+            "ticket": "",
+            "token":""
+        }
+    },
+    "jx3_jineng":{
+        "url":"https://www.jx3api.com/data/school/skills",
+        "method":"GET",
+        "description":"查询指定心法的技能详情",
+        "params":{
+            "name": "易筋经",
+            "ticket": "",
+            "token":""
+        }
+    },
+    "jx3_zilipaixing":{
+        "url":"https://www.jx3api.com/data/school/seniority",
+        "method":"GET",
+        "description":"查询指定门派的资历排行榜",
+        "params":{
+            "server": "梦江南",
+            "school": "万花",
+            "ticket": "",
+            "token":""
+        }
+    },
     "jx3_shaohua":{
         "url":"https://www.jx3api.com/data/saohua/random",
         "method":"GET",
@@ -188,6 +229,16 @@
             "token":""
         }
     },
+    "jx3_weizuoqiyu":{
+        "url":"https://www.jx3api.com/data/event/unfinished",
+        "method":"GET",
+        "description":"此接口用于查询指定角色未做奇遇记录，数据可能存在遗漏",
+        "params":{
+            "server": "梦江南",
+            "name": "飞翔大野猪",
+            "token":""
+        }
+    },
     "jx3_qiyutongji":{
         "url":"https://www.jx3api.com/data/event/statistics",
         "method":"POST",
@@ -196,6 +247,25 @@
             "name": "阴阳两界",  
             "server": "梦江南",
             "limit": "10",  
+            "token": ""
+        }
+    },
+    "jx3_jinqiqiyu":{
+        "url":"https://www.jx3api.com/data/event/recent",
+        "method":"GET",
+        "description":"查询指定服务器最近触发的奇遇记录列表",
+        "params":{
+            "server": "梦江南",
+            "token": ""
+        }
+    },
+    "jx3_qiyuhuizong":{
+        "url":"https://www.jx3api.com/data/event/collect",
+        "method":"GET",
+        "description":"统计指定服务器最近一段时间内各类奇遇触发汇总",
+        "params":{
+            "server": "梦江南",
+            "num": 7,
             "token": ""
         }
     },
@@ -222,6 +292,16 @@
             "token":""
         }
     },
+    "jx3_mingjiantongji":{
+        "url":"https://www.jx3api.com/data/arena/schools",
+        "method":"GET",
+        "description":"统计全服名剑大会各门派当前赛季与上赛季数量",
+        "params":{
+            "mode": "33",
+            "ticket": "",
+            "token":""
+        }
+    },
     "jx3_tuanduizhaomu":{
         "url":"https://www.jx3api.com/data/recruit/search",
         "method":"GET",
@@ -230,6 +310,27 @@
             "server": "梦江南",
             "keyword": "25人普通会战弓月城",
             "table": 1,
+            "token":""
+        }
+    },
+    "jx3_shitu":{
+        "url":"https://www.jx3api.com/data/mentor/search",
+        "method":"GET",
+        "description":"查询游戏内师徒系统拜师/收徒招募信息",
+        "params":{
+            "type": 2,
+            "server": "梦江南",
+            "keyword": "",
+            "token":""
+        }
+    },
+    "jx3_rank_statistical":{
+        "url":"https://www.jx3api.com/data/rank/statistics",
+        "method":"GET",
+        "description":"查询全服或指定服务器的各类游戏内榜单数据",
+        "params":{
+            "server": "梦江南",
+            "name": "名士五十强",
             "token":""
         }
     },
@@ -250,6 +351,16 @@
         "params":{
             "server": "眉间雪",
             "name": "夜温言@长安城",
+            "token":""
+        }
+    },
+    "jx3_jingnai":{
+        "url":"https://www.jx3api.com/data/role/monster",
+        "method":"GET",
+        "description":"查询指定角色在百战异闻录玩法中的精力、耐力数值和已习得技能列表",
+        "params":{
+            "server": "梦江南",
+            "name": "飞翔大野猪",
             "token":""
         }
     },
@@ -310,6 +421,17 @@
         "params":{
             "server": "梦江南",
             "name": "玄晶",
+            "token": ""
+        }
+    },
+    "jx3_diaoluo":{
+        "url":"https://www.jx3api.com/data/reward/statistics",
+        "method":"GET",
+        "description":"统计全服或指定服务器中特定贵重物品在团队秘境中的掉落记录",
+        "params":{
+            "server": "梦江南",
+            "name": "玄晶",
+            "limit": 20,
             "token": ""
         }
     },

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>掉落记录</title>
+
+<style>
+    body {
+        font-family: "Microsoft YaHei", Arial, sans-serif;
+        background: #f1f2f6;
+        margin: 0;
+        padding: 20px;
+        color: #2c2c33;
+    }
+
+    .container {
+        max-width: 1080px;
+        margin: 0 auto;
+    }
+
+    h1 {
+        font-size: 32px;
+        margin: 0 0 8px 0;
+        color: #222;
+        font-weight: 800;
+        text-align: center;
+    }
+
+    .meta {
+        margin-bottom: 24px;
+        color: #7a7f99;
+        font-size: 16px;
+        text-align: center;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        text-align: left;
+    }
+
+    thead {
+        background: #d93939;
+        color: white;
+        font-size: 17px;
+    }
+
+    th, td {
+        padding: 12px 10px;
+        border-bottom: 1px solid #eee;
+        font-size: 15px;
+        vertical-align: middle;
+    }
+
+    tbody tr:nth-child(even) {
+        background: #fafafa;
+    }
+
+    .item-col {
+        min-width: 120px;
+        color: #d93939;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .server-col {
+        min-width: 90px;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    .map-col {
+        max-width: 260px;
+        color: #333;
+        word-break: break-word;
+        line-height: 1.45;
+    }
+
+    .role-col {
+        max-width: 260px;
+        color: #333;
+        font-weight: 700;
+        word-break: break-word;
+        line-height: 1.45;
+    }
+
+    .time-col {
+        min-width: 150px;
+        color: #60657a;
+        text-align: center;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>{{ name }} 掉落记录</h1>
+    <div class="meta">{{ server }} · 数量：{{ limit }} · 更新时间：{{ update_time }}</div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>物品名称</th>
+                <th>服务器</th>
+                <th>地点</th>
+                <th>角色名称</th>
+                <th>时间</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for item in items %}
+            <tr>
+                <td class="item-col">{{ item.item_name }}</td>
+                <td class="server-col">{{ item.server }}</td>
+                <td class="map-col">{{ item.map_name }}</td>
+                <td class="role-col">{{ item.role_name }}</td>
+                <td class="time-col">{{ item.time }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>

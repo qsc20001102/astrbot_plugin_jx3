@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>师徒招募</title>
+
+<style>
+    body {
+        font-family: "Microsoft YaHei", Arial, sans-serif;
+        background: #f1f2f6;
+        margin: 0;
+        padding: 20px;
+        color: #2c2c33;
+    }
+
+    .container {
+        max-width: 1280px;
+        margin: 0 auto;
+    }
+
+    h1 {
+        font-size: 32px;
+        margin: 0 0 8px 0;
+        color: #222;
+        font-weight: 800;
+        text-align: center;
+    }
+
+    .meta {
+        margin-bottom: 24px;
+        color: #7a7f99;
+        font-size: 16px;
+        text-align: center;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        text-align: left;
+    }
+
+    thead {
+        background: #d93939;
+        color: white;
+        font-size: 18px;
+    }
+
+    th, td {
+        padding: 14px 12px;
+        border-bottom: 1px solid #eee;
+        font-size: 16px;
+        vertical-align: middle;
+    }
+
+    tbody tr:nth-child(even) {
+        background: #fafafa;
+    }
+
+    .force-col {
+        min-width: 120px;
+    }
+
+    .force {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+        color: #333;
+        white-space: nowrap;
+    }
+
+    .force-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: contain;
+        flex: 0 0 auto;
+    }
+
+    .name-col {
+        font-weight: 700;
+        color: #333;
+        white-space: nowrap;
+    }
+
+    .small-col {
+        white-space: nowrap;
+        text-align: center;
+    }
+
+    .comment-col {
+        max-width: 420px;
+        line-height: 1.5;
+        word-break: break-word;
+        color: #333;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>{{ title }}</h1>
+    <div class="meta">
+        {{ server }}
+        {% if keyword %} · 关键词：{{ keyword }}{% endif %}
+        · 更新时间：{{ update_time }}
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>职业</th>
+                <th>角色名称</th>
+                <th>等级</th>
+                <th>体型</th>
+                <th>帮会</th>
+                <th>阵营</th>
+                <th>信息</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for item in items %}
+            <tr>
+                <td class="force-col">
+                    <div class="force">
+                        {% if icons.sect.get(item.forceName) %}
+                        <img class="force-icon" src="{{ icons.sect[item.forceName] }}" alt="{{ item.forceName }}">
+                        {% endif %}
+                        <span>{{ item.forceName }}</span>
+                    </div>
+                </td>
+                <td class="name-col">{{ item.roleName }}</td>
+                <td class="small-col">{{ item.roleLevel }}</td>
+                <td class="small-col">{{ item.bodyName }}</td>
+                <td>{{ item.tongName }}</td>
+                <td class="small-col">{{ item.campName }}</td>
+                <td class="comment-col">{{ item.comment }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+
+</body>
+</html>

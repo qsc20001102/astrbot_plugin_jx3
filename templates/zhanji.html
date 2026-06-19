@@ -107,7 +107,8 @@ table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
-    font-size: 22px;
+    font-size: 18px;
+    table-layout: fixed;
 }
 
 thead {
@@ -115,7 +116,7 @@ thead {
 }
 
 th, td {
-    padding: 10px;
+    padding: 8px 6px;
     text-align: center;
 }
 
@@ -153,6 +154,36 @@ tbody tr:nth-child(odd) {
 .mvp {
     color: #f5a623;
     font-weight: bold;
+}
+
+.time-col {
+    width: 170px;
+    font-size: 16px;
+    font-variant-numeric: tabular-nums;
+}
+
+.duration-col {
+    width: 92px;
+}
+
+.kungfu-col {
+    width: 150px;
+}
+
+.result-col {
+    width: 64px;
+}
+
+.score-col {
+    width: 104px;
+}
+
+.grade-col {
+    width: 96px;
+}
+
+.mvp-col {
+    width: 58px;
 }
 </style>
 </head>
@@ -210,28 +241,30 @@ tbody tr:nth-child(odd) {
     <table>
         <thead>
         <tr>
-            <th>对战时长</th>
-            <th>心法</th>
-            <th>胜负</th>
-            <th>积分变化</th>
-            <th>最终积分</th>
-            <th>平均段位</th>
-            <th>MVP</th>
+            <th class="time-col">开始时间</th>
+            <th class="duration-col">对战时长</th>
+            <th class="kungfu-col">心法</th>
+            <th class="result-col">胜负</th>
+            <th class="score-col">积分变化</th>
+            <th class="score-col">最终积分</th>
+            <th class="grade-col">平均段位</th>
+            <th class="mvp-col">MVP</th>
         </tr>
         </thead>
 
         <tbody>
         {% for m in history %}
             <tr>
-                <td>{{ m.endTime - m.startTime }}</td>
-                <td>{{ m.kungfu }}</td>
-                <td class="{{ 'win' if m.won else 'lose' }}">{{ '胜' if m.won else '负' }}</td>
-                <td class="{{ 'mmr-up' if m.mmr > 0 else 'mmr-down' }}">
+                <td class="time-col start-time" data-ts="{{ m.startTime }}">{{ m.startTime }}</td>
+                <td class="duration-col">{{ m.endTime - m.startTime }}</td>
+                <td class="kungfu-col">{{ m.kungfu }}</td>
+                <td class="result-col {{ 'win' if m.won else 'lose' }}">{{ '胜' if m.won else '负' }}</td>
+                <td class="score-col {{ 'mmr-up' if m.mmr > 0 else 'mmr-down' }}">
                     {{ m.mmr }}
                 </td>
-                <td>{{ m.totalMmr }}</td>
-                <td>{{ m.avgGrade }}</td>
-                <td class="{{ 'mvp' if m.mvp else '' }}">
+                <td class="score-col">{{ m.totalMmr }}</td>
+                <td class="grade-col">{{ m.avgGrade }}</td>
+                <td class="mvp-col {{ 'mvp' if m.mvp else '' }}">
                     {{ '是' if m.mvp else '-' }}
                 </td>
             </tr>
@@ -240,5 +273,27 @@ tbody tr:nth-child(odd) {
     </table>
 
 </div>
+<script>
+document.querySelectorAll(".start-time").forEach(function (cell) {
+    var raw = cell.dataset.ts || cell.textContent.trim();
+    var ts = Number(raw);
+    if (!Number.isFinite(ts) || ts <= 0) {
+        cell.textContent = raw || "-";
+        return;
+    }
+
+    var date = new Date(ts * 1000);
+    var pad = function (n) { return String(n).padStart(2, "0"); };
+    cell.textContent = [
+        date.getFullYear(),
+        pad(date.getMonth() + 1),
+        pad(date.getDate())
+    ].join("-") + " " + [
+        pad(date.getHours()),
+        pad(date.getMinutes()),
+        pad(date.getSeconds())
+    ].join(":");
+});
+</script>
 </body>
 </html>
