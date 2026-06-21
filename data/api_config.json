@@ -147,12 +147,30 @@
             "token":""
         }
     },
+    "jx3_shilianpaixing":{
+        "url":"https://www.jx3api.com/data/rank/trials",
+        "method":"GET",
+        "description":"查询指定心法的木桩试炼排行榜",
+        "params":{
+            "server": "梦江南",
+            "name": "花间游",
+            "token":""
+        }
+    },
     "jx3_shaohua":{
         "url":"https://www.jx3api.com/data/saohua/random",
         "method":"GET",
         "description":"获取剑网三骚话",
         "params":{
             "name": "万花" 
+        }
+    },
+    "jx3_jiemi":{
+        "url":"https://www.jx3api.com/data/mech/calculator",
+        "method":"GET",
+        "description":"查询机关解密结果",
+        "params":{
+            "token": ""
         }
     },
     "aijx3_shapan":{
@@ -180,6 +198,30 @@
             "token": ""
         }
     },
+    "jx3_zhueevent":{
+        "url":"https://www.jx3api.com/data/smite/records",
+        "method":"GET",
+        "description":"查询诛恶事件记录",
+        "params":{
+            "token": ""
+        }
+    },
+    "jx3_benrichitu":{
+        "url":"https://www.jx3api.com/data/chitu/records",
+        "method":"GET",
+        "description":"查询本日赤兔记录",
+        "params":{
+            "token": ""
+        }
+    },
+    "jx3_benzhouchitu":{
+        "url":"https://www.jx3api.com/data/chitu/week/records",
+        "method":"GET",
+        "description":"查询本周赤兔记录",
+        "params":{
+            "token": ""
+        }
+    },
     "jx3_zhengyingpaimai":{
         "url":"https://www.jx3api.com/data/auction/records",
         "method":"GET",
@@ -188,6 +230,40 @@
             "server": "梦江南",
             "name": "玄晶",
             "limit": 20,
+            "token": ""
+        }
+    },
+    "jx3_zhenyingevent":{
+        "url":"https://www.jx3api.com/data/fenxian/records",
+        "method":"GET",
+        "description":"查询跨服阵营事件记录",
+        "params":{
+            "token": ""
+        }
+    },
+    "jx3_guanaishouling":{
+        "url":"https://www.jx3api.com/data/mine/cart",
+        "method":"GET",
+        "description":"查询各服务器关隘首领刷新记录",
+        "params":{
+            "token": ""
+        }
+    },
+    "jx3_bangzhanjilu":{
+        "url":"https://www.jx3api.com/data/battle/records",
+        "method":"GET",
+        "description":"查询指定服务器帮战记录",
+        "params":{
+            "server": "梦江南",
+            "token": ""
+        }
+    },
+    "jx3_tongzhanyy":{
+        "url":"https://www.jx3api.com/data/duowan/statistics",
+        "method":"GET",
+        "description":"查询指定服务器统战歪歪信息",
+        "params":{
+            "server": "梦江南",
             "token": ""
         }
     },
@@ -421,6 +497,17 @@
         "params":{
             "server": "梦江南",
             "name": "玄晶",
+            "token": ""
+        }
+    },
+    "jx3_tiebawujia":{
+        "url":"https://www.jx3api.com/data/tieba/item/records",
+        "method":"GET",
+        "description":"查询指定物品的贴吧价格记录",
+        "params":{
+            "server": "梦江南",
+            "name": "狐金",
+            "limit": 5,
             "token": ""
         }
     },

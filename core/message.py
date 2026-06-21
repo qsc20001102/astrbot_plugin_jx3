@@ -282,9 +282,19 @@ class MessageBuilder:
         return await self.T2I_image_msg(event, lambda: self.jx3api.zilipaixing(school, self.serverdefault(server)))
 
 
+    async def jx3_shilianpaixing(self, event: AstrMessageEvent, name: str, server: str = ""):
+        """剑三 试炼排行 心法 服务器"""
+        return await self.T2I_image_msg(event, lambda: self.jx3api.shilianpaixing(name, self.serverdefault(server)))
+
+
     async def jx3_shaohua(self, event: AstrMessageEvent,):
         """剑三 骚话"""
         return await self.plain_msg(event, self.jx3api.shaohua)
+
+
+    async def jx3_jiemi(self, event: AstrMessageEvent):
+        """剑三 解密"""
+        return await self.plain_msg(event, self.jx3api.jiemi)
 
 
     async def jx3_shapan(self, event: AstrMessageEvent,server: str = ""):
@@ -302,9 +312,44 @@ class MessageBuilder:
         return await self.plain_msg(event, lambda: self.jx3api.fuyaojjiutian( self.serverdefault(server)))
     
 
+    async def jx3_zhueevent(self, event: AstrMessageEvent):
+        """剑三 诛恶事件"""
+        return await self.T2I_image_msg(event, self.jx3api.zhueevent)
+
+
+    async def jx3_benrichitu(self, event: AstrMessageEvent):
+        """剑三 本日赤兔"""
+        return await self.plain_msg(event, self.jx3api.benrichitu)
+
+
+    async def jx3_benzhouchitu(self, event: AstrMessageEvent):
+        """剑三 本周赤兔"""
+        return await self.plain_msg(event, self.jx3api.benzhouchitu)
+
+
     async def jx3_zhengyingpaimai(self, event: AstrMessageEvent,name: str = "玄晶", server: str = ""):
         """剑三 阵营拍卖 物品名称 服务器"""
         return await self.T2I_image_msg(event, lambda: self.jx3api.zhengyingpaimai( self.serverdefault(server), name))
+
+
+    async def jx3_zhenyingevent(self, event: AstrMessageEvent):
+        """剑三 阵营事件"""
+        return await self.T2I_image_msg(event, self.jx3api.zhenyingevent)
+
+
+    async def jx3_guanaishouling(self, event: AstrMessageEvent):
+        """剑三 关隘首领"""
+        return await self.T2I_image_msg(event, self.jx3api.guanaishouling)
+
+
+    async def jx3_bangzhanjilu(self, event: AstrMessageEvent, server: str = ""):
+        """剑三 帮战记录 服务器"""
+        return await self.T2I_image_msg(event, lambda: self.jx3api.bangzhanjilu(self.serverdefault(server)))
+
+
+    async def jx3_tongzhanyy(self, event: AstrMessageEvent, server: str = ""):
+        """剑三 统战歪歪 服务器"""
+        return await self.plain_msg(event, lambda: self.jx3api.tongzhanyy(self.serverdefault(server)))
 
 
     async def jx3_dilujilu(self, event: AstrMessageEvent,server: str = ""):
@@ -518,6 +563,19 @@ class MessageBuilder:
     async def jx3_jiaoyihang(self, event: AstrMessageEvent,Name: str = "守缺式",server: str = ""):
         """剑三 交易行 物品名称 服务器"""     
         return await self.T2I_image_msg(event, lambda: self.jx3api.jiaoyihang(Name, self.serverdefault(server)))
+
+
+    async def jx3_tiebawujia(self, event: AstrMessageEvent, name: str = "狐金", limit_or_server: str = "5", server: str = ""):
+        """剑三 贴吧物价 物品名称 数量 服务器"""
+        limit = 5
+        target_server = server
+
+        if str(limit_or_server).isdigit():
+            limit = int(limit_or_server)
+        else:
+            target_server = limit_or_server
+
+        return await self.plain_msg(event, lambda: self.jx3api.tiebawujia(name, limit, self.serverdefault(target_server)))
 
 
     async def jx3_diaoluo(self, event: AstrMessageEvent, name: str = "玄晶", limit_or_server: str = "20", server: str = ""):

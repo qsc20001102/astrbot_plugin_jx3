@@ -971,6 +971,62 @@ class JX3Service:
         return return_data
 
 
+    async def shilianpaixing(self, name: str, server: str) -> Dict[str, Any]:
+        """试炼排行"""
+        return_data = self._init_return_data()
+
+        params = {
+            "server": server,
+            "name": name,
+            "token": self.token,
+        }
+
+        data: Optional[Dict[str, Any]] = await self._base_request(
+            "jx3_shilianpaixing", "GET", params=params
+        )
+
+        if not data or not isinstance(data, dict):
+            return_data["msg"] = "未查询到试炼排行信息"
+            return return_data
+
+        try:
+            items = data.get("data", [])
+            if not isinstance(items, list) or not items:
+                return_data["msg"] = "未查询到试炼排行信息"
+                return return_data
+
+            update_time = data.get("time")
+            if update_time:
+                try:
+                    update_time = datetime.fromtimestamp(int(update_time)).strftime("%Y-%m-%d %H:%M:%S")
+                except (TypeError, ValueError, OSError):
+                    update_time = str(update_time)
+            else:
+                update_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            return_data["data"] = {
+                "items": items,
+                "name": data.get("name", name),
+                "server": data.get("server", server),
+                "update_time": update_time
+            }
+        except Exception as e:
+            logger.error(f"处理试炼排行数据失败: {e}")
+            return_data["msg"] = "处理试炼排行数据失败"
+            return return_data
+
+        try:
+            return_data["temp"] = await load_template("shilianpaixing.html")
+        except FileNotFoundError as e:
+            logger.error(f"加载模板失败: {e}")
+            return_data["msg"] = "系统错误：模板文件不存在"
+            return return_data
+
+        return_data["code"] = 200
+
+        return return_data
+
+
     async def shaohua(self) -> Dict[str, Any]:
         """骚话"""
         return_data = self._init_return_data()
@@ -990,6 +1046,47 @@ class JX3Service:
             return return_data
 
         return_data["code"] = 200  
+
+        return return_data
+
+
+    async def jiemi(self) -> Dict[str, Any]:
+        """解密"""
+        return_data = self._init_return_data()
+
+        params = {"token": self.token}
+
+        data: Optional[Dict[str, Any]] = await self._base_request(
+            "jx3_jiemi", "GET", params=params
+        )
+
+        if not data or not isinstance(data, dict):
+            return_data["msg"] = "未查询到解密信息"
+            return return_data
+
+        try:
+            curr = data.get("curr", {})
+            next_data = data.get("next", {})
+            if not isinstance(curr, dict):
+                curr = {}
+            if not isinstance(next_data, dict):
+                next_data = {}
+
+            return_data["data"] = "\n".join([
+                "解密",
+                f"当前时间：{data.get('time', '')}",
+                f"当前节点：{curr.get('node', '')}",
+                f"当前结果：{curr.get('data', '')}",
+                f"下轮节点：{next_data.get('node', '')}",
+                f"下轮结果：{next_data.get('data', '')}",
+                f"剩余时间：{data.get('cdtn', '')}",
+            ])
+        except Exception as e:
+            logger.error(f"处理解密数据失败: {e}")
+            return_data["msg"] = "处理解密数据失败"
+            return return_data
+
+        return_data["code"] = 200
 
         return return_data
 
@@ -1098,6 +1195,182 @@ class JX3Service:
         return return_data
 
 
+    async def zhueevent(self) -> Dict[str, Any]:
+        """诛恶事件"""
+        return_data = self._init_return_data()
+        
+        params = {"token": self.token}
+        
+        data: Optional[List[Dict[str, Any]]] = await self._base_request(
+            "jx3_zhueevent", "GET", params=params
+        )
+        
+        if not data or not isinstance(data, list):
+            return_data["msg"] = "未查询到诛恶事件信息"
+            return return_data
+            
+        try:
+            items = []
+            for item in data:
+                if not isinstance(item, dict):
+                    continue
+
+                event_time = item.get("time")
+                if event_time:
+                    try:
+                        item["time"] = datetime.fromtimestamp(int(event_time)).strftime("%Y-%m-%d %H:%M:%S")
+                    except (TypeError, ValueError, OSError):
+                        item["time"] = str(event_time)
+                else:
+                    item["time"] = ""
+
+                items.append(item)
+
+            if not items:
+                return_data["msg"] = "未查询到诛恶事件信息"
+                return return_data
+
+            return_data["data"] = {
+                "items": items,
+                "update_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+        except Exception as e:
+            logger.error(f"处理诛恶事件数据失败: {e}")
+            return_data["msg"] = "处理诛恶事件数据失败"
+            return return_data
+
+        try:
+            return_data["temp"] = await load_template("zhueevent.html")
+        except FileNotFoundError as e:
+            logger.error(f"加载模板失败: {e}")
+            return_data["msg"] = "系统错误：模板文件不存在"
+            return return_data
+
+        return_data["code"] = 200
+        
+        return return_data
+
+
+    async def benrichitu(self) -> Dict[str, Any]:
+        """本日赤兔"""
+        return_data = self._init_return_data()
+
+        params = {"token": self.token}
+
+        data: Optional[List[Dict[str, Any]]] = await self._base_request(
+            "jx3_benrichitu", "GET", params=params
+        )
+
+        def no_data() -> Dict[str, Any]:
+            return_data["code"] = 200
+            return_data["data"] = "本日赤兔 暂无数据"
+            return return_data
+
+        if not data or not isinstance(data, list):
+            return no_data()
+
+        try:
+            items = []
+            for item in data:
+                if not isinstance(item, dict):
+                    continue
+
+                date_value = item.get("date", "")
+                if date_value:
+                    try:
+                        date_text = datetime.fromtimestamp(int(date_value)).strftime("%Y-%m-%d %H:%M:%S")
+                    except (TypeError, ValueError, OSError):
+                        date_text = str(date_value)
+                else:
+                    date_text = ""
+
+                items.append({
+                    "date": date_text,
+                    "server": item.get("server", ""),
+                    "map_name": item.get("map_name", ""),
+                })
+
+            if not items:
+                return no_data()
+
+            result_lines = ["本日赤兔"]
+            for item in items:
+                result_lines.extend([
+                    f"时间：{item['date']}",
+                    f"区服：{item['server']}",
+                    f"地图：{item['map_name']}",
+                    "",
+                ])
+
+            return_data["code"] = 200
+            return_data["data"] = "\n".join(result_lines).rstrip()
+        except Exception as e:
+            logger.error(f"处理本日赤兔数据失败: {e}")
+            return no_data()
+
+        return return_data
+
+
+    async def benzhouchitu(self) -> Dict[str, Any]:
+        """本周赤兔"""
+        return_data = self._init_return_data()
+
+        params = {"token": self.token}
+
+        data: Optional[List[Dict[str, Any]]] = await self._base_request(
+            "jx3_benzhouchitu", "GET", params=params
+        )
+
+        def no_data() -> Dict[str, Any]:
+            return_data["code"] = 200
+            return_data["data"] = "本周赤兔 暂无数据"
+            return return_data
+
+        if not data or not isinstance(data, list):
+            return no_data()
+
+        try:
+            items = []
+            for item in data:
+                if not isinstance(item, dict):
+                    continue
+
+                date_value = item.get("date", "")
+                if date_value:
+                    try:
+                        date_text = datetime.fromtimestamp(int(date_value)).strftime("%Y-%m-%d %H:%M:%S")
+                    except (TypeError, ValueError, OSError):
+                        date_text = str(date_value)
+                else:
+                    date_text = ""
+
+                items.append({
+                    "date": date_text,
+                    "server": item.get("server", ""),
+                    "map_name": item.get("map_name", ""),
+                })
+
+            if not items:
+                return no_data()
+
+            result_lines = ["本周赤兔"]
+            for item in items:
+                result_lines.extend([
+                    f"时间：{item['date']}",
+                    f"区服：{item['server']}",
+                    f"地图：{item['map_name']}",
+                    "",
+                ])
+
+            return_data["code"] = 200
+            return_data["data"] = "\n".join(result_lines).rstrip()
+        except Exception as e:
+            logger.error(f"处理本周赤兔数据失败: {e}")
+            return no_data()
+
+        return return_data
+
+
     async def zhengyingpaimai(self, server: str, name: str) -> Dict[str, Any]:
         """阵营拍卖"""
         return_data = self._init_return_data()
@@ -1137,6 +1410,299 @@ class JX3Service:
         
         return return_data
     
+
+    async def zhenyingevent(self) -> Dict[str, Any]:
+        """阵营事件"""
+        return_data = self._init_return_data()
+        
+        params = {"token": self.token}
+        
+        data: Optional[List[Dict[str, Any]]] = await self._base_request(
+            "jx3_zhenyingevent", "GET", params=params
+        )
+        
+        if not data or not isinstance(data, list):
+            return_data["msg"] = "未查询到阵营事件信息"
+            return return_data
+            
+        try:
+            items = []
+            for item in data:
+                if not isinstance(item, dict):
+                    continue
+
+                seize_time = item.get("seize_time")
+                if seize_time:
+                    try:
+                        item["seize_time"] = datetime.fromtimestamp(int(seize_time)).strftime("%Y-%m-%d %H:%M:%S")
+                    except (TypeError, ValueError, OSError):
+                        item["seize_time"] = str(seize_time)
+                else:
+                    item["seize_time"] = ""
+
+                items.append(item)
+
+            if not items:
+                return_data["msg"] = "未查询到阵营事件信息"
+                return return_data
+
+            return_data["data"] = {
+                "items": items,
+                "update_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+        except Exception as e:
+            logger.error(f"处理阵营事件数据失败: {e}")
+            return_data["msg"] = "处理阵营事件数据失败"
+            return return_data
+
+        try:
+            return_data["temp"] = await load_template("zhenyingevent.html")
+        except FileNotFoundError as e:
+            logger.error(f"加载模板失败: {e}")
+            return_data["msg"] = "系统错误：模板文件不存在"
+            return return_data
+
+        return_data["code"] = 200
+        
+        return return_data
+
+
+    async def guanaishouling(self) -> Dict[str, Any]:
+        """关隘首领"""
+        return_data = self._init_return_data()
+        
+        params = {"token": self.token}
+        
+        data: Optional[List[Dict[str, Any]]] = await self._base_request(
+            "jx3_guanaishouling", "GET", params=params
+        )
+        
+        if not data or not isinstance(data, list):
+            return_data["msg"] = "未查询到关隘首领信息"
+            return return_data
+            
+        try:
+            now_ts = int(datetime.now().timestamp())
+
+            def format_time(value: Any) -> str:
+                if not value:
+                    return ""
+                try:
+                    return datetime.fromtimestamp(int(value)).strftime("%Y-%m-%d %H:%M:%S")
+                except (TypeError, ValueError, OSError):
+                    return str(value)
+
+            def format_remaining(end_time: Any) -> str:
+                if not end_time:
+                    return ""
+                try:
+                    seconds = max(0, int(end_time) - now_ts)
+                except (TypeError, ValueError):
+                    return str(end_time)
+
+                hours = seconds // 3600
+                minutes = (seconds % 3600) // 60
+                secs = seconds % 60
+                return f"{hours}时{minutes:02d}分{secs:02d}秒"
+
+            groups = []
+            for group in data:
+                if not isinstance(group, dict):
+                    continue
+
+                records = group.get("data", [])
+                if not isinstance(records, list) or not records:
+                    continue
+
+                parsed_records = []
+                for item in records:
+                    if not isinstance(item, dict):
+                        continue
+
+                    end_time = item.get("end_time")
+                    parsed_records.append({
+                        "camp_name": item.get("camp_name", ""),
+                        "castle": item.get("castle", ""),
+                        "str_status": item.get("str_status", ""),
+                        "start_time": format_time(item.get("start_time")),
+                        "end_time": format_time(end_time),
+                        "remaining_time": format_remaining(end_time),
+                    })
+
+                if parsed_records:
+                    groups.append({
+                        "server": group.get("server", ""),
+                        "records": parsed_records,
+                    })
+
+            if not groups:
+                return_data["msg"] = "未查询到关隘首领信息"
+                return return_data
+
+            return_data["data"] = {
+                "groups": groups,
+                "update_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+        except Exception as e:
+            logger.error(f"处理关隘首领数据失败: {e}")
+            return_data["msg"] = "处理关隘首领数据失败"
+            return return_data
+
+        try:
+            return_data["temp"] = await load_template("guanaishouling.html")
+        except FileNotFoundError as e:
+            logger.error(f"加载模板失败: {e}")
+            return_data["msg"] = "系统错误：模板文件不存在"
+            return return_data
+
+        return_data["code"] = 200
+        
+        return return_data
+
+
+    async def bangzhanjilu(self, server: str) -> Dict[str, Any]:
+        """帮战记录"""
+        return_data = self._init_return_data()
+
+        params = {
+            "server": server,
+            "token": self.token,
+        }
+
+        data: Optional[List[Dict[str, Any]]] = await self._base_request(
+            "jx3_bangzhanjilu", "GET", params=params
+        )
+
+        if not data or not isinstance(data, list):
+            return_data["msg"] = "未查询到帮战记录"
+            return return_data
+
+        try:
+            def format_time(value: Any) -> str:
+                if not value:
+                    return ""
+                try:
+                    return datetime.fromtimestamp(int(value)).strftime("%Y-%m-%d %H:%M:%S")
+                except (TypeError, ValueError, OSError):
+                    return str(value)
+
+            def format_duration(value: Any) -> str:
+                if value in (None, ""):
+                    return ""
+                try:
+                    seconds = max(0, int(value))
+                except (TypeError, ValueError):
+                    return str(value)
+
+                hours = seconds // 3600
+                minutes = (seconds % 3600) // 60
+                secs = seconds % 60
+                return f"{hours}时{minutes:02d}分{secs:02d}秒"
+
+            items = []
+            for item in data:
+                if not isinstance(item, dict):
+                    continue
+
+                items.append({
+                    "zoneName": item.get("zoneName", ""),
+                    "serverName": item.get("serverName", ""),
+                    "declaringTongName": item.get("declaringTongName", ""),
+                    "acceptingTongName": item.get("acceptingTongName", ""),
+                    "startTime": format_time(item.get("startTime")),
+                    "matchDuration": format_duration(item.get("matchDuration")),
+                    "endTime": format_time(item.get("endTime")),
+                })
+
+            if not items:
+                return_data["msg"] = "未查询到帮战记录"
+                return return_data
+
+            return_data["data"] = {
+                "items": items,
+                "server": server,
+                "update_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            }
+        except Exception as e:
+            logger.error(f"处理帮战记录数据失败: {e}")
+            return_data["msg"] = "处理帮战记录数据失败"
+            return return_data
+
+        try:
+            return_data["temp"] = await load_template("bangzhanjilu.html")
+        except FileNotFoundError as e:
+            logger.error(f"加载模板失败: {e}")
+            return_data["msg"] = "系统错误：模板文件不存在"
+            return return_data
+
+        return_data["code"] = 200
+        
+        return return_data
+
+
+    async def tongzhanyy(self, server: str) -> Dict[str, Any]:
+        """统战歪歪"""
+        return_data = self._init_return_data()
+
+        params = {
+            "server": server,
+            "token": self.token,
+        }
+
+        data: Optional[List[Dict[str, Any]]] = await self._base_request(
+            "jx3_tongzhanyy", "GET", params=params
+        )
+
+        if not data or not isinstance(data, list):
+            return_data["msg"] = "未查询到统战歪歪信息"
+            return return_data
+
+        try:
+            lines = ["统战歪歪"]
+            has_channel = False
+
+            for group in data:
+                if not isinstance(group, dict):
+                    continue
+
+                group_server = group.get("server", "")
+                channels = group.get("data", [])
+                if not isinstance(channels, list) or not channels:
+                    continue
+
+                if len(lines) > 1:
+                    lines.append("")
+                lines.append(f"服务器：{group_server}")
+
+                for item in channels:
+                    if not isinstance(item, dict):
+                        continue
+
+                    has_channel = True
+                    short_id = item.get("esid") or item.get("asid", "")
+                    lines.extend([
+                        f"阵营：{item.get('campName', '')}",
+                        f"频道ID：{item.get('sid', '')}",
+                        f"短位ID：{short_id}",
+                        f"在线人数：{item.get('users', '')}",
+                        f"频道名：{item.get('snick', '')}",
+                        "",
+                    ])
+
+            if not has_channel:
+                return_data["msg"] = "未查询到统战歪歪信息"
+                return return_data
+
+            return_data["data"] = "\n".join(lines).rstrip()
+        except Exception as e:
+            logger.error(f"处理统战歪歪数据失败: {e}")
+            return_data["msg"] = "处理统战歪歪数据失败"
+            return return_data
+
+        return_data["code"] = 200
+
+        return return_data
+
 
     async def dilujilu(self, server: str) -> Dict[str, Any]:
         """的卢记录"""
@@ -2230,6 +2796,79 @@ class JX3Service:
             logger.error(f"加载模板失败: {e}")
             return_data["msg"] = "系统错误：模板文件不存在"
             return return_data
+
+        return return_data
+
+
+    async def tiebawujia(self, name: str, limit: int = 5, server: str = "") -> Dict[str, Any]:
+        """贴吧物价"""
+        return_data = self._init_return_data()
+
+        try:
+            limit = int(limit)
+        except (TypeError, ValueError):
+            return_data["msg"] = "记录数量必须是数字"
+            return return_data
+
+        if limit < 1 or limit > 50:
+            return_data["msg"] = "贴吧物价记录数量必须在 1-50 之间"
+            return return_data
+
+        params = {
+            "server": server,
+            "name": name,
+            "limit": limit,
+            "token": self.token,
+        }
+
+        data: Optional[List[Dict[str, Any]]] = await self._base_request(
+            "jx3_tiebawujia", "GET", params=params
+        )
+
+        if not data or not isinstance(data, list):
+            return_data["msg"] = "未查询到贴吧物价记录"
+            return return_data
+
+        try:
+            lines = [
+                f"贴吧物价：{name}",
+                f"服务器：{server}",
+                f"记录数：{len(data)}",
+                "",
+            ]
+
+            for index, item in enumerate(data, start=1):
+                if not isinstance(item, dict):
+                    continue
+
+                item_time = item.get("time", "")
+                if item_time:
+                    try:
+                        item_time = datetime.fromtimestamp(int(item_time)).strftime("%Y-%m-%d %H:%M:%S")
+                    except (TypeError, ValueError, OSError):
+                        item_time = str(item_time)
+
+                lines.extend([
+                    f"{index}. {item.get('name', '')}",
+                    f"区服：{item.get('zone', '')}  服务器：{item.get('server', '')}",
+                    f"内容：{item.get('context', '')}",
+                    f"回复：{item.get('reply', '')}  楼层：{item.get('floor', '')}",
+                    f"时间：{item_time}",
+                    f"链接：https://tieba.baidu.com/p/{item.get('url', '')}",
+                    "",
+                ])
+
+            if len(lines) <= 4:
+                return_data["msg"] = "未查询到贴吧物价记录"
+                return return_data
+
+            return_data["data"] = "\n".join(lines).rstrip()
+        except Exception as e:
+            logger.error(f"处理贴吧物价数据失败: {e}")
+            return_data["msg"] = "处理贴吧物价数据失败"
+            return return_data
+
+        return_data["code"] = 200
 
         return return_data
 

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>帮战记录</title>
+
+<style>
+    body {
+        font-family: "Microsoft YaHei", Arial, sans-serif;
+        background: #f1f2f6;
+        margin: 0;
+        padding: 20px;
+        color: #2c2c33;
+    }
+
+    .container {
+        max-width: 1180px;
+        margin: 0 auto;
+    }
+
+    h1 {
+        font-size: 32px;
+        margin: 0 0 8px 0;
+        color: #222;
+        font-weight: 800;
+        text-align: center;
+    }
+
+    .meta {
+        margin-bottom: 24px;
+        color: #7a7f99;
+        font-size: 16px;
+        text-align: center;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        text-align: left;
+    }
+
+    thead {
+        background: #d93939;
+        color: white;
+        font-size: 16px;
+    }
+
+    th, td {
+        padding: 11px 9px;
+        border-bottom: 1px solid #eee;
+        font-size: 14px;
+        vertical-align: middle;
+    }
+
+    tbody tr:nth-child(even) {
+        background: #fafafa;
+    }
+
+    .zone-col,
+    .server-col {
+        width: 90px;
+        text-align: center;
+        white-space: nowrap;
+        font-weight: 700;
+    }
+
+    .tong-col {
+        min-width: 150px;
+        max-width: 220px;
+        color: #333;
+        font-weight: 700;
+        word-break: break-word;
+        line-height: 1.45;
+    }
+
+    .time-col {
+        min-width: 148px;
+        color: #60657a;
+        text-align: center;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .duration-col {
+        width: 120px;
+        color: #d93939;
+        text-align: center;
+        white-space: nowrap;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>帮战记录</h1>
+    <div class="meta">{{ server }} ｜ 更新时间：{{ update_time }}</div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>区服</th>
+                <th>服务器</th>
+                <th>宣战帮会</th>
+                <th>应战帮会</th>
+                <th>开始时间</th>
+                <th>持续时间</th>
+                <th>结束时间</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for item in items %}
+            <tr>
+                <td class="zone-col">{{ item.zoneName }}</td>
+                <td class="server-col">{{ item.serverName }}</td>
+                <td class="tong-col">{{ item.declaringTongName }}</td>
+                <td class="tong-col">{{ item.acceptingTongName }}</td>
+                <td class="time-col">{{ item.startTime }}</td>
+                <td class="duration-col">{{ item.matchDuration }}</td>
+                <td class="time-col">{{ item.endTime }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>

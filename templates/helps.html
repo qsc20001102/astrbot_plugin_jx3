@@ -321,13 +321,13 @@ body {
 .usage {
     display: inline-block;
     max-width: 100%;
-    padding: 5px 8px;
+    padding: 6px 9px;
     border-radius: 9px;
     background: rgba(23, 32, 51, 0.055);
     color: #24324f;
     font-family: Consolas, "SFMono-Regular", "Courier New", monospace;
-    font-size: 12px;
-    line-height: 1.35;
+    font-size: 14px;
+    line-height: 1.4;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -369,7 +369,7 @@ body {
         <h1>剑三机器人功能指令</h1>
         <p>按使用场景重新分组，保留每条指令的名称、使用示例与说明。卡片底色表示指令是否需要令牌，免令牌与需令牌功能一眼区分。</p>
         <div class="hero-stats">
-            <div class="stat"><b>77</b><span>条指令</span></div>
+            <div class="stat"><b>87</b><span>条指令</span></div>
             <div class="stat"><b>16</b><span>个功能分组</span></div>
         </div>
     </section>
@@ -491,9 +491,9 @@ body {
                     <h2>杂项功能</h2>
                 </div>
                 <div class="section-meta">
-                    <span class="mini">6 条</span>
+                    <span class="mini">7 条</span>
                     <span class="mini">免令牌 4</span>
-                    <span class="mini">需令牌 2</span>
+                    <span class="mini">需令牌 3</span>
                 </div>
             </div>
             <div class="command-grid">
@@ -541,6 +541,15 @@ body {
                     </div>
                     <code class="usage">八卦 类型</code>
                     <p class="desc">查询 818 / 616 / 避雷等八卦记录。</p>
+                </article>
+
+                <article class="cmd-card advanced-source">
+                    <div class="cmd-top">
+                        <div class="cmd-name">解密</div>
+                        <div class="source-tag">需令牌</div>
+                    </div>
+                    <code class="usage">解密</code>
+                    <p class="desc">查询当前机关解密结果与下轮时间。</p>
                 </article>
             
                 <article class="cmd-card advanced-source">
@@ -633,9 +642,9 @@ body {
                     <h2>交易功能</h2>
                 </div>
                 <div class="section-meta">
-                    <span class="mini">3 条</span>
+                    <span class="mini">4 条</span>
                     
-                    <span class="mini">需令牌 3</span>
+                    <span class="mini">需令牌 4</span>
                 </div>
             </div>
             <div class="command-grid">
@@ -665,6 +674,15 @@ body {
                     </div>
                     <code class="usage">交易行 物品名称 [服务器]</code>
                     <p class="desc">查询指定物品交易行价格与挂单信息。</p>
+                </article>
+
+                <article class="cmd-card advanced-source">
+                    <div class="cmd-top">
+                        <div class="cmd-name">贴吧物价</div>
+                        <div class="source-tag">需令牌</div>
+                    </div>
+                    <code class="usage">贴吧物价 物品名称 [记录数量] [服务器]</code>
+                    <p class="desc">查询指定物品的贴吧交易记录。</p>
                 </article>
             
             </div>
@@ -801,9 +819,9 @@ body {
                     <h2>阵营功能</h2>
                 </div>
                 <div class="section-meta">
-                    <span class="mini">2 条</span>
+                    <span class="mini">6 条</span>
                     <span class="mini">免令牌 1</span>
-                    <span class="mini">需令牌 1</span>
+                    <span class="mini">需令牌 5</span>
                 </div>
             </div>
             <div class="command-grid">
@@ -824,6 +842,42 @@ body {
                     </div>
                     <code class="usage">拍卖 物品名称 [服务器]</code>
                     <p class="desc">查询阵营拍卖物品及服务器记录。</p>
+                </article>
+            
+                <article class="cmd-card advanced-source">
+                    <div class="cmd-top">
+                        <div class="cmd-name">阵营事件</div>
+                        <div class="source-tag">需令牌</div>
+                    </div>
+                    <code class="usage">阵营事件</code>
+                    <p class="desc">查询跨服阵营事件记录。</p>
+                </article>
+            
+                <article class="cmd-card advanced-source">
+                    <div class="cmd-top">
+                        <div class="cmd-name">关隘首领</div>
+                        <div class="source-tag">需令牌</div>
+                    </div>
+                    <code class="usage">关隘首领</code>
+                    <p class="desc">查询各分线关隘首领状态与剩余时间。</p>
+                </article>
+
+                <article class="cmd-card advanced-source">
+                    <div class="cmd-top">
+                        <div class="cmd-name">帮战记录</div>
+                        <div class="source-tag">需令牌</div>
+                    </div>
+                    <code class="usage">帮战记录 [服务器]</code>
+                    <p class="desc">查询指定服务器帮战记录。</p>
+                </article>
+
+                <article class="cmd-card advanced-source">
+                    <div class="cmd-top">
+                        <div class="cmd-name">统战歪歪</div>
+                        <div class="source-tag">需令牌</div>
+                    </div>
+                    <code class="usage">统战 [服务器]</code>
+                    <p class="desc">查询指定服务器阵营统战 YY 信息。</p>
                 </article>
             
             </div>
@@ -977,9 +1031,9 @@ body {
                     <h2>活动功能</h2>
                 </div>
                 <div class="section-meta">
-                    <span class="mini">3 条</span>
+                    <span class="mini">6 条</span>
                     
-                    <span class="mini">需令牌 3</span>
+                    <span class="mini">需令牌 6</span>
                 </div>
             </div>
             <div class="command-grid">
@@ -991,6 +1045,33 @@ body {
                     </div>
                     <code class="usage">扶摇 [服务器]</code>
                     <p class="desc">查询指定服务器扶摇九天活动记录。</p>
+                </article>
+            
+                <article class="cmd-card advanced-source">
+                    <div class="cmd-top">
+                        <div class="cmd-name">诛恶事件</div>
+                        <div class="source-tag">需令牌</div>
+                    </div>
+                    <code class="usage">诛恶事件</code>
+                    <p class="desc">查询诛恶事件服务器、地图和时间记录。</p>
+                </article>
+
+                <article class="cmd-card advanced-source">
+                    <div class="cmd-top">
+                        <div class="cmd-name">本日赤兔</div>
+                        <div class="source-tag">需令牌</div>
+                    </div>
+                    <code class="usage">本日赤兔</code>
+                    <p class="desc">查询本日赤兔时间、区服和地图记录。</p>
+                </article>
+
+                <article class="cmd-card advanced-source">
+                    <div class="cmd-top">
+                        <div class="cmd-name">本周赤兔</div>
+                        <div class="source-tag">需令牌</div>
+                    </div>
+                    <code class="usage">本周赤兔</code>
+                    <p class="desc">查询本周赤兔时间、区服和地图记录。</p>
                 </article>
             
                 <article class="cmd-card advanced-source">
@@ -1065,9 +1146,9 @@ body {
                     <h2>排行功能</h2>
                 </div>
                 <div class="section-meta">
-                    <span class="mini">18 条</span>
+                    <span class="mini">19 条</span>
                     
-                    <span class="mini">需令牌 18</span>
+                    <span class="mini">需令牌 19</span>
                 </div>
             </div>
             <div class="command-grid">
@@ -1079,6 +1160,15 @@ body {
                     </div>
                     <code class="usage">资历排行 职业 [服务器]</code>
                     <p class="desc">查询指定职业资历排行榜。</p>
+                </article>
+
+                <article class="cmd-card advanced-source">
+                    <div class="cmd-top">
+                        <div class="cmd-name">试炼排行</div>
+                        <div class="source-tag">需令牌</div>
+                    </div>
+                    <code class="usage">试炼排行 心法 [服务器]</code>
+                    <p class="desc">查询指定心法木桩试炼排行榜。</p>
                 </article>
             
                 <article class="cmd-card advanced-source">

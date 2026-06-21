@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>试炼排行</title>
+
+<style>
+    body {
+        font-family: "Microsoft YaHei", Arial, sans-serif;
+        background: #f1f2f6;
+        margin: 0;
+        padding: 20px;
+        color: #2c2c33;
+    }
+
+    .container {
+        max-width: 960px;
+        margin: 0 auto;
+    }
+
+    h1 {
+        font-size: 32px;
+        margin: 0 0 8px 0;
+        color: #222;
+        font-weight: 800;
+        text-align: center;
+    }
+
+    .meta {
+        margin-bottom: 24px;
+        color: #7a7f99;
+        font-size: 16px;
+        text-align: center;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        text-align: left;
+    }
+
+    thead {
+        background: #d93939;
+        color: white;
+        font-size: 17px;
+    }
+
+    th, td {
+        padding: 12px 10px;
+        border-bottom: 1px solid #eee;
+        font-size: 15px;
+        vertical-align: middle;
+    }
+
+    tbody tr:nth-child(even) {
+        background: #fafafa;
+    }
+
+    .rank-col,
+    .number-col {
+        white-space: nowrap;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .rank-col {
+        width: 60px;
+        color: #d93939;
+        font-weight: 800;
+    }
+
+    .role-col {
+        min-width: 180px;
+        font-weight: 700;
+        color: #333;
+    }
+
+    .score-col {
+        color: #d93939;
+        font-weight: 800;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>{{ name }} 试炼排行</h1>
+    <div class="meta">{{ server }} ｜ 更新时间：{{ update_time }}</div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>排名</th>
+                <th>角色名</th>
+                <th>装备分数</th>
+                <th>最高层数</th>
+                <th>排名积分</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for item in items %}
+            <tr>
+                <td class="rank-col">{{ loop.index }}</td>
+                <td class="role-col">{{ item.role_name }}</td>
+                <td class="number-col">{{ item.equip_score }}</td>
+                <td class="number-col">{{ item.max_level }}</td>
+                <td class="number-col score-col">{{ item.total_score }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>

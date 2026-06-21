@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>阵营事件</title>
+
+<style>
+    body {
+        font-family: "Microsoft YaHei", Arial, sans-serif;
+        background: #f1f2f6;
+        margin: 0;
+        padding: 20px;
+        color: #2c2c33;
+    }
+
+    .container {
+        max-width: 1080px;
+        margin: 0 auto;
+    }
+
+    h1 {
+        font-size: 32px;
+        margin: 0 0 8px 0;
+        color: #222;
+        font-weight: 800;
+        text-align: center;
+    }
+
+    .meta {
+        margin-bottom: 24px;
+        color: #7a7f99;
+        font-size: 16px;
+        text-align: center;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        text-align: left;
+    }
+
+    thead {
+        background: #d93939;
+        color: white;
+        font-size: 17px;
+    }
+
+    th, td {
+        padding: 12px 10px;
+        border-bottom: 1px solid #eee;
+        font-size: 15px;
+        vertical-align: middle;
+    }
+
+    tbody tr:nth-child(even) {
+        background: #fafafa;
+    }
+
+    tbody tr.camp-eren {
+        background: #fff2f2;
+        color: #b91c1c;
+    }
+
+    tbody tr.camp-haoqi {
+        background: #eff6ff;
+        color: #1d4ed8;
+    }
+
+    .camp-col {
+        width: 90px;
+        text-align: center;
+        white-space: nowrap;
+        font-weight: 800;
+    }
+
+    .fenxian-col,
+    .server-col {
+        width: 130px;
+        text-align: center;
+        white-space: nowrap;
+        font-weight: 700;
+    }
+
+    .role-col {
+        max-width: 320px;
+        color: #333;
+        font-weight: 700;
+        word-break: break-word;
+        line-height: 1.45;
+    }
+
+    tr.camp-eren .role-col {
+        color: #b91c1c;
+    }
+
+    tr.camp-haoqi .role-col {
+        color: #1d4ed8;
+    }
+
+    .time-col {
+        min-width: 150px;
+        color: #60657a;
+        text-align: center;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>阵营事件</h1>
+    <div class="meta">更新时间：{{ update_time }}</div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>阵营</th>
+                <th>分线</th>
+                <th>服务器</th>
+                <th>角色名称</th>
+                <th>时间</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for item in items %}
+            <tr
+                {% if item.camp_name == '恶人谷' %}
+                    class="camp-eren"
+                {% elif item.camp_name == '浩气盟' %}
+                    class="camp-haoqi"
+                {% endif %}
+            >
+                <td class="camp-col">{{ item.camp_name }}</td>
+                <td class="fenxian-col">{{ item.fenxian_name }}</td>
+                <td class="server-col">{{ item.friend_name }}</td>
+                <td class="role-col">{{ item.role_name }}</td>
+                <td class="time-col">{{ item.seize_time }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>
