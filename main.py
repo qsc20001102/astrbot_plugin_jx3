@@ -17,7 +17,7 @@ from .core.fun_basic import load_as_base64
 @register("astrbot_plugin_jx3", 
           "fxdyz", 
           "通过调用剑网三API接口获取游戏数据，处理发送。", 
-          "2.5",
+          "2.6",
           "https://github.com/qsc20001102/astrbot_plugin_jx3api"
 )
 class Jx3ApiPlugin(Star):
@@ -57,6 +57,7 @@ class Jx3ApiPlugin(Star):
             # 数据库初始化
             await self.init_bilei_data()
             await self.init_tuishong_data()
+            await self.init_achievement_cache_data()
 
             # 连接插件数据
             await self.plugin_sql_db.connect()
@@ -142,7 +143,7 @@ class Jx3ApiPlugin(Star):
         self.plugin_sql_db = AsyncSQLiteDB(str(self.plugin_data_path))
         # 剑网三功能实例化
         self.bilei = BiLeidata(self.local_sql_db)
-        self.jx3api = JX3Service(str(self.api_data_path), self.conf, self.plugin_sql_db)
+        self.jx3api = JX3Service(str(self.api_data_path), self.conf, self.plugin_sql_db, self.local_sql_db)
         self.jx3at = AsyncTask(cast(Context, self.context), self.conf, self.jx3api, self.local_sql_db)
         self.jx3cmd = MessageBuilder(self.server, self.jx3api, self.bilei, self.jx3at, self.icons)
         self.jx3cmd = MessageBuilder(self.server, self.jx3api, self.bilei, self.jx3at, self.icons)
@@ -182,6 +183,17 @@ class Jx3ApiPlugin(Star):
         """)        
 
 
+    async def init_achievement_cache_data(self):
+        """初始化资历基础数据缓存表"""
+        await self.local_sql_db.execute("""
+        CREATE TABLE IF NOT EXISTS achievement_cache(
+            key TEXT PRIMARY KEY,
+            content TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        )
+        """)
+
+
     def ini_command_map(self):
         """初始化指令集"""
         self.command_map = {
@@ -206,6 +218,7 @@ class Jx3ApiPlugin(Star):
             "资历排行": self.jx3cmd.jx3_zilipaixing,
             "试炼排行": self.jx3cmd.jx3_shilianpaixing,
             "骚话": self.jx3cmd.jx3_shaohua,
+            "资历": self.jx3cmd.jx3_zili,
             "解密": self.jx3cmd.jx3_jiemi,
             "沙盘": self.jx3cmd.jx3_shapan,
             "攻略": self.jx3cmd.jx3_qiyugonglue,
@@ -213,7 +226,7 @@ class Jx3ApiPlugin(Star):
             "配装": self.jx3cmd.jx3_peizhuang,
             "百战": self.jx3cmd.jx3_baizhan,
             "扶摇": self.jx3cmd.jx3_fuyaojjiutian,
-            "诛恶事件": self.jx3cmd.jx3_zhueevent,
+            "诛恶": self.jx3cmd.jx3_zhueevent,
             "本日赤兔": self.jx3cmd.jx3_benrichitu,
             "本周赤兔": self.jx3cmd.jx3_benzhouchitu,
             "拍卖": self.jx3cmd.jx3_zhengyingpaimai,
@@ -230,7 +243,7 @@ class Jx3ApiPlugin(Star):
             "近期奇遇": self.jx3cmd.jx3_jinqiqiyu,
             "奇遇汇总": self.jx3cmd.jx3_qiyuhuizong,
             "战绩": self.jx3cmd.jx3_zhanji,
-            "排行": self.jx3cmd.jx3_mingjianpaihang,
+            "名剑排行": self.jx3cmd.jx3_mingjianpaihang,
             "名剑统计": self.jx3cmd.jx3_mingjiantongji,
             "招募": self.jx3cmd.jx3_tuanduizhaomu,
             "拜师": self.jx3cmd.jx3_baishi,

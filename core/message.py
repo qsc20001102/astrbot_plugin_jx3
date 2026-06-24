@@ -13,6 +13,29 @@ from .bilei_data import BiLeidata
 
 class MessageBuilder:
     """回复消息构建"""
+    ZILI_MENU_TEXT = (
+        "请选择资历查询类型：\n"
+        "0：资历总览\n"
+        "1：杂闻总览\n"
+        "2：武学总览\n"
+        "3：修为总览\n"
+        "4：装备总览\n"
+        "5：技艺总览\n"
+        "6：阅读总览\n"
+        "7：任务总览\n"
+        "8：足迹总览\n"
+        "9：战斗总览\n"
+        "10：声望总览\n"
+        "11：秘境总览\n"
+        "12：帮会总览\n"
+        "13：阵营总览\n"
+        "14：节日总览\n"
+        "15：活动总览\n"
+        "16：风雨江湖路总览\n"
+        "17：家园总览\n"
+        "18：剑侠录总览"
+    )
+
     def __init__(self, server: str, jx3api: JX3Service, bilei: BiLeidata, jx3at: AsyncTask, icons: dict[str, dict[str, str]]):
         self.server = server
         self.jx3api = jx3api
@@ -187,6 +210,64 @@ class MessageBuilder:
             await event.send(event.plain_result("猪脑过载，请稍后再试"))
 
 
+    async def handler_zili_msg(self, event: AstrMessageEvent, name: str, server: str):
+        """资历查询专用两轮会话，第一轮文本菜单，第二轮图片"""
+        try:
+            await event.send(event.plain_result(self.ZILI_MENU_TEXT))
+            user_id = event.get_sender_id()
+
+            @session_waiter(timeout=30)
+            async def zili_select_waiter(controller: SessionController, new_event: AstrMessageEvent):
+                if new_event.get_sender_id() != user_id:
+                    return
+
+                msg = new_event.get_message_str().strip()
+                if not msg.isdigit():
+                    await new_event.send(MessageChain().message("输入异常，结束会话"))
+                    controller.stop()
+                    return
+
+                choice = int(msg)
+                if choice < 0 or choice > 18:
+                    await new_event.send(MessageChain().message("无效序号，结束会话"))
+                    controller.stop()
+                    return
+
+                try:
+                    data = await self.jx3api.zili(name, server, choice)
+                    if data["code"] != 200:
+                        await new_event.send(MessageChain().message(data.get("msg", "获取资历数据失败")))
+                        controller.stop()
+                        return
+
+                    options = {
+                        "quality": 100,
+                        "device_scale_factor_level": "normal",
+                        "full_page": True,
+                        "omit_background": False,
+                        "type": "jpeg"
+                    }
+                    data["data"]["icons"] = self.icons
+                    url = await self.html_render(data["temp"], data["data"], options=options)
+                    await new_event.send(new_event.image_result(url))
+                except Exception as e:
+                    logger.error(f"资历查询执行错误: {e}")
+                    await new_event.send(MessageChain().message("猪脑过载，请稍后再试"))
+
+                controller.stop()
+
+            try:
+                await zili_select_waiter(event)
+            except TimeoutError:
+                await event.send(event.plain_result("选择超时，已结束会话"))
+            except Exception:
+                logger.error("资历选择发生异常", exc_info=True)
+
+        except Exception as e:
+            logger.error(f"资历会话执行错误: {e}")
+            await event.send(event.plain_result("猪脑过载，请稍后再试"))
+
+
     async def jx3_helps(self, event: AstrMessageEvent):
         """剑三 功能"""
         return await self.T2I_image_msg(event, self.jx3api.helps)
@@ -290,6 +371,11 @@ class MessageBuilder:
     async def jx3_shaohua(self, event: AstrMessageEvent,):
         """剑三 骚话"""
         return await self.plain_msg(event, self.jx3api.shaohua)
+
+
+    async def jx3_zili(self, event: AstrMessageEvent, name: str, server: str = ""):
+        """剑三 资历 角色名称 服务器"""
+        return await self.handler_zili_msg(event, name, self.serverdefault(server))
 
 
     async def jx3_jiemi(self, event: AstrMessageEvent):

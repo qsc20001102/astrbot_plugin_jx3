@@ -591,6 +591,23 @@
             "mount": "",
             "star": "1"
         }
+    },
+    "jx3box_achievement_menus":{
+        "url":"https://node.jx3box.com/api/node/achievement/menus",
+        "method":"GET",
+        "description":"魔盒资历菜单列表",
+        "params":{
+            "general": "1",
+            "client": "std"
+        }
+    },
+    "jx3box_achievement_points":{
+        "url":"https://node.jx3box.com/api/node/achievement/points",
+        "method":"GET",
+        "description":"魔盒资历点数列表",
+        "params":{
+            "client": "std"
+        }
     }
 
 

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>资历查询</title>
+
+<style>
+    body {
+        font-family: "Microsoft YaHei", Arial, sans-serif;
+        background: #f1f2f6;
+        margin: 0;
+        padding: 22px;
+        color: #262b36;
+    }
+
+    .container {
+        width: 980px;
+        margin: 0 auto;
+    }
+
+    .header {
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 22px 26px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        margin-bottom: 16px;
+    }
+
+    .title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+    }
+
+    h1 {
+        margin: 0;
+        font-size: 32px;
+        line-height: 1.2;
+        color: #222;
+        font-weight: 800;
+    }
+
+    .role {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #565d70;
+        font-size: 16px;
+        white-space: nowrap;
+    }
+
+    .force-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        object-fit: contain;
+    }
+
+    .meta {
+        margin-top: 12px;
+        color: #7a7f99;
+        font-size: 15px;
+        line-height: 1.7;
+    }
+
+    .summary {
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 22px 26px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        margin-bottom: 16px;
+    }
+
+    .summary-top,
+    .item-top {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 14px;
+    }
+
+    .summary-name {
+        font-size: 24px;
+        font-weight: 800;
+        color: #222;
+    }
+
+    .summary-percent {
+        font-size: 34px;
+        line-height: 1;
+        font-weight: 900;
+        color: #d93939;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .score {
+        margin-top: 8px;
+        color: #656d80;
+        font-size: 15px;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .progress {
+        height: 14px;
+        margin-top: 14px;
+        border-radius: 999px;
+        overflow: hidden;
+        background: #e7e9ef;
+    }
+
+    .progress-fill {
+        height: 100%;
+        min-width: 3px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #d93939, #f59e42);
+    }
+
+    .list {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .item {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 15px 16px;
+        box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+    }
+
+    .item-name {
+        min-width: 0;
+        font-size: 17px;
+        font-weight: 800;
+        color: #303543;
+        word-break: break-word;
+    }
+
+    .item-percent {
+        color: #d93939;
+        font-size: 18px;
+        font-weight: 900;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .item .score {
+        font-size: 14px;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div class="title-row">
+            <h1>{{ title }}</h1>
+            <div class="role">
+                {% if icons.sect.get(force_name) %}
+                <img class="force-icon" src="{{ icons.sect[force_name] }}" alt="{{ force_name }}">
+                {% endif %}
+                <span>{{ role_name }}</span>
+            </div>
+        </div>
+        <div class="meta">
+            {{ zone }} · {{ server }} · {{ force_name }} · {{ camp_name }} · 帮会：{{ tong_name }}<br>
+            资历更新时间：{{ updated_at or "未知" }} · 查询时间：{{ update_time }}
+        </div>
+    </div>
+
+    <div class="summary">
+        <div class="summary-top">
+            <div class="summary-name">{{ summary.name }}</div>
+            <div class="summary-percent">{{ summary.percent_text }}</div>
+        </div>
+        <div class="score">
+            {{ summary.completed_points }} / {{ summary.total_points }} 点
+            · {{ summary.completed_count }} / {{ summary.achievement_count }} 项
+        </div>
+        <div class="progress">
+            <div class="progress-fill" style="width: {{ summary.percent }}%;"></div>
+        </div>
+    </div>
+
+    <div class="list">
+        {% for item in items %}
+        <div class="item">
+            <div class="item-top">
+                <div class="item-name">{{ item.name }}</div>
+                <div class="item-percent">{{ item.percent_text }}</div>
+            </div>
+            <div class="score">
+                {{ item.completed_points }} / {{ item.total_points }} 点
+                · {{ item.completed_count }} / {{ item.achievement_count }} 项
+            </div>
+            <div class="progress">
+                <div class="progress-fill" style="width: {{ item.percent }}%;"></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+</body>
+</html>
