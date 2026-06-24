@@ -46,7 +46,7 @@ pip install -r requirements.txt
 - `apscheduler`：后台推送任务调度。
 - `matplotlib`：部分图像/数据展示依赖。
 
-插件元信息在 `metadata.yaml` 中维护，当前版本为 `v2.6`，要求 AstrBot 版本 `>=4.11.0`。
+插件元信息在 `metadata.yaml` 中维护，当前版本为 `v2.7`，要求 AstrBot 版本 `>=4.11.0`。
 
 ## 插件配置
 
@@ -171,6 +171,7 @@ pip install -r requirements.txt
 日常
 诛恶
 资历 飞翔大野猪
+交易行 五行石 梦江南
 奇遇 飞翔大野猪
 未做奇遇 飞翔大野猪 梦江南
 战绩 飞翔大野猪 梦江南 33
@@ -340,6 +341,7 @@ html_renderer.render_custom_template()
 - 避雷记录。
 - 推送任务状态缓存。
 - 资历菜单与资历点数基础数据缓存，默认缓存 30 天，接口失败时可使用旧缓存兜底。
+- 交易行物品库基础数据缓存，默认缓存 30 天，接口失败时可使用旧缓存兜底。
 
 `core/sqlite.py` 封装了异步增删改查；`core/bilei_data.py` 基于该封装实现避雷数据管理。
 
@@ -360,7 +362,22 @@ html_renderer.render_custom_template()
 4. 展开菜单中单个 ID 和数组 ID，按资历点数计算 `已完成点数 / 总点数` 与百分比。
 5. 使用 `templates/zili.html` 渲染进度条图片。
 
-### 9. 后台推送
+### 9. 交易行查询
+
+`交易行 物品名称 [服务器]` 在 2.7 中完成重构，属于交易功能，免令牌，输出为图片。
+
+实现流程：
+
+1. 从 JX3BOX 交易行物品库接口读取所有可查询物品，并缓存到本地 SQLite。
+2. 用户输入物品名后，在本地物品库中按名称进行模糊匹配。
+3. 匹配结果按“完全匹配、前缀匹配、包含匹配”排序，默认最多取前 50 个物品 ID。
+4. 调用 `https://next2.jx3box.com/api/auction/` 批量查询指定服务器的交易行价格。
+5. 价格接口未返回的物品不展示；全部无价格数据时直接返回文本提示。
+6. 使用 `templates/jiaoyihang.html` 渲染列表图片，展示物品图标、物品名称、价格、数量和数据时间。
+
+价格单位按铜钱换算为砖、金、银、铜，并使用 `templates/img` 下的 `zhuang.png`、`jin.png`、`yin.png`、`tong.png` 图标展示；0 砖不会显示砖图标。
+
+### 10. 后台推送
 
 `core/async_task.py` 使用 APScheduler 实现轮询推送。
 

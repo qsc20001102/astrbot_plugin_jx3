@@ -9,7 +9,7 @@ import astrbot.api.message_components as Comp
 
 from .request import APIClient
 from .sqlite import AsyncSQLiteDB
-from .fun_basic import load_template,gold_to_string,week_to_num,compare_date_str
+from .fun_basic import load_template,gold_to_string,gold_to_parts,week_to_num,compare_date_str
 
 ROLE_RANK_NAMES = {
     "名士五十强",
@@ -2411,7 +2411,7 @@ class JX3Service:
         return return_data
 
 
-    async def _load_achievement_cache(self, key: str) -> tuple[Optional[Dict[str, Any]], bool]:
+    async def _load_achievement_cache(self, key: str) -> tuple[Optional[Any], bool]:
         """读取资历基础数据缓存，返回数据和是否已过期"""
         try:
             row = await self._cache_db.select_one("achievement_cache", "key=?", (key,))
@@ -2432,7 +2432,7 @@ class JX3Service:
             return None, True
 
 
-    async def _save_achievement_cache(self, key: str, payload: Dict[str, Any]):
+    async def _save_achievement_cache(self, key: str, payload: Any):
         """写入资历基础数据缓存"""
         try:
             await self._cache_db.execute(
@@ -2469,6 +2469,74 @@ class JX3Service:
             return cached
 
         return None
+
+
+    async def _get_trade_item_groups(self) -> Optional[List[Dict[str, Any]]]:
+        """获取交易行物品库，优先使用未过期缓存"""
+        cache_key = "trade_item_groups"
+        cached, expired = await self._load_achievement_cache(cache_key)
+        if isinstance(cached, list) and not expired:
+            return cached
+
+        data = await self._base_request("jx3box_trade_items", "GET")
+        if isinstance(data, list) and data:
+            await self._save_achievement_cache(cache_key, data)
+            return data
+
+        if isinstance(cached, list) and cached:
+            logger.warning("交易行物品库接口失败，使用旧缓存")
+            return cached
+
+        return None
+
+
+    def _flatten_trade_items(self, groups: List[Dict[str, Any]]) -> list[Dict[str, Any]]:
+        """从交易行物品分组中提取可查询物品"""
+        items = []
+        for group in groups:
+            if not isinstance(group, dict):
+                continue
+            for item in group.get("items", []) or []:
+                if not isinstance(item, dict):
+                    continue
+                item_id = item.get("item_id")
+                label = item.get("label")
+                if not item_id or not label:
+                    continue
+                items.append(
+                    {
+                        "item_id": str(item_id),
+                        "label": str(label),
+                        "icon": str(item.get("icon") or ""),
+                    }
+                )
+        return items
+
+
+    def _match_trade_items(self, items: list[Dict[str, Any]], keyword: str, limit: int = 50) -> list[Dict[str, Any]]:
+        """按物品名模糊匹配交易行物品"""
+        keyword = (keyword or "").strip()
+        if not keyword:
+            return []
+
+        matched = []
+        seen = set()
+        for item in items:
+            label = item.get("label", "")
+            item_id = item.get("item_id", "")
+            if keyword not in label or item_id in seen:
+                continue
+            seen.add(item_id)
+            if label == keyword:
+                rank = 0
+            elif label.startswith(keyword):
+                rank = 1
+            else:
+                rank = 2
+            matched.append((rank, len(label), label, item))
+
+        matched.sort(key=lambda row: (row[0], row[1], row[2]))
+        return [row[3] for row in matched[:limit]]
 
 
     def _flatten_achievement_ids(self, values: Any) -> list[int]:
@@ -3016,36 +3084,73 @@ class JX3Service:
         """区服交易行"""
         return_data = self._init_return_data()
 
-        # 1. 构造请求参数
-        params = {"server": server, "name": name,"token": self.token}
+        item_groups = await self._get_trade_item_groups()
+        if not item_groups:
+            return_data["msg"] = "交易行基础物品数据获取失败"
+            return return_data
 
-        # 2. 调用基础请求
-        data: Optional[List[Dict[str, Any]]] = await self._base_request(
-            "jx3_jiaoyihang", "GET", params=params
+        trade_items = self._flatten_trade_items(item_groups)
+        matched_items = self._match_trade_items(trade_items, name, 50)
+        if not matched_items:
+            return_data["msg"] = "未找到匹配的交易行物品"
+            return return_data
+
+        item_map = {item["item_id"]: item for item in matched_items}
+        params = {
+            "item_ids": list(item_map.keys()),
+            "server": server,
+            "aggregate_type": "hourly",
+        }
+        price_data: Optional[List[Dict[str, Any]]] = await self._base_request(
+            "jx3_jiaoyihang", "POST", params=params, out_key=""
         )
 
-        if not data:
-            return_data["msg"] = "未找到该物品"
+        if not price_data or not isinstance(price_data, list):
+            return_data["msg"] = "未查询到交易行价格数据"
             return return_data
-        
-        # 2. 数据处理
-        result = []
-        
+
         try:
-            for item in data:
-                if isinstance(item, dict):
-                    inner_list = item.get("data", []) 
-                    first = inner_list[0] if inner_list else {}
-                    new_item = {
-                        "name": item.get("name"),
-                        "icon": f"https://icon.jx3box.com/icon/{item.get('icon')}.png",
-                        "sever": first.get("server"),
-                        "count": len(inner_list),
-                        "unit_price": gold_to_string(first.get("unit_price")),
-                        "created": datetime.fromtimestamp(first.get("created", "")).strftime("%Y-%m-%d %H:%M:%S"),
+            result = []
+            for price_item in price_data:
+                if not isinstance(price_item, dict):
+                    continue
+
+                item_id = str(price_item.get("item_id") or "")
+                base_item = item_map.get(item_id)
+                if not base_item:
+                    continue
+
+                timestamp = price_item.get("timestamp")
+                try:
+                    created = datetime.fromtimestamp(int(timestamp)).strftime("%Y-%m-%d %H:%M:%S")
+                except (TypeError, ValueError, OSError):
+                    created = ""
+
+                result.append(
+                    {
+                        "item_id": item_id,
+                        "name": base_item.get("label", ""),
+                        "icon": f"https://icon.jx3box.com/icon/{base_item.get('icon', '')}.png",
+                        "server": price_item.get("server", server),
+                        "price": price_item.get("price", 0),
+                        "price_parts": gold_to_parts(price_item.get("price", 0)),
+                        "sample": price_item.get("sample", 0),
+                        "created": created,
                     }
-                    result.append(new_item)
-            return_data["data"]["list"] = result
+                )
+
+            if not result:
+                return_data["msg"] = "未查询到交易行价格数据"
+                return return_data
+
+            return_data["data"] = {
+                "search_name": name,
+                "server": server,
+                "matched_count": len(matched_items),
+                "result_count": len(result),
+                "list": result,
+                "update_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            }
         except Exception as e:
             logger.error(f"处理交易行数据失败: {e}")
             return_data["msg"] = "处理交易行数据失败"

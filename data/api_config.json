@@ -491,13 +491,21 @@
         }
     },
     "jx3_jiaoyihang":{
-        "url":"https://www.jx3api.com/data/trade/market",
-        "method":"GET",
-        "description":"获取剑网三区服交易行数据",
+        "url":"https://next2.jx3box.com/api/auction/",
+        "method":"POST",
+        "description":"获取剑网三区服交易行物品价格数据",
         "params":{
+            "item_ids": [],
             "server": "梦江南",
-            "name": "玄晶",
-            "token": ""
+            "aggregate_type": "hourly"
+        }
+    },
+    "jx3box_trade_items":{
+        "url":"https://cms.jx3box.com/api/cms/pvx/item/group",
+        "method":"GET",
+        "description":"魔盒交易行物品分组列表",
+        "params":{
+            "client": "std"
         }
     },
     "jx3_tiebawujia":{

@@ -5,119 +5,209 @@
 <title>剑网3交易行价格查询</title>
 
 <style>
+    * {
+        box-sizing: border-box;
+    }
+
     body {
         font-family: "Microsoft YaHei", Arial, sans-serif;
-        background: #f1f2f6;
+        background: #f3f4f7;
         margin: 0;
-        padding: 20px;
+        padding: 24px;
+        color: #1f2933;
     }
 
     .container {
-        max-width: 1220px;
+        width: 1120px;
         margin: 0 auto;
-        text-align: center;
+    }
+
+    .header {
+        background: #ffffff;
+        border: 1px solid #e6e8ee;
+        border-radius: 8px;
+        padding: 22px 26px;
+        margin-bottom: 16px;
+        box-shadow: 0 6px 18px rgba(35, 38, 47, 0.06);
     }
 
     h1 {
-        font-size: 32px;
-        margin-bottom: 10px;
-        color: #222;
+        margin: 0;
+        font-size: 30px;
+        line-height: 1.3;
         font-weight: 800;
+        color: #20232a;
     }
 
-    .server-info {
-        font-size: 16px;
-        color: #555;
-        margin-bottom: 25px;
+    .meta {
+        display: flex;
+        gap: 18px;
+        margin-top: 10px;
+        font-size: 15px;
+        color: #667085;
     }
 
-    /* ===== 表格样式 ===== */
     .table-wrapper {
-        overflow-x: auto;
+        background: #ffffff;
+        border: 1px solid #e6e8ee;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 6px 18px rgba(35, 38, 47, 0.06);
     }
 
     table {
         width: 100%;
         border-collapse: collapse;
-        background: #ffffff;
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-        text-align: left;
+        table-layout: fixed;
     }
 
     thead {
-        background: #d93939;
+        background: #b92b35;
         color: #ffffff;
-        font-size: 18px;
     }
 
-    th, td {
-        padding: 14px 12px;
-        border-bottom: 1px solid #eee;
+    th {
+        padding: 14px 16px;
         font-size: 16px;
-        text-align: center;
+        font-weight: 700;
+        text-align: left;
         white-space: nowrap;
     }
 
-    tbody tr:hover {
-        background: #fff2f2;
+    th:nth-child(2),
+    th:nth-child(3),
+    th:nth-child(4),
+    td:nth-child(2),
+    td:nth-child(3),
+    td:nth-child(4) {
+        text-align: center;
     }
 
-    /* ===== 物品列 ===== */
-    .item-col {
-        text-align: left;
-        font-weight: 600;
-        color: #333;
-    }
-
-    .item-col img {
-        width: 22px;
-        height: 22px;
+    td {
+        padding: 14px 16px;
+        border-bottom: 1px solid #edf0f5;
+        font-size: 15px;
         vertical-align: middle;
-        border-radius: 4px;
-        margin-right: 8px;
+    }
+
+    tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    tbody tr:nth-child(even) {
+        background: #fafbfc;
+    }
+
+    .item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .item-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 6px;
+        flex: 0 0 auto;
+        background: #edf0f5;
+    }
+
+    .item-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: 700;
+        color: #20232a;
+    }
+
+    .price {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        white-space: nowrap;
+        font-weight: 700;
+        color: #2f343d;
+    }
+
+    .money-part {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        margin-right: 3px;
+    }
+
+    .money-icon {
+        width: 17px;
+        height: 17px;
+        object-fit: contain;
+    }
+
+    .sample {
+        font-weight: 700;
+        color: #2f343d;
+    }
+
+    .time {
+        color: #667085;
+        font-size: 14px;
+        white-space: nowrap;
     }
 </style>
 </head>
 
 <body>
-
 <div class="container">
-
-    <h1>剑网3交易行价格查询</h1>
+    <div class="header">
+        <h1>交易行：{{ search_name }} · {{ server }}</h1>
+        <div class="meta">
+            <span>展示 {{ result_count }} 条价格数据</span>
+            <span>匹配 {{ matched_count }} 个物品</span>
+            <span>生成时间：{{ update_time }}</span>
+        </div>
+    </div>
 
     <div class="table-wrapper">
         <table>
             <thead>
                 <tr>
-                    <th>服务器</th>
-                    <th>图标</th>
-                    <th>物品名称</th>
-                    <th>价格</th>
-                    <th>数量</th>
-                    <th>时间</th>
+                    <th style="width: 44%;">物品</th>
+                    <th style="width: 24%;">物价</th>
+                    <th style="width: 12%;">数量</th>
+                    <th style="width: 20%;">数据时间</th>
                 </tr>
             </thead>
-
             <tbody>
                 {% for item in list %}
                 <tr>
-                    <td>{{ item.sever }}</td>
-                    <td class="item-col">
-                        <img src="{{ item.icon }}" alt="icon">
+                    <td>
+                        <div class="item">
+                            <img class="item-icon" src="{{ item.icon }}" alt="">
+                            <div class="item-name">{{ item.name }}</div>
+                        </div>
                     </td>
-                    <td>{{ item.name }}</td>
-                    <td>{{ item.unit_price }}</td>
-                    <td>{{ item.count }}</td>
-                    <td>{{ item.created }}</td>
+                    <td>
+                        <div class="price">
+                            {% if item.price_parts %}
+                                {% for part in item.price_parts %}
+                                <span class="money-part">
+                                    <span>{{ part.value }}</span>
+                                    <img class="money-icon" src="{{ icons.img[part.key] }}" alt="{{ part.name }}">
+                                </span>
+                                {% endfor %}
+                            {% else %}
+                                <span>无价格</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="sample">{{ item.sample }}</td>
+                    <td class="time">{{ item.created }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
-
 </div>
-
 </body>
 </html>

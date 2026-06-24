@@ -50,6 +50,37 @@ def gold_to_string(gold_amount):
     return "".join(parts)
 
 
+def gold_to_parts(gold_amount):
+    """将铜钱数拆成模板可渲染的货币片段"""
+    try:
+        amount = int(gold_amount or 0)
+    except (TypeError, ValueError):
+        amount = 0
+
+    if amount <= 0:
+        return []
+
+    bricks = amount // 100000000
+    gold = (amount % 100000000) // 10000
+    silver = (amount % 10000) // 100
+    copper = amount % 100
+
+    parts = []
+    started = False
+    for key, name, value in [
+        ("zhuang", "砖", bricks),
+        ("jin", "金", gold),
+        ("yin", "银", silver),
+        ("tong", "铜", copper),
+    ]:
+        if value != 0:
+            started = True
+        if started:
+            parts.append({"key": key, "name": name, "value": value})
+
+    return parts
+
+
 def week_to_num(week :str):
     week_map = {
     "一": 0,
