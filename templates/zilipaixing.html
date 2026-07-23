@@ -5,6 +5,10 @@
 <title>资历排行</title>
 
 <style>
+    * {
+        box-sizing: border-box;
+    }
+
     body {
         font-family: "Microsoft YaHei", Arial, sans-serif;
         background: #f1f2f6;
@@ -14,15 +18,17 @@
     }
 
     .container {
-        max-width: 1200px;
+        width: 100%;
+        max-width: 1040px;
         margin: 0 auto;
     }
 
     h1 {
-        font-size: 38px;
         margin: 0 0 10px 0;
         color: #222;
+        font-size: 38px;
         font-weight: 800;
+        line-height: 1.3;
         text-align: center;
     }
 
@@ -37,30 +43,32 @@
         width: 100%;
         table-layout: fixed;
         border-collapse: collapse;
-        background: white;
-        border-radius: 12px;
         overflow: hidden;
+        background: #fff;
+        border-radius: 12px;
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-        text-align: left;
     }
 
     thead {
         background: #d93939;
-        color: white;
+        color: #fff;
     }
 
     th,
     td {
-        padding: 14px 10px;
+        height: 66px;
+        padding: 10px 8px;
         border-bottom: 1px solid #eee;
         font-size: 17px;
         vertical-align: middle;
     }
 
     th {
+        height: 52px;
         font-size: 18px;
         font-weight: 700;
         text-align: center;
+        white-space: nowrap;
     }
 
     tbody tr:nth-child(even) {
@@ -76,54 +84,51 @@
     }
 
     /*
-     * 各列宽度
-     * 第二列头像宽度较小，使头像和职业列靠近
+     * 列宽分配
+     * 总宽度为 100%
      */
     .rank-width {
-        width: 70px;
+        width: 8%;
     }
 
     .avatar-width {
-        width: 72px;
+        width: 9%;
     }
 
     .force-width {
-        width: 170px;
+        width: 19%;
     }
 
     .role-width {
-        width: auto;
+        width: 25%;
     }
 
     .server-width {
-        width: 180px;
+        width: 23%;
     }
 
     .score-width {
-        width: 130px;
+        width: 16%;
     }
 
-    .rank-col,
-    .avatar-col,
-    .role-name-col,
-    .server-col,
-    .score-col {
-        white-space: nowrap;
-        text-align: center;
-    }
-
+    /*
+     * 排名列
+     */
     .rank-col {
         color: #d93939;
         font-size: 18px;
         font-weight: 800;
+        text-align: center;
+        white-space: nowrap;
     }
 
     /*
-     * 第二列只显示头像
+     * 头像列
      */
     .avatar-col {
         padding-left: 4px;
         padding-right: 4px;
+        text-align: center;
     }
 
     .avatar {
@@ -138,18 +143,18 @@
 
     /*
      * 职业列
-     * 取消原来的 min-width，避免第二列和第三列间隔过大
      */
     .force-col {
         padding-left: 4px;
-        padding-right: 8px;
+        padding-right: 6px;
     }
 
     .force {
         display: flex;
         align-items: center;
         justify-content: flex-start;
-        gap: 10px;
+        gap: 9px;
+        width: 100%;
         min-width: 0;
         color: #333;
         font-size: 17px;
@@ -167,29 +172,108 @@
     }
 
     .force-name {
+        min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
 
+    /*
+     * 角色列
+     */
     .role-name-col {
+        padding-left: 10px;
+        padding-right: 10px;
         color: #333;
         font-size: 17px;
         font-weight: 600;
+        text-align: center;
         overflow: hidden;
         text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
+    /*
+     * 服务器列
+     */
     .server-col {
+        padding-left: 8px;
+        padding-right: 8px;
         color: #333;
         font-size: 17px;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
+    /*
+     * 资历列
+     */
     .score-col {
+        padding-left: 6px;
+        padding-right: 10px;
         color: #d93939;
         font-size: 18px;
         font-weight: 800;
+        text-align: center;
+        white-space: nowrap;
         font-variant-numeric: tabular-nums;
+    }
+
+    /*
+     * 小尺寸页面适配
+     */
+    @media screen and (max-width: 760px) {
+        body {
+            padding: 10px;
+        }
+
+        h1 {
+            font-size: 30px;
+        }
+
+        .meta {
+            margin-bottom: 18px;
+            font-size: 15px;
+        }
+
+        th,
+        td {
+            height: 58px;
+            padding: 8px 5px;
+            font-size: 15px;
+        }
+
+        th {
+            height: 46px;
+            font-size: 15px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+        }
+
+        .force-icon {
+            width: 34px;
+            height: 34px;
+        }
+
+        .force {
+            gap: 6px;
+            font-size: 15px;
+        }
+
+        .rank-col,
+        .role-name-col,
+        .server-col {
+            font-size: 15px;
+        }
+
+        .score-col {
+            font-size: 16px;
+        }
     }
 </style>
 </head>
@@ -259,11 +343,17 @@
                     </div>
                 </td>
 
-                <td class="role-name-col">
+                <td
+                    class="role-name-col"
+                    title="{{ item.roleName }}"
+                >
                     {{ item.roleName }}
                 </td>
 
-                <td class="server-col">
+                <td
+                    class="server-col"
+                    title="{{ item.serverName }}"
+                >
                     {{ item.serverName }}
                 </td>
 
