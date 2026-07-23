@@ -216,6 +216,7 @@ class Jx3ApiPlugin(Star):
             "奇穴": self.jx3cmd.jx3_qixue,
             "技能": self.jx3cmd.jx3_jineng,
             "资历排行": self.jx3cmd.jx3_zilipaixing,
+            "全服资历排行": self.jx3cmd.jx3_zilipaihang,
             "试炼排行": self.jx3cmd.jx3_shilianpaixing,
             "骚话": self.jx3cmd.jx3_shaohua,
             "资历": self.jx3cmd.jx3_zili,

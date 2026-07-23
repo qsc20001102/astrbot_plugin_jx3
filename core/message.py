@@ -362,6 +362,9 @@ class MessageBuilder:
         """剑三 资历排行 职业 服务器"""
         return await self.T2I_image_msg(event, lambda: self.jx3api.zilipaixing(school, self.serverdefault(server)))
 
+    async def jx3_zilipaihang(self, event: AstrMessageEvent):
+        """剑三 资历排行  """
+        return await self.T2I_image_msg(event, lambda: self.jx3api.zilipaixing("", ""))
 
     async def jx3_shilianpaixing(self, event: AstrMessageEvent, name: str, server: str = ""):
         """剑三 试炼排行 心法 服务器"""
