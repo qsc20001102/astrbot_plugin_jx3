@@ -111,6 +111,11 @@
         font-weight: 800;
         font-variant-numeric: tabular-nums;
     }
+
+    .avatar-col {
+    width: 70px;
+    text-align: center;
+    }
 </style>
 </head>
 <body>
@@ -123,10 +128,11 @@
         <thead>
             <tr>
                 <th>排名</th>
-                <th>角色</th>
+                <th>推栏用户</th>
                 <th>职业</th>
+                <th>角色</th>
                 <th>服务器</th>
-                <th>资历值</th>
+                <th>资历</th>
             </tr>
         </thead>
 
@@ -134,13 +140,10 @@
         {% for item in items %}
             <tr>
                 <td class="rank-col">{{ loop.index }}</td>
-                <td>
-                    <div class="role">
-                        {% if item.avatarUrl %}
-                        <img class="avatar" src="{{ item.avatarUrl }}" alt="{{ item.roleName }}">
-                        {% endif %}
-                        <span>{{ item.roleName }}</span>
-                    </div>
+                <td class="avatar-col">
+                    {% if item.avatarUrl %}
+                    <img class="avatar" src="{{ item.avatarUrl }}" alt="{{ item.roleName }}">
+                    {% endif %}
                 </td>
                 <td>
                     <div class="force">
@@ -151,6 +154,7 @@
                         <span>{{ item.forceName }}</span>
                     </div>
                 </td>
+                <td class="server-col">{{ item.roleName }}</td>
                 <td class="server-col">{{ item.serverName }}</td>
                 <td class="score-col">{{ item.seniority }}</td>
             </tr>
