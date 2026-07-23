@@ -14,53 +14,98 @@
     }
 
     .container {
-        max-width: 1040px;
+        max-width: 1200px;
         margin: 0 auto;
     }
 
     h1 {
-        font-size: 32px;
-        margin: 0 0 8px 0;
+        font-size: 38px;
+        margin: 0 0 10px 0;
         color: #222;
         font-weight: 800;
         text-align: center;
     }
 
     .meta {
-        margin-bottom: 24px;
+        margin-bottom: 26px;
         color: #7a7f99;
-        font-size: 16px;
+        font-size: 18px;
         text-align: center;
     }
 
     table {
         width: 100%;
+        table-layout: fixed;
         border-collapse: collapse;
         background: white;
         border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
         text-align: left;
     }
 
     thead {
         background: #d93939;
         color: white;
-        font-size: 17px;
     }
 
-    th, td {
-        padding: 12px 10px;
+    th,
+    td {
+        padding: 14px 10px;
         border-bottom: 1px solid #eee;
-        font-size: 15px;
+        font-size: 17px;
         vertical-align: middle;
+    }
+
+    th {
+        font-size: 18px;
+        font-weight: 700;
+        text-align: center;
     }
 
     tbody tr:nth-child(even) {
         background: #fafafa;
     }
 
+    tbody tr:hover {
+        background: #fff4f4;
+    }
+
+    tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    /*
+     * 各列宽度
+     * 第二列头像宽度较小，使头像和职业列靠近
+     */
+    .rank-width {
+        width: 70px;
+    }
+
+    .avatar-width {
+        width: 72px;
+    }
+
+    .force-width {
+        width: 170px;
+    }
+
+    .role-width {
+        width: auto;
+    }
+
+    .server-width {
+        width: 180px;
+    }
+
+    .score-width {
+        width: 130px;
+    }
+
     .rank-col,
+    .avatar-col,
+    .role-name-col,
     .server-col,
     .score-col {
         white-space: nowrap;
@@ -68,67 +113,110 @@
     }
 
     .rank-col {
-        width: 56px;
         color: #d93939;
+        font-size: 18px;
         font-weight: 800;
     }
 
-    .role,
-    .force {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        min-width: 150px;
-        font-weight: 700;
-        color: #333;
-        white-space: nowrap;
+    /*
+     * 第二列只显示头像
+     */
+    .avatar-col {
+        padding-left: 4px;
+        padding-right: 4px;
     }
 
     .avatar {
-        width: 34px;
-        height: 34px;
+        display: block;
+        width: 46px;
+        height: 46px;
+        margin: 0 auto;
         border-radius: 50%;
         object-fit: cover;
-        flex: 0 0 auto;
         background: #eef2f8;
     }
 
+    /*
+     * 职业列
+     * 取消原来的 min-width，避免第二列和第三列间隔过大
+     */
+    .force-col {
+        padding-left: 4px;
+        padding-right: 8px;
+    }
+
+    .force {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 10px;
+        min-width: 0;
+        color: #333;
+        font-size: 17px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
     .force-icon {
-        width: 30px;
-        height: 30px;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
         object-fit: contain;
         flex: 0 0 auto;
         background: #eef2f8;
     }
 
+    .force-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .role-name-col {
+        color: #333;
+        font-size: 17px;
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
     .server-col {
         color: #333;
+        font-size: 17px;
     }
 
     .score-col {
         color: #d93939;
+        font-size: 18px;
         font-weight: 800;
         font-variant-numeric: tabular-nums;
     }
-
-    .avatar-col {
-    width: 70px;
-    text-align: center;
-    }
 </style>
 </head>
+
 <body>
 
 <div class="container">
     <h1>{{ school }} 资历排行</h1>
-    <div class="meta">{{ server }} ｜ 更新时间：{{ update_time }}</div>
+
+    <div class="meta">
+        {{ server }} ｜ 更新时间：{{ update_time }}
+    </div>
 
     <table>
+        <colgroup>
+            <col class="rank-width">
+            <col class="avatar-width">
+            <col class="force-width">
+            <col class="role-width">
+            <col class="server-width">
+            <col class="score-width">
+        </colgroup>
+
         <thead>
             <tr>
                 <th>排名</th>
-                <th>推栏用户</th>
+                <th>头像</th>
                 <th>职业</th>
                 <th>角色</th>
                 <th>服务器</th>
@@ -139,24 +227,49 @@
         <tbody>
         {% for item in items %}
             <tr>
-                <td class="rank-col">{{ loop.index }}</td>
+                <td class="rank-col">
+                    {{ loop.index }}
+                </td>
+
                 <td class="avatar-col">
                     {% if item.avatarUrl %}
-                    <img class="avatar" src="{{ item.avatarUrl }}" alt="{{ item.roleName }}">
+                    <img
+                        class="avatar"
+                        src="{{ item.avatarUrl }}"
+                        alt="{{ item.roleName }}"
+                    >
                     {% endif %}
                 </td>
-                <td>
+
+                <td class="force-col">
                     <div class="force">
                         {% set force_icon = item.forceIcon or icons.sect.get(item.forceName) %}
+
                         {% if force_icon %}
-                        <img class="force-icon" src="{{ force_icon }}" alt="{{ item.forceName }}">
+                        <img
+                            class="force-icon"
+                            src="{{ force_icon }}"
+                            alt="{{ item.forceName }}"
+                        >
                         {% endif %}
-                        <span>{{ item.forceName }}</span>
+
+                        <span class="force-name">
+                            {{ item.forceName }}
+                        </span>
                     </div>
                 </td>
-                <td class="server-col">{{ item.roleName }}</td>
-                <td class="server-col">{{ item.serverName }}</td>
-                <td class="score-col">{{ item.seniority }}</td>
+
+                <td class="role-name-col">
+                    {{ item.roleName }}
+                </td>
+
+                <td class="server-col">
+                    {{ item.serverName }}
+                </td>
+
+                <td class="score-col">
+                    {{ item.seniority }}
+                </td>
             </tr>
         {% endfor %}
         </tbody>

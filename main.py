@@ -18,7 +18,7 @@ from .core.fun_basic import load_as_base64
           "fxdyz", 
           "通过调用剑网三API接口获取游戏数据，处理发送。", 
           "2.8",
-          "https://git.fxdyz.com/qsc20001102/astrbot_plugin_jx3"
+          "https://github.com/qsc20001102/astrbot_plugin_jx3"
 )
 class Jx3ApiPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
