@@ -1,30 +1,21 @@
 .panel {
-    width: 1100px;
-    margin: auto;
-    background: #ffffff;
-    border-radius: 12px;
     padding: 22px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
 }
 
 /* ===== 头部 ===== */
 .header {
     display: flex;
     justify-content: space-between;
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 14px;
 }
 
 .role-name {
     font-size: 40px;
     font-weight: bold;
-    color: #1f1f1f;
 }
 
 .sub-info {
     margin-top: 6px;
     font-size: 22px;
-    color: #666;
 }
 
 /* ===== 头像 + 核心数据 ===== */
@@ -61,8 +52,6 @@
 
 /* 单个数据块 */
 .stat-box {
-    background: #f5f6fa;
-    border-radius: 12px;
     padding: 20px;
     text-align: center;
 }
@@ -76,50 +65,22 @@
     font-size: 36px;
     margin-top: 8px;
     font-weight: bold;
-    color: #222;
-}
-
-.winrate {
-    color: #2fbf71;
 }
 
 .mmr {
     color: #f5a623;
 }
 
-/* ===== 表格 ===== */table {
-    margin-top: 20px;
-    font-size: 18px;
-    table-layout: fixed;
-}th, td {
-    text-align: center;
-}
-
-th {
-    color: #666;
-    font-weight: normal;
-}
-
-tbody tr:nth-child(odd) {
-    background: #ffffff;
-}
-
-.win {
-    color: #2fbf71;
-    font-weight: bold;
-}
-
-.lose {
-    color: #e65050;
-    font-weight: bold;
-}
-
+.win,
 .mmr-up {
     color: #2fbf71;
+    font-weight: bold;
 }
 
+.lose,
 .mmr-down {
     color: #e65050;
+    font-weight: bold;
 }
 
 .mvp {
@@ -128,31 +89,6 @@ tbody tr:nth-child(odd) {
 }
 
 .time-col {
-    width: 170px;
     font-size: 16px;
     font-variant-numeric: tabular-nums;
-}
-
-.duration-col {
-    width: 92px;
-}
-
-.kungfu-col {
-    width: 150px;
-}
-
-.result-col {
-    width: 64px;
-}
-
-.score-col {
-    width: 104px;
-}
-
-.grade-col {
-    width: 96px;
-}
-
-.mvp-col {
-    width: 58px;
 }

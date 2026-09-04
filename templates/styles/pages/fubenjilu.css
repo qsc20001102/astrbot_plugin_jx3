@@ -1,10 +1,4 @@
-.description {
-        margin-bottom: 24px;
-        color: #7a7f8c;
-        font-size: 15px;
-    }
-
-    .legend {
+.legend {
         display: flex;
         justify-content: center;
         align-items: center;
@@ -32,22 +26,6 @@
 
     .legend-color.unfinished {
         background: var(--jx3-green);
-    }table {
-        table-layout: fixed;
-        margin-top: 10px;
-        text-align: left;
-    }th,
-    td {
-        vertical-align: middle;
-    }
-
-    th:first-child,
-    td:first-child {
-        width: 250px;
-    }
-
-    .map-info {
-        text-align: center;
     }
 
     .map-name {
@@ -67,6 +45,7 @@
     .boss-list {
         display: flex;
         flex-wrap: wrap;
+        justify-content: center;
         gap: 10px;
     }
 
@@ -137,6 +116,7 @@
     .boss-status {
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: 5px;
         margin-top: 6px;
         font-size: 12px;

@@ -1,40 +1,11 @@
-.meta {
-        margin-bottom: 24px;
-        color: #7a7f99;
-        font-size: 16px;
-        text-align: center;
-    }table {
-        margin-top: 10px;
-        table-layout: fixed;
-        text-align: left;
-    }th,
-    td {
-        vertical-align: middle;
-    }
-
-    th {
-        font-weight: 700;
-        text-align: center;
-    }
-
-    /* 角色列 */
-    .role-col {
-        width: 16%;
+.role-col {
         color: var(--jx3-text);
         font-weight: 700;
-        text-align: center;
         word-break: break-word;
-    }
-
-    /* 频道列 */
-    .channel-col {
-        width: 10%;
-        text-align: center;
     }
 
     /* 消息列 */
     .message-col {
-        width: 56%;
         color: var(--jx3-text-secondary);
         font-weight: 600;
         line-height: 1.65;
@@ -44,9 +15,7 @@
 
     /* 时间列 */
     .time-col {
-        width: 18%;
         color: #757b8f;
-        text-align: center;
         white-space: nowrap;
     }
 
@@ -95,5 +64,4 @@
         padding: 50px 20px;
         color: #8a8fa3;
         font-size: 17px;
-        text-align: center;
     }

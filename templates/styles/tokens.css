@@ -75,10 +75,7 @@
     --jx3-page-width: 1080px;
 }
 
-.jx3-template--richangyuche {
-    --jx3-page-width: 1100px;
-}
-
+.jx3-template--richangyuche,
 .jx3-template--zhanji {
     --jx3-page-width: 1100px;
 }

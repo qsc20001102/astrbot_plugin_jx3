@@ -26,7 +26,7 @@ PLUGIN_NAME = "astrbot_plugin_jx3"
 @register("astrbot_plugin_jx3", 
           "fxdyz", 
           "聚合剑网三游戏数据，提供查询、图片渲染、本地避雷和实时事件推送。",
-          "3.4.0",
+          "3.4.1",
           "https://github.com/qsc20001102/astrbot_plugin_jx3"
 )
 class Jx3ApiPlugin(Star):
@@ -63,7 +63,7 @@ class Jx3ApiPlugin(Star):
         try:
             # 数据库初始化
             await self.init_bilei_data()
-            await self.init_achievement_cache_data()
+            await self.init_trade_item_cache_data()
             await self.kungfu_alias.initialize()
             await self.server_binding.initialize()
 
@@ -155,7 +155,7 @@ class Jx3ApiPlugin(Star):
         self.local_sql_db = AsyncSQLiteDB(str(self.local_data_path))
         # 剑网三功能实例化
         self.bilei = BiLeidata(self.local_sql_db)
-        self.jx3api = JX3APIService(self.conf, self.local_sql_db, self.local_sql_db)
+        self.jx3api = JX3APIService(self.conf, self.local_sql_db)
         self.jx3box = JX3BOXService(self.conf, self.local_sql_db, self.local_sql_db)
         self.kungfu_alias = KungfuAliasService(
             self.local_sql_db,
@@ -196,15 +196,32 @@ class Jx3ApiPlugin(Star):
         """)
     
 
-    async def init_achievement_cache_data(self):
-        """初始化资历基础数据缓存表"""
+    async def init_trade_item_cache_data(self):
+        """初始化交易行物品缓存，并清理已停用的资历缓存表。"""
         await self.local_sql_db.execute("""
-        CREATE TABLE IF NOT EXISTS achievement_cache(
+        CREATE TABLE IF NOT EXISTS trade_item_cache(
             key TEXT PRIMARY KEY,
             content TEXT NOT NULL,
             updated_at TEXT NOT NULL
         )
         """)
+
+        legacy_cache = await self.local_sql_db.fetch_one(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+            ("achievement_cache",),
+        )
+        if legacy_cache:
+            # 旧表曾与交易行共用；仅迁移仍有效的交易行缓存后移除资历缓存。
+            await self.local_sql_db.execute(
+                """
+                INSERT OR IGNORE INTO trade_item_cache (key, content, updated_at)
+                SELECT key, content, updated_at
+                FROM achievement_cache
+                WHERE key = ?
+                """,
+                ("trade_item_groups",),
+            )
+            await self.local_sql_db.execute("DROP TABLE achievement_cache")
 
 
     def ini_command_map(self):
@@ -373,7 +390,7 @@ class Jx3ApiPlugin(Star):
         event: AstrMessageEvent,
         args: list[str],
     ) -> list[str]:
-        """为带 server 参数的指令补齐会话绑定，并解析区服别名。"""
+        """补齐会话绑定、解析区服别名，并支持用“全区”显式传空区服。"""
         params = [
             parameter
             for parameter in inspect.signature(handler).parameters.values()
@@ -404,7 +421,10 @@ class Jx3ApiPlugin(Star):
             explicit_server = (
                 has_server_arg
                 and (
-                    self.server_binding.is_known_server(prepared[server_index])
+                    self.server_binding.is_all_servers_query(
+                        prepared[server_index]
+                    )
+                    or self.server_binding.is_known_server(prepared[server_index])
                     or len(prepared) >= len(params)
                     or (
                         has_required_parameter_after_server
@@ -413,13 +433,13 @@ class Jx3ApiPlugin(Star):
                 )
             )
             if explicit_server:
-                prepared[server_index] = self.server_binding.resolve_server(
+                prepared[server_index] = self.server_binding.resolve_query_server(
                     prepared[server_index]
                 )
             else:
                 prepared.insert(server_index, bound_server)
         elif has_server_arg:
-            prepared[server_index] = self.server_binding.resolve_server(
+            prepared[server_index] = self.server_binding.resolve_query_server(
                 prepared[server_index]
             )
 

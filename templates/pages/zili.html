@@ -1,53 +1,101 @@
 {# template-title: 资历查询 #}
 
 
+{% macro progress_card(css_class, name, completed_points, total_points, completed_count, achievement_count) %}
+{% set percent = (completed_points * 100 / total_points) if total_points else 0 %}
+<div class="{{ css_class }}">
+    <div class="{{ 'summary-top' if css_class == 'summary' else 'item-top' }}">
+        <div class="{{ 'summary-name' if css_class == 'summary' else 'item-name' }}">{{ name }}</div>
+        <div class="{{ 'summary-percent' if css_class == 'summary' else 'item-percent' }}">{{ "%.2f"|format(percent) }}%</div>
+    </div>
+    <div class="score">
+        {{ completed_points }} / {{ total_points }} 点
+        · {{ completed_count }} / {{ achievement_count }} 项
+    </div>
+    <div class="progress">
+        <div class="progress-fill" style="width: {{ percent }}%;"></div>
+    </div>
+</div>
+{% endmacro %}
+
+{% set page_title = (subclass ~ '总览') if subclass else '资历总览' %}
+{% set selected_items = data.total if subclass else {} %}
+{% set summary = namespace(pieces_total=0, pieces_speed=0, seniority_total=0, seniority_speed=0) %}
+
+{% if subclass %}
+    {% for stats in selected_items.values() %}
+        {% set summary.pieces_total = summary.pieces_total + stats.pieces.total %}
+        {% set summary.pieces_speed = summary.pieces_speed + stats.pieces.speed %}
+        {% set summary.seniority_total = summary.seniority_total + stats.seniority.total %}
+        {% set summary.seniority_speed = summary.seniority_speed + stats.seniority.speed %}
+    {% endfor %}
+{% else %}
+    {% for category_items in data.total.values() %}
+        {% for stats in category_items.values() %}
+            {% set summary.pieces_total = summary.pieces_total + stats.pieces.total %}
+            {% set summary.pieces_speed = summary.pieces_speed + stats.pieces.speed %}
+        {% endfor %}
+    {% endfor %}
+    {% set summary.seniority_total = data.totalScore %}
+    {% set summary.seniority_speed = data.score %}
+{% endif %}
+
 <div class="container">
     <div class="header">
         <div class="title-row">
-            <h1>{{ title }}</h1>
+            <h1>{{ page_title }}</h1>
             <div class="role">
-                {% if icons.sect.get(force_name) %}
-                <img class="force-icon" src="{{ icons.sect[force_name] }}" alt="{{ force_name }}">
+                {% if icons.sect.get(forceName) %}
+                <img class="force-icon" src="{{ icons.sect[forceName] }}" alt="{{ forceName }}">
                 {% endif %}
-                <span>{{ role_name }}</span>
+                <span>{{ roleName }}</span>
             </div>
         </div>
         <div class="meta">
-            {{ zone }} · {{ server }} · {{ force_name }} · {{ camp_name }} · 帮会：{{ tong_name }}<br>
-            资历更新时间：{{ updated_at or "未知" }} · 查询时间：{{ update_time }}
+            {{ zoneName }} · {{ serverName }} · {{ forceName }} · {{ campName }} · 帮会：{{ tongName or "无" }}<br>
+            数据来源：JX3API
         </div>
     </div>
 
-    <div class="summary">
-        <div class="summary-top">
-            <div class="summary-name">{{ summary.name }}</div>
-            <div class="summary-percent">{{ summary.percent_text }}</div>
-        </div>
-        <div class="score">
-            {{ summary.completed_points }} / {{ summary.total_points }} 点
-            · {{ summary.completed_count }} / {{ summary.achievement_count }} 项
-        </div>
-        <div class="progress">
-            <div class="progress-fill" style="width: {{ summary.percent }}%;"></div>
-        </div>
-    </div>
+    {{ progress_card(
+        'summary',
+        page_title,
+        summary.seniority_speed,
+        summary.seniority_total,
+        summary.pieces_speed,
+        summary.pieces_total
+    ) }}
 
     <div class="list">
-        {% for item in items %}
-        <div class="item">
-            <div class="item-top">
-                <div class="item-name">{{ item.name }}</div>
-                <div class="item-percent">{{ item.percent_text }}</div>
-            </div>
-            <div class="score">
-                {{ item.completed_points }} / {{ item.total_points }} 点
-                · {{ item.completed_count }} / {{ item.achievement_count }} 项
-            </div>
-            <div class="progress">
-                <div class="progress-fill" style="width: {{ item.percent }}%;"></div>
-            </div>
-        </div>
-        {% endfor %}
+        {% if subclass %}
+            {% for item_name, stats in selected_items.items() %}
+                {{ progress_card(
+                    'item',
+                    item_name,
+                    stats.seniority.speed,
+                    stats.seniority.total,
+                    stats.pieces.speed,
+                    stats.pieces.total
+                ) }}
+            {% endfor %}
+        {% else %}
+            {% for category_name, category_items in data.total.items() %}
+                {% set item = namespace(pieces_total=0, pieces_speed=0, seniority_total=0, seniority_speed=0) %}
+                {% for stats in category_items.values() %}
+                    {% set item.pieces_total = item.pieces_total + stats.pieces.total %}
+                    {% set item.pieces_speed = item.pieces_speed + stats.pieces.speed %}
+                    {% set item.seniority_total = item.seniority_total + stats.seniority.total %}
+                    {% set item.seniority_speed = item.seniority_speed + stats.seniority.speed %}
+                {% endfor %}
+                {{ progress_card(
+                    'item',
+                    category_name ~ '总览',
+                    item.seniority_speed,
+                    item.seniority_total,
+                    item.pieces_speed,
+                    item.pieces_total
+                ) }}
+            {% endfor %}
+        {% endif %}
     </div>
 </div>
-

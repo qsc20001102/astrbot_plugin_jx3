@@ -30,7 +30,7 @@
         font-weight: 800;
     }
 
-    .table-wrapper {
+    .market-table-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 20px;
@@ -48,23 +48,6 @@
         margin-bottom: 8px;
         text-align: center;
         color: var(--jx3-gold-bright);
-    }
-
-    .table-scroll {
-        width: 100%;
-        overflow-x: auto;
-        border-radius: 12px;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-    }table {
-        min-width: 420px;
-        text-align: left;
-    }th,
-    td {
-        white-space: nowrap;
-    }
-
-    th {
-        font-weight: 700;
     }
 
     .server-col {
@@ -86,10 +69,7 @@
 
     /* ===== 万宝楼公示（蓝色） ===== */
 
-    .table-card.notice .table-title {
-        color: var(--jx3-blue);
-    }
-
+    .table-card.notice .table-title,
     .table-card.notice .price-col {
         color: var(--jx3-blue);
     }
@@ -100,10 +80,7 @@
 
     /* ===== 万宝楼在售（绿色） ===== */
 
-    .table-card.sale .table-title {
-        color: var(--jx3-green);
-    }
-
+    .table-card.sale .table-title,
     .table-card.sale .price-col {
         color: var(--jx3-green);
     }
@@ -114,10 +91,7 @@
 
     /* ===== 查询区服（紫色） ===== */
 
-    .table-card.query .table-title {
-        color: var(--jx3-purple);
-    }
-
+    .table-card.query .table-title,
     .table-card.query .price-col {
         color: var(--jx3-purple);
     }

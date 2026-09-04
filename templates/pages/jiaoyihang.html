@@ -1,4 +1,5 @@
 {# template-title: 剑网3交易行价格查询 #}
+{# template-components: data-table #}
 
 <div class="container">
     <div class="header">
@@ -11,20 +12,20 @@
     </div>
 
     <div class="table-wrapper">
-        <table>
+        <table class="data-table data-table--nowrap">
             <thead>
                 <tr>
-                    <th style="width: 44%;">物品</th>
-                    <th style="width: 24%;">物价</th>
-                    <th style="width: 12%;">数量</th>
-                    <th style="width: 20%;">数据时间</th>
+                    <th>物品</th>
+                    <th>物价</th>
+                    <th>数量</th>
+                    <th>数据时间</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in list %}
                 <tr>
                     <td>
-                        <div class="item">
+                        <div class="trade-item icon-label">
                             <img class="item-icon" src="{{ item.icon }}" alt="">
                             <div class="item-name">{{ item.name }}</div>
                         </div>

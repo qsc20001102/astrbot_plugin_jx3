@@ -1,14 +1,15 @@
 {# template-title: 聊天记录 #}
+{# template-components: data-table #}
 
 
 <div class="container">
     <h1>聊天记录</h1>
 
-    <div class="meta">
+    <div class="data-page__meta">
         共查询到 {{ total | default(0, true) }} 条聊天记录
     </div>
 
-    <table>
+    <table class="data-table data-table--spaced">
         <thead>
             <tr>
                 <th class="role-col">角色</th>
@@ -74,4 +75,3 @@
         </tbody>
     </table>
 </div>
-

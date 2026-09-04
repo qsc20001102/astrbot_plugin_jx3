@@ -1,10 +1,11 @@
 {# template-title: 副本奖励记录 #}
+{# template-components: data-table #}
 
 
 <div class="container">
     <h1>副本奖励记录</h1>
 
-    <div class="description">
+    <div class="data-page__meta">
         灰色表示奖励已经获取，绿色表示奖励尚未获取
     </div>
 
@@ -21,7 +22,7 @@
     </div>
 
     {% if list %}
-    <table>
+    <table class="data-table data-table--spaced">
         <thead>
             <tr>
                 <th>副本名称</th>
@@ -81,4 +82,3 @@
         </div>
     {% endif %}
 </div>
-

@@ -1,69 +1,20 @@
-.meta {
-        margin-bottom: 26px;
-        color: #7a7f99;
-        font-size: 18px;
-        text-align: center;
-    }table {
-        table-layout: fixed;
-    }th,
-    td {
-        height: 66px;
-        vertical-align: middle;
-    }
-
-    th {
-        height: 52px;
-        font-size: 18px;
-        font-weight: 700;
-        text-align: center;
-        white-space: nowrap;
-    }
-
-    /*
-     * 列宽分配
-     */
-    .rank-width {
-        width: 8%;
-    }
-
-    .avatar-width {
-        width: 9%;
-    }
-
-    .force-width {
-        width: 19%;
-    }
-
-    .role-width {
-        width: 25%;
-    }
-
-    .server-width {
-        width: 23%;
-    }
-
-    .score-width {
-        width: 16%;
-    }
-
-    /*
+/*
      * 排名列
      */
     .rank-col {
         color: #d93939;
         font-size: 18px;
         font-weight: 800;
-        text-align: center;
         white-space: nowrap;
     }
 
     /*
      * 头像列
      */
-    .avatar-col {
+    .avatar-col,
+    .force-col {
         padding-left: 4px;
         padding-right: 4px;
-        text-align: center;
     }
 
     .avatar {
@@ -79,12 +30,6 @@
     /*
      * 职业列
      */
-    .force-col {
-        padding-left: 4px;
-        padding-right: 4px;
-        text-align: center;
-    }
-
     .force {
         display: flex;
         align-items: center;
@@ -107,7 +52,9 @@
         background: #eef2f8;
     }
 
-    .force-name {
+    .force-name,
+    .role-name-col,
+    .server-col {
         min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -123,10 +70,6 @@
         color: var(--jx3-text);
         font-size: 17px;
         font-weight: 600;
-        text-align: center;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
     }
 
     /*
@@ -137,10 +80,6 @@
         padding-right: 8px;
         color: var(--jx3-text-secondary);
         font-size: 17px;
-        text-align: center;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
     }
 
     /*
@@ -152,7 +91,6 @@
         color: #d93939;
         font-size: 18px;
         font-weight: 800;
-        text-align: center;
         white-space: nowrap;
         font-variant-numeric: tabular-nums;
     }

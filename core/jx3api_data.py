@@ -1,7 +1,7 @@
 import json
 import html
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, Any, Optional, List, Union
 from inspect import isawaitable
 from typing import Any, Awaitable, Callable, Dict, Optional
@@ -19,15 +19,13 @@ from .fun_basic import load_template,gold_to_parts,week_to_num,compare_date_str,
 
 
 class JX3APIService:
-    def __init__(self, config: AstrBotConfig, sqlite: AsyncSQLiteDB, cache_sqlite: Optional[AsyncSQLiteDB] = None):
+    def __init__(self, config: AstrBotConfig, sqlite: AsyncSQLiteDB):
         # 实例化 API Client
         self._api: APIClient = APIClient()
         # 引用插件配置文件
         self._config = config
         # 引用sqlite
         self._sql_db = sqlite
-        self._cache_db = cache_sqlite or sqlite
-
         # 获取配置中的 Token
         self.token = self._config.get("jx3api_token", "")
         if  self.token == "":
@@ -1065,6 +1063,60 @@ class JX3APIService:
             processor=processor,
             template="chengjiu.html"
         ) 
+
+
+    async def zili_menu(self) -> Dict[str, str]:
+        """资历选择内容。"""
+        return {
+            "1": "总览",
+            "2": "杂闻",
+            "3": "武学",
+            "4": "修为",
+            "5": "装备",
+            "6": "技艺",
+            "7": "阅读",
+            "8": "任务",
+            "9": "足迹",
+            "10": "战斗",
+            "11": "声望",
+            "12": "秘境",
+            "13": "帮会",
+            "14": "阵营",
+            "15": "节日",
+            "16": "活动",
+            "17": "风雨江湖路",
+            "18": "家园",
+            "19": "剑侠录"
+        }
+
+
+    async def zili(self,server: str,name: str,selected: Dict[str, Any],) -> Dict[str, Any]:
+        """资历分布"""
+        if not isinstance(selected, dict) or len(selected) != 1:
+            return_data = self._init_return_data()
+            return_data["msg"] = "资历选项数据格式异常"
+            return return_data
+
+        selected_name = str(next(iter(selected.values())) or "").strip()
+        selected_subclass = "" if selected_name == "总览" else selected_name
+
+        async def processor(data: Any, return_data: Dict[str, Any]) -> None:
+            statistics = data.get("data") or {}
+            categories = statistics.get("total") or {}
+            if not isinstance(categories, dict) or not categories:
+                raise ValueError("接口未返回资历统计")
+
+            # 查询总览时 total 为“大类 -> 小类 -> 统计”；指定 subclass 后，
+            # JX3API 会去掉大类这一层，total 直接变成“小类 -> 统计”。
+            data["subclass"] = selected_subclass
+            return_data["data"] = data
+
+        return await self._request_api(
+            path="/tuilan/achievement",
+            params={"server": server,"name": name,"class": 1,"subclass": selected_subclass,"ticket": self.ticket,"token": self.token,},
+            processor=processor,
+            template="zili.html",
+        )
 
 
     async def jueshe(self,server: str, name: str, history:int) -> Dict[str, Any]:

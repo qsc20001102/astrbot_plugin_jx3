@@ -1,8 +1,4 @@
 .header {
-        background: #ffffff;
-        border-radius: 14px;
-        padding: 22px 26px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
         margin-bottom: 16px;
     }
 
@@ -37,10 +33,7 @@
     }
 
     .summary {
-        background: #ffffff;
-        border-radius: 14px;
         padding: 22px 26px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
         margin-bottom: 16px;
     }
 

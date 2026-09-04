@@ -1,23 +1,15 @@
 {# template-title: 资历排行 #}
+{# template-components: data-table #}
 
 
 <div class="container">
     <h1>{{ school }} 资历排行</h1>
 
-    <div class="meta">
+    <div class="data-page__meta">
         {{ server }} ｜ 更新时间：{{ update_time }}
     </div>
 
-    <table>
-        <colgroup>
-            <col class="rank-width">
-            <col class="avatar-width">
-            <col class="force-width">
-            <col class="role-width">
-            <col class="server-width">
-            <col class="score-width">
-        </colgroup>
-
+    <table class="data-table">
         <thead>
             <tr>
                 <th>排名</th>
@@ -86,4 +78,3 @@
         </tbody>
     </table>
 </div>
-

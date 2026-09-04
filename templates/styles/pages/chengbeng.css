@@ -61,14 +61,16 @@
         box-shadow: 0 5px 18px rgba(0, 0, 0, 0.1);
     }
 
-    .main-icon img {
+    .main-icon img,
+    .material-icon img {
         display: block;
         width: 100%;
         height: 100%;
         object-fit: cover;
     }
 
-    .main-info {
+    .main-info,
+    .material-info {
         min-width: 0;
     }
 
@@ -98,31 +100,6 @@
         font-size: 17px;
         font-weight: 700;
         white-space: nowrap;
-    }
-
-    .quality-1 {
-        color: #555;
-        background: #efefef;
-    }
-
-    .quality-2 {
-        color: #237a3b;
-        background: #e5f6e9;
-    }
-
-    .quality-3 {
-        color: #1e6bd6;
-        background: #e7f0fd;
-    }
-
-    .quality-4 {
-        color: #7c3fc2;
-        background: #f0e7fb;
-    }
-
-    .quality-5 {
-        color: #c76b00;
-        background: #fff0d9;
     }
 
     .tip-list {
@@ -211,11 +188,13 @@
         font-weight: 800;
     }
 
-    .summary-title.market {
+    .summary-title.market,
+    .price-box.highest .price-box-value {
         color: #d93939;
     }
 
-    .summary-title.cost {
+    .summary-title.cost,
+    .price-box.lowest .price-box-value {
         color: #2e8b57;
     }
 
@@ -251,16 +230,8 @@
         line-height: 1.55;
     }
 
-    .price-box.lowest .price-box-value {
-        color: #2e8b57;
-    }
-
     .price-box.average .price-box-value {
         color: #d98b16;
-    }
-
-    .price-box.highest .price-box-value {
-        color: #d93939;
     }
 
     .summary-footer {
@@ -406,17 +377,6 @@
         border-radius: 14px;
     }
 
-    .material-icon img {
-        display: block;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .material-info {
-        min-width: 0;
-    }
-
     .material-name {
         margin: 0 0 10px;
         font-size: 26px;
@@ -455,26 +415,31 @@
         background: #e7f5ed;
     }
 
+    .quality-1,
     .tag-quality-1 {
         color: #555;
         background: #efefef;
     }
 
+    .quality-2,
     .tag-quality-2 {
         color: #237a3b;
         background: #e5f6e9;
     }
 
+    .quality-3,
     .tag-quality-3 {
         color: #1e6bd6;
         background: #e7f0fd;
     }
 
+    .quality-4,
     .tag-quality-4 {
         color: #7c3fc2;
         background: #f0e7fb;
     }
 
+    .quality-5,
     .tag-quality-5 {
         color: #c76b00;
         background: #fff0d9;

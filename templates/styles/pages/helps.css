@@ -52,7 +52,8 @@
     grid-column: span 2;
 }
 
-.section.span-3 {
+.section.span-3,
+.full-row {
     grid-column: 1 / -1;
 }
 
@@ -130,10 +131,6 @@
 
 .trial-feature {
     margin-top: 4px;
-}
-
-.full-row {
-    grid-column: 1 / -1;
 }
 
 .push-section .section-body {

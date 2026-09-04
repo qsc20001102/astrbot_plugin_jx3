@@ -8,6 +8,8 @@ from .sqlite import AsyncSQLiteDB
 class ServerBindingService:
     """维护会话区服绑定、区服别名与指令解析所需的区服目录。"""
 
+    ALL_SERVERS_KEYWORD = "全区"
+
     def __init__(self, sqlite: AsyncSQLiteDB, seed_path: Path):
         self.sql = sqlite
         self.seed_path = seed_path
@@ -102,6 +104,16 @@ class ServerBindingService:
     def resolve_server(self, value: Any) -> str:
         server = self._clean(value)
         return self._server_lookup.get(self._key(server), server)
+
+    def is_all_servers_query(self, value: Any) -> bool:
+        """判断指令中的区服参数是否要求查询全区。"""
+        return self._key(value) == self._key(self.ALL_SERVERS_KEYWORD)
+
+    def resolve_query_server(self, value: Any) -> str:
+        """解析查询区服；“全区”作为保留值转换为接口所需的空字符串。"""
+        if self.is_all_servers_query(value):
+            return ""
+        return self.resolve_server(value)
 
     async def get_binding(self, session_id: str) -> str:
         row = await self.sql.select_one(

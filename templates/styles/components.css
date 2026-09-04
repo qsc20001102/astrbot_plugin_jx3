@@ -68,62 +68,6 @@
     background: var(--jx3-gold);
 }
 
-/* 表格体系 */
-.jx3-template :where(.table-wrapper, .table-scroll) {
-    overflow: hidden;
-    border: 1px solid var(--jx3-border-soft);
-    border-radius: var(--jx3-radius-md);
-    background: rgba(7, 26, 43, 0.76);
-    box-shadow: var(--jx3-shadow-sm);
-}
-
-.jx3-template table {
-    width: 100%;
-    overflow: hidden;
-    border-collapse: collapse;
-    border-radius: var(--jx3-radius-md);
-    color: var(--jx3-text-secondary);
-    background: rgba(7, 26, 43, 0.64);
-    border-color: var(--jx3-border-soft);
-    box-shadow: none;
-}
-
-.jx3-template tbody tr:nth-child(odd) {
-    background: transparent;
-}
-
-.jx3-template thead {
-    color: var(--jx3-gold-bright);
-    background: #102f4a;
-    border-top: 1px solid var(--jx3-border-strong);
-    border-bottom: 1px solid var(--jx3-border-strong);
-}
-
-.jx3-template :where(th, td) {
-    padding: 13px 14px;
-    color: inherit;
-    border-color: var(--jx3-border-faint);
-    font-size: 15px;
-}
-
-.jx3-template th {
-    color: var(--jx3-gold-bright);
-    font-weight: 700;
-    letter-spacing: 0.03em;
-}
-
-.jx3-template tbody tr:nth-child(even) {
-    background: rgba(31, 74, 107, 0.18);
-}
-
-.jx3-template tbody tr:hover {
-    background: rgba(225, 183, 102, 0.09);
-}
-
-.jx3-template tbody tr:last-child td {
-    border-bottom-color: transparent;
-}
-
 /* 状态与重点数据 */
 .jx3-template :where(.rank-1, .price-col, .summary-percent, .item-percent, .point-value, .money-gold) {
     color: var(--jx3-gold-bright);
@@ -251,20 +195,71 @@
 
 /* @component data-table */
 /* 标准数据页：列数和内容由 HTML 决定，视觉规则由所有查询页共用 */
-.jx3-template .data-table {
-    text-align: left;
+.jx3-template :where(.table-wrapper, .table-scroll) {
+    overflow: hidden;
+    border: 1px solid var(--jx3-border-soft);
+    border-radius: var(--jx3-radius-md);
+    background: rgba(7, 26, 43, 0.76);
+    box-shadow: var(--jx3-shadow-sm);
+}
+
+.jx3-template table {
+    width: 100%;
+    table-layout: auto;
+    overflow: hidden;
+    border-collapse: collapse;
+    border-radius: var(--jx3-radius-md);
+    color: var(--jx3-text-secondary);
+    background: rgba(7, 26, 43, 0.64);
+    border-color: var(--jx3-border-soft);
+    text-align: center;
+    box-shadow: none;
+}
+
+.jx3-template thead {
+    color: var(--jx3-gold-bright);
+    background: #102f4a;
+    border-top: 1px solid var(--jx3-border-strong);
+    border-bottom: 1px solid var(--jx3-border-strong);
+}
+
+.jx3-template :where(th, td) {
+    padding: 13px 14px;
+    color: inherit;
+    border-color: var(--jx3-border-faint);
+    font-size: 15px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.jx3-template th {
+    color: var(--jx3-gold-bright);
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+.jx3-template td {
+    border-bottom: 1px solid var(--jx3-border-faint);
+}
+
+.jx3-template tbody tr:nth-child(odd) {
+    background: transparent;
+}
+
+.jx3-template tbody tr:nth-child(even) {
+    background: rgba(31, 74, 107, 0.18);
+}
+
+.jx3-template tbody tr:hover {
+    background: rgba(225, 183, 102, 0.09);
+}
+
+.jx3-template tbody tr:last-child td {
+    border-bottom-color: transparent;
 }
 
 .jx3-template .data-table--spaced {
     margin-top: 10px;
-}
-
-.jx3-template .data-table--center {
-    text-align: center;
-}
-
-.jx3-template .data-table :where(th, td) {
-    vertical-align: middle;
 }
 
 .jx3-template .data-table--nowrap :where(th, td),
@@ -272,11 +267,14 @@
     white-space: nowrap;
 }
 
-.jx3-template .data-cell--center {
-    text-align: center;
+.jx3-template .data-cell--wrap {
+    word-break: break-word;
 }
 
-.jx3-template .data-cell--wrap {
+.jx3-template .data-cell--copy {
+    color: var(--jx3-text-secondary);
+    font-weight: 600;
+    line-height: 1.5;
     word-break: break-word;
 }
 
@@ -294,69 +292,27 @@
     font-variant-numeric: tabular-nums;
 }
 
-.jx3-template .data-cell--accent,
-.jx3-template .data-cell--score {
-    color: var(--jx3-gold-bright);
-    font-weight: 800;
-}
-
 .jx3-template .data-cell--rank {
-    width: 56px;
     color: var(--jx3-gold-bright);
     font-weight: 800;
-    text-align: center;
     white-space: nowrap;
 }
 
 .jx3-template .data-cell--score {
-    text-align: center;
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
 }
 
 .jx3-template .data-cell--time {
-    min-width: 150px;
     color: var(--jx3-text-muted);
-    text-align: center;
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
 }
 
-.jx3-template .data-cell--copy {
-    max-width: 360px;
-    color: var(--jx3-text-secondary);
-    font-weight: 600;
-    line-height: 1.5;
-    word-break: break-word;
-}
-
-.jx3-template .data-cell--copy.data-cell--name {
-    color: var(--jx3-text);
-    font-weight: 700;
-}
-
-.jx3-template .data-cell--time.data-cell--accent {
+.jx3-template .data-cell--accent,
+.jx3-template .data-cell--score {
     color: var(--jx3-gold-bright);
-}
-
-.jx3-template .data-cell--compact {
-    width: 90px;
-}
-
-.jx3-template .data-cell--medium {
-    min-width: 120px;
-}
-
-.jx3-template .data-cell--wide {
-    min-width: 150px;
-}
-
-.jx3-template .data-cell--xwide {
-    min-width: 220px;
-}
-
-.jx3-template .data-cell--max-wide {
-    max-width: 260px;
+    font-weight: 800;
 }
 
 .jx3-template .data-avatar {
@@ -366,10 +322,6 @@
     margin: 0 auto;
     border-radius: 50%;
     object-fit: cover;
-}
-
-.jx3-template .data-cell--rank.rank-1 {
-    color: var(--jx3-gold-bright);
 }
 
 .jx3-template .data-cell--rank.rank-2 {
@@ -383,6 +335,7 @@
 .jx3-template .icon-label {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
     min-width: 0;
     color: var(--jx3-text);
