@@ -12,38 +12,76 @@
       <header class="page-header">
         <div>
           <h1>剑网三插件管理</h1>
-          <p>管理会话区服绑定、事件订阅状态、区服别名与心法别名。</p>
+          <p>管理事件推送、会话访问范围、区服绑定及别名。</p>
         </div>
         <button class="button button--secondary" id="refresh" type="button">刷新数据</button>
       </header>
 
-      <section class="summary" aria-label="数据概览">
-        <div class="summary__item">
-          <span>已绑定会话</span>
-          <strong id="binding-count">—</strong>
-        </div>
-        <div class="summary__item">
-          <span>事件推送会话</span>
-          <strong id="subscription-count">—</strong>
-        </div>
-        <div class="summary__item">
-          <span>区服别名</span>
-          <strong id="alias-count">—</strong>
-        </div>
-        <div class="summary__item">
-          <span>心法条目</span>
-          <strong id="kungfu-count">—</strong>
-        </div>
-      </section>
-
       <nav class="tabs" aria-label="管理分类" role="tablist">
-        <button class="tab is-active" type="button" role="tab" aria-selected="true" data-tab="bindings">会话绑定</button>
-        <button class="tab" type="button" role="tab" aria-selected="false" data-tab="subscriptions">事件订阅</button>
+        <button class="tab is-active" type="button" role="tab" aria-selected="true" data-tab="session-control">会话控制</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-tab="subscriptions">事件推送</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-tab="bindings">区服绑定</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="aliases">区服别名</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="kungfu">心法别名</button>
       </nav>
 
-      <section class="panel is-active" id="bindings-panel" role="tabpanel">
+      <section class="panel is-active" id="session-control-panel" role="tabpanel">
+        <form class="control-mode" id="control-mode-form">
+          <div class="section-intro control-mode__intro">
+            <div>
+              <h2>会话访问模式</h2>
+              <p id="control-mode-hint">所有会话都可以使用插件并接收已订阅的事件推送。</p>
+            </div>
+            <div class="current-mode" aria-live="polite">
+              <span>当前生效模式</span>
+              <strong id="control-mode-label">全部会话</strong>
+            </div>
+          </div>
+          <div class="mode-options" role="radiogroup" aria-label="会话访问模式">
+            <label class="mode-option">
+              <input type="radio" name="control_mode" value="all" />
+              <span><strong>全部会话</strong><small>不限制任何会话，默认模式</small></span>
+            </label>
+            <label class="mode-option">
+              <input type="radio" name="control_mode" value="whitelist" />
+              <span><strong>白名单</strong><small>只允许白名单中的会话</small></span>
+            </label>
+            <label class="mode-option">
+              <input type="radio" name="control_mode" value="blacklist" />
+              <span><strong>黑名单</strong><small>只拦截黑名单中的会话</small></span>
+            </label>
+            <button class="button button--primary" id="control-mode-save" type="submit">保存模式</button>
+          </div>
+        </form>
+
+        <form class="editor editor--control" id="control-entry-form">
+          <label>
+            <span>会话 ID</span>
+            <input id="control-session" name="session_id" list="session-options" maxlength="512" placeholder="可选择已有会话或直接输入" required />
+            <datalist id="session-options"></datalist>
+          </label>
+          <label>
+            <span>名单类型</span>
+            <select id="control-list-type" name="list_type" required>
+              <option value="whitelist">白名单</option>
+              <option value="blacklist">黑名单</option>
+            </select>
+          </label>
+          <label>
+            <span>备注（可选）</span>
+            <input id="control-remark" name="remark" maxlength="200" placeholder="例如：测试会话" />
+          </label>
+          <button class="button button--primary" type="submit">添加会话</button>
+        </form>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>会话 ID</th><th>名单类型</th><th>备注</th><th class="actions">操作</th></tr></thead>
+            <tbody id="control-entries-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel" id="bindings-panel" role="tabpanel" hidden>
         <form class="editor" id="binding-form">
           <label>
             <span>会话 ID</span>
@@ -51,9 +89,11 @@
           </label>
           <label>
             <span>绑定区服</span>
-            <input id="binding-server" name="server" maxlength="64" list="server-options" placeholder="选择或输入标准区服名/别名" required />
+            <select id="binding-server" name="server" required>
+              <option value="" selected disabled>请选择标准区服</option>
+            </select>
           </label>
-          <button class="button button--primary" type="submit">保存绑定</button>
+          <button class="button button--primary" type="submit">添加绑定</button>
         </form>
         <div class="table-wrap">
           <table>
@@ -76,8 +116,9 @@
       </section>
 
       <section class="panel" id="aliases-panel" role="tabpanel" hidden>
-        <div class="section-intro">
-          <div><h2>区服别名</h2><p>标准区服名称为只读；点击对应行的“编辑”可修改别名。</p></div>
+        <div class="section-intro section-intro--actions">
+          <div><h2>区服别名</h2><p>标准区服名称为只读；点击对应行的“编辑”可修改别名，恢复默认会使用内置 JSON 覆盖当前配置。</p></div>
+          <button class="button button--secondary" id="restore-aliases" type="button">恢复默认</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -88,8 +129,9 @@
       </section>
 
       <section class="panel" id="kungfu-panel" role="tabpanel" hidden>
-        <div class="section-intro">
-          <div><h2>心法别名</h2><p>标准心法名称为只读；点击对应行的“编辑”可修改最多 5 个别名。</p></div>
+        <div class="section-intro section-intro--actions">
+          <div><h2>心法别名</h2><p>标准心法名称为只读；点击对应行的“编辑”可修改最多 5 个别名，恢复默认会使用内置 JSON 覆盖当前配置。</p></div>
+          <button class="button button--secondary" id="restore-kungfu" type="button">恢复默认</button>
         </div>
         <div class="table-wrap">
           <table>
@@ -100,7 +142,6 @@
       </section>
     </main>
 
-    <datalist id="server-options"></datalist>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script type="module" src="./app.js"></script>
   </body>

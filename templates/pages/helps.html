@@ -1,197 +1,201 @@
 {# template-title: 剑网三插件功能介绍 #}
+{# 每行说明可填写在 command-row 的 data-description 属性中，例如：data-description="这里填写说明" #}
 <div class="page help-page">
     <header class="top-info help-header">
         <div>
             <div class="top-name">剑网三综合查询插件</div>
-            <div class="top-summary">共 17 个功能分类 · 69 项功能 · 93 个触发词</div>
+            <div class="top-summary">18 个功能分区 · 92 个触发指令</div>
         </div>
-        <div class="top-desc">
-            指令与参数之间使用空格分隔<br>
-            带有 [ ] 的参数为可选参数
+        <div class="help-rules">
+            <span>参数之间使用空格分隔</span>
+            <span><strong>[ ]</strong> 内为可选参数</span>
         </div>
     </header>
 
-    <main class="section-grid">
-        <section class="section span-2">
-            <div class="section-title">活动情报</div>
-            <div class="section-body">
-                <div class="feature"><div class="feature-name">活动日历</div><div class="commands"><span class="command">日常 [延后天数]</span><span class="command">日常预测</span></div></div>
-                <div class="feature"><div class="feature-name">声望社</div><div class="commands"><span class="command">楚天社</span><span class="command">云从社</span><span class="command">披风会</span><span class="command">穹野卫</span></div></div>
-                <div class="feature"><div class="feature-name">关隘首领</div><div class="commands"><span class="command">关隘</span></div></div>
-                <div class="feature"><div class="feature-name">赤兔</div><div class="commands"><span class="command">赤兔</span><span class="command">本周赤兔</span></div></div>
-                <div class="feature"><div class="feature-name">阵营事件</div><div class="commands"><span class="command">阵营奉献 [阵营]</span></div></div>
-                <div class="feature"><div class="feature-name">烟花记录</div><div class="commands"><span class="command">烟花 服务器 角色</span></div></div>
-                <div class="feature"><div class="feature-name">马场查询</div><div class="commands"><span class="command">刷马 服务器</span><span class="command">马场 服务器</span></div></div>
+    <main class="command-directory">
+        <div class="command-columns" aria-hidden="true">
+            <span>功能</span><span>触发指令</span><span>说明</span>
+        </div>
+        <section class="command-section">
+            <header class="command-section__header"><span class="section-index">01</span><h2>活动情报</h2><span class="section-count">13 个触发词</span></header>
+            <div class="command-list">
+                <div class="command-row"><div class="feature-name">活动日历</div><div class="commands"><code class="command">日常 [延后天数]</code><code class="command">日常预测</code></div></div>
+                <div class="command-row"><div class="feature-name">声望社</div><div class="commands"><code class="command">楚天社</code><code class="command">云从社</code><code class="command">披风会</code><code class="command">穹野卫</code></div></div>
+                <div class="command-row"><div class="feature-name">关隘首领</div><div class="commands"><code class="command">关隘</code></div></div>
+                <div class="command-row"><div class="feature-name">赤兔记录</div><div class="commands"><code class="command">赤兔</code><code class="command">本周赤兔</code></div></div>
+                <div class="command-row"><div class="feature-name">阵营事件</div><div class="commands"><code class="command">阵营奉献 [阵营]</code></div></div>
+                <div class="command-row"><div class="feature-name">烟花记录</div><div class="commands"><code class="command">烟花 服务器 角色</code></div></div>
+                <div class="command-row"><div class="feature-name">马场查询</div><div class="commands"><code class="command">刷马 服务器</code><code class="command">马场 服务器</code></div></div>
             </div>
         </section>
 
-        <section class="section">
-            <div class="section-title">名剑相关</div>
-            <div class="section-body">
-                <div class="feature"><div class="feature-name">名剑战绩</div><div class="commands"><span class="command">战绩 服务器 角色 [模式]</span></div></div>
-                <div class="feature"><div class="feature-name">名剑排行</div><div class="commands"><span class="command">名剑排行 [模式] [数量]</span></div></div>
-                <div class="feature"><div class="feature-name">名剑统计</div><div class="commands"><span class="command">名剑统计 [模式]</span></div></div>
+        <section class="command-section">
+            <header class="command-section__header"><span class="section-index">02</span><h2>名剑相关</h2><span class="section-count">3 个触发词</span></header>
+            <div class="command-list">
+                <div class="command-row" data-description="模式可选22、33、55"><div class="feature-name">名剑战绩</div><div class="commands"><code class="command">战绩 服务器 角色 [模式]</code></div></div>
+                <div class="command-row"><div class="feature-name">名剑排行</div><div class="commands"><code class="command">名剑排行 [模式] [数量]</code></div></div>
+                <div class="command-row"><div class="feature-name">名剑统计</div><div class="commands"><code class="command">名剑统计 [模式]</code></div></div>
             </div>
         </section>
 
-        <section class="section span-3 ranking-section">
-            <div class="section-title">排行榜单</div>
-            <div class="section-body">
-                <div class="feature ranking-feature">
-                    <div class="feature-name">排行统计（二轮选择）</div>
-                    <div class="ranking-list">
-                        <span class="command">帮会排行 服务器</span>
-                        <span class="command">阵营排行 服务器</span>
-                        <span class="command">其他排行 服务器</span>
-                    </div>
-                </div>
-                <div class="feature trial-feature"><div class="feature-name">试炼排行</div><div class="commands"><span class="command">试炼排行 服务器 心法</span></div></div>
+        <section class="command-section">
+            <header class="command-section__header"><span class="section-index">03</span><h2>排行榜单</h2><span class="section-count">4 个触发词</span></header>
+            <div class="command-list">
+                <div class="command-row"><div class="feature-name">分类排行</div><div class="commands"><code class="command">帮会排行 服务器</code><code class="command">阵营排行 服务器</code><code class="command">其他排行 服务器</code></div></div>
+                <div class="command-row"><div class="feature-name">试炼排行</div><div class="commands"><code class="command">试炼排行 服务器 心法</code></div></div>
             </div>
         </section>
 
-        <section class="section span-2">
-            <div class="section-title">物价交易</div>
-            <div class="section-body">
-                <div class="feature"><div class="feature-name">阵营拍卖</div><div class="commands"><span class="command">阵营拍卖 服务器 [物品] [数量]</span></div></div>
-                <div class="feature"><div class="feature-name">的卢拍卖</div><div class="commands"><span class="command">的卢 服务器</span></div></div>
-                <div class="feature"><div class="feature-name">金价行情</div><div class="commands"><span class="command">金价 服务器</span></div></div>
-                <div class="feature"><div class="feature-name">物品价格</div><div class="commands"><span class="command">物价 外观名称 [服务器]</span></div></div>
-                <div class="feature"><div class="feature-name">成本计算</div><div class="commands"><span class="command">成本 服务器 物品名称</span></div></div>
-                <div class="feature"><div class="feature-name">编号搜索</div><div class="commands"><span class="command">看号 万宝楼编号</span></div></div>
-                <div class="feature"><div class="feature-name">交易行</div><div class="commands"><span class="command">交易行 服务器 物品</span></div></div>
+        <section class="command-section">
+            <header class="command-section__header"><span class="section-index">04</span><h2>资历相关</h2><span class="section-count">2 个触发词</span></header>
+            <div class="command-list">
+                <div class="command-row"><div class="feature-name">角色资历</div><div class="commands"><code class="command">资历 服务器 角色</code></div></div>
+                <div class="command-row"><div class="feature-name">资历排行</div><div class="commands"><code class="command">资历排行 [服务器] [门派]</code></div></div>
             </div>
         </section>
 
-        <section class="section">
-            <div class="section-title">阵营战场</div>
-            <div class="section-body">
-                <div class="feature"><div class="feature-name">帮战记录</div><div class="commands"><span class="command">帮战 服务器</span></div></div>
-                <div class="feature"><div class="feature-name">阵营沙盘</div><div class="commands"><span class="command">沙盘 服务器</span></div></div>
-                <div class="feature"><div class="feature-name">诛恶事件</div><div class="commands"><span class="command">诛恶 服务器</span></div></div>
+        <section class="command-section">
+            <header class="command-section__header"><span class="section-index">05</span><h2>物价交易</h2><span class="section-count">7 个触发词</span></header>
+            <div class="command-list">
+                <div class="command-row"><div class="feature-name">阵营拍卖</div><div class="commands"><code class="command">阵营拍卖 服务器 [物品] [数量]</code></div></div>
+                <div class="command-row"><div class="feature-name">的卢拍卖</div><div class="commands"><code class="command">的卢 服务器</code></div></div>
+                <div class="command-row"><div class="feature-name">金价行情</div><div class="commands"><code class="command">金价 服务器</code></div></div>
+                <div class="command-row"><div class="feature-name">物品价格</div><div class="commands"><code class="command">物价 外观名称 [服务器]</code></div></div>
+                <div class="command-row"><div class="feature-name">成本计算</div><div class="commands"><code class="command">成本 服务器 物品名称</code></div></div>
+                <div class="command-row"><div class="feature-name">编号搜索</div><div class="commands"><code class="command">看号 万宝楼编号</code></div></div>
+                <div class="command-row"><div class="feature-name">交易行</div><div class="commands"><code class="command">交易行 服务器 物品</code></div></div>
             </div>
         </section>
 
-        <section class="section">
-            <div class="section-title">角色名片</div>
-            <div class="section-body">
-                <div class="feature"><div class="feature-name">名片缓存</div><div class="commands"><span class="command">名片 服务器 角色</span></div></div>
-                <div class="feature"><div class="feature-name">名片历史</div><div class="commands"><span class="command">全名片 服务器 角色</span></div></div>
-                <div class="feature"><div class="feature-name">随机名片</div><div class="commands"><span class="command">随机秀 服务器 [门派] [体型]</span></div></div>
+        <section class="command-section">
+            <header class="command-section__header"><span class="section-index">06</span><h2>阵营战场</h2><span class="section-count">3 个触发词</span></header>
+            <div class="command-list">
+                <div class="command-row"><div class="feature-name">帮战记录</div><div class="commands"><code class="command">帮战 服务器</code></div></div>
+                <div class="command-row"><div class="feature-name">阵营沙盘</div><div class="commands"><code class="command">沙盘 服务器</code></div></div>
+                <div class="command-row"><div class="feature-name">诛恶事件</div><div class="commands"><code class="command">诛恶 服务器</code></div></div>
             </div>
         </section>
 
-        <section class="section span-2">
-            <div class="section-title">奇遇相关</div>
-            <div class="section-body">
-                <div class="feature"><div class="feature-name">奇遇记录</div><div class="commands"><span class="command">奇遇 服务器 角色</span><span class="command">查询 服务器 角色</span></div></div>
-                <div class="feature"><div class="feature-name">未触发的</div><div class="commands"><span class="command">未出 服务器 角色</span></div></div>
-                <div class="feature"><div class="feature-name">奇遇汇总</div><div class="commands"><span class="command">汇总 服务器 [天数]</span></div></div>
-                <div class="feature"><div class="feature-name">近期奇遇</div><div class="commands"><span class="command">近期 服务器 [数量]</span></div></div>
-                <div class="feature"><div class="feature-name">奇遇统计</div><div class="commands"><span class="command">统计 奇遇 [服务器] [数量]</span></div></div>
-                <div class="feature"><div class="feature-name">奇遇攻略</div><div class="commands"><span class="command">攻略 奇遇</span></div></div>
+        <section class="command-section">
+            <header class="command-section__header"><span class="section-index">07</span><h2>角色名片</h2><span class="section-count">3 个触发词</span></header>
+            <div class="command-list">
+                <div class="command-row"><div class="feature-name">名片缓存</div><div class="commands"><code class="command">名片 服务器 角色</code></div></div>
+                <div class="command-row"><div class="feature-name">名片历史</div><div class="commands"><code class="command">全名片 服务器 角色</code></div></div>
+                <div class="command-row"><div class="feature-name">随机名片</div><div class="commands"><code class="command">随机秀 服务器 [门派] [体型]</code></div></div>
             </div>
         </section>
 
-        <section class="section">
-            <div class="section-title">百战记录</div>
-            <div class="section-body">
-                <div class="feature"><div class="feature-name">角色百战</div><div class="commands"><span class="command">精耐 服务器 角色</span></div></div>
-                <div class="feature"><div class="feature-name">百战首领</div><div class="commands"><span class="command">百战</span></div></div>
+        <section class="command-section">
+            <header class="command-section__header"><span class="section-index">08</span><h2>奇遇相关</h2><span class="section-count">7 个触发词</span></header>
+            <div class="command-list">
+                <div class="command-row"><div class="feature-name">奇遇记录</div><div class="commands"><code class="command">奇遇 服务器 角色</code><code class="command">查询 服务器 角色</code></div></div>
+                <div class="command-row"><div class="feature-name">未触发奇遇</div><div class="commands"><code class="command">未出 服务器 角色</code></div></div>
+                <div class="command-row"><div class="feature-name">奇遇汇总</div><div class="commands"><code class="command">汇总 服务器 [天数]</code></div></div>
+                <div class="command-row"><div class="feature-name">近期奇遇</div><div class="commands"><code class="command">近期 服务器 [数量]</code></div></div>
+                <div class="command-row"><div class="feature-name">奇遇统计</div><div class="commands"><code class="command">统计 奇遇 [服务器] [数量]</code></div></div>
+                <div class="command-row"><div class="feature-name">奇遇攻略</div><div class="commands"><code class="command">攻略 奇遇</code></div></div>
             </div>
         </section>
 
-        <section class="section">
-            <div class="section-title">角色信息</div>
-            <div class="section-body">
-                <div class="feature"><div class="feature-name">成就查询</div><div class="commands"><span class="command">成就 服务器 角色 成就</span></div></div>
-                <div class="feature"><div class="feature-name">角色详情</div><div class="commands"><span class="command">角色 服务器 名称</span></div></div>
+        <section class="command-section">
+            <header class="command-section__header"><span class="section-index">09</span><h2>百战记录</h2><span class="section-count">2 个触发词</span></header>
+            <div class="command-list">
+                <div class="command-row"><div class="feature-name">角色百战</div><div class="commands"><code class="command">精耐 服务器 角色</code></div></div>
+                <div class="command-row"><div class="feature-name">百战首领</div><div class="commands"><code class="command">百战</code></div></div>
             </div>
         </section>
 
-        <section class="section">
-            <div class="section-title">资历相关</div>
-            <div class="section-body">
-                <div class="feature"><div class="feature-name">资历查询</div><div class="commands"><span class="command">资历 服务器 角色</span></div></div>
-                <div class="feature"><div class="feature-name">资历榜单</div><div class="commands"><span class="command">资历排行 [服务器] [门派]</span></div></div>
+        <section class="command-section">
+            <header class="command-section__header"><span class="section-index">10</span><h2>角色信息</h2><span class="section-count">2 个触发词</span></header>
+            <div class="command-list">
+                <div class="command-row"><div class="feature-name">成就查询</div><div class="commands"><code class="command">成就 服务器 角色 成就</code></div></div>
+                <div class="command-row"><div class="feature-name">角色详情</div><div class="commands"><code class="command">角色 服务器 名称</code></div></div>
             </div>
         </section>
 
-        <section class="section">
-            <div class="section-title">心法配装</div>
-            <div class="section-body">
-                <div class="feature"><div class="feature-name">阵眼效果</div><div class="commands"><span class="command">阵眼 心法</span></div></div>
-                <div class="feature"><div class="feature-name">魔盒配装</div><div class="commands"><span class="command">配装 心法</span></div></div>
-                <div class="feature"><div class="feature-name">技能信息</div><div class="commands"><span class="command">技能 心法</span></div></div>
-                <div class="feature"><div class="feature-name">奇穴信息</div><div class="commands"><span class="command">奇穴 心法</span></div></div>
-                <div class="feature"><div class="feature-name">魔盒宏</div><div class="commands"><span class="command">宏 心法</span></div></div>
+        <section class="command-section">
+            <header class="command-section__header"><span class="section-index">11</span><h2>心法配装</h2><span class="section-count">6 个触发词</span></header>
+            <div class="command-list">
+                <div class="command-row"><div class="feature-name">阵眼效果</div><div class="commands"><code class="command">阵眼 心法</code></div></div>
+                <div class="command-row"><div class="feature-name">魔盒配装</div><div class="commands"><code class="command">配装 心法</code></div></div>
+                <div class="command-row"><div class="feature-name">技能信息</div><div class="commands"><code class="command">技能 心法</code></div></div>
+                <div class="command-row"><div class="feature-name">奇穴信息</div><div class="commands"><code class="command">奇穴 心法</code></div></div>
+                <div class="command-row"><div class="feature-name">魔盒宏</div><div class="commands"><code class="command">宏 心法</code></div></div>
+                <div class="command-row"><div class="feature-name">小药搭配</div><div class="commands"><code class="command">小药 心法</code></div></div>
             </div>
         </section>
 
-        <section class="section span-2">
-            <div class="section-title">游戏社区</div>
-            <div class="section-body">
-                <div class="feature"><div class="feature-name">角色聊天</div><div class="commands"><span class="command">聊天 服务器 角色 [条数] [页数]</span></div></div>
-                <div class="feature"><div class="feature-name">统战歪歪</div><div class="commands"><span class="command">统战 [服务器]</span></div></div>
-                <div class="feature"><div class="feature-name">师徒列表</div><div class="commands"><span class="command">拜师 服务器 [关键词]</span><span class="command">收徒 服务器 [关键词]</span></div></div>
-                <div class="feature"><div class="feature-name">团队招募</div><div class="commands"><span class="command">招募 服务器 [副本]</span><span class="command">团长 服务器 [名称]</span><span class="command">团牌 服务器 [内容]</span></div></div>
-                <div class="feature full-row"><div class="feature-name">骚话语录</div><div class="commands"><span class="command">答案之书</span><span class="command">舔狗语录</span><span class="command">疯狂星期四</span><span class="command">彩虹屁</span><span class="command">毒鸡汤</span><span class="command">朋友圈</span><span class="command">喝什么</span><span class="command">吃什么</span><span class="command">骚话</span><span class="command">渣男语录</span></div></div>
+        <section class="command-section">
+            <header class="command-section__header"><span class="section-index">12</span><h2>游戏社区</h2><span class="section-count">8 个触发词</span></header>
+            <div class="command-list">
+                <div class="command-row"><div class="feature-name">角色发言</div><div class="commands"><code class="command">发言 服务器 角色 [条数] [页数]</code></div></div>
+                <div class="command-row"><div class="feature-name">统战歪歪</div><div class="commands"><code class="command">统战 [服务器]</code></div></div>
+                <div class="command-row"><div class="feature-name">骗子查询</div><div class="commands"><code class="command">骗子 UID [服务器]</code></div></div>
+                <div class="command-row"><div class="feature-name">师徒列表</div><div class="commands"><code class="command">拜师 服务器 [关键词]</code><code class="command">收徒 服务器 [关键词]</code></div></div>
+                <div class="command-row"><div class="feature-name">团队招募</div><div class="commands"><code class="command">招募 服务器 [副本]</code><code class="command">团长 服务器 [名称]</code><code class="command">团牌 服务器 [内容]</code></div></div>
             </div>
         </section>
 
-        <section class="section">
-            <div class="section-title">百度贴吧</div>
-            <div class="section-body">
-                <div class="feature"><div class="feature-name">外观记录</div><div class="commands"><span class="command">贴吧物价 名称 [服务器] [数量]</span></div></div>
-                <div class="feature"><div class="feature-name">百度贴吧</div><div class="commands"><span class="command">818 [服务器] [数量]</span></div></div>
+        <section class="command-section">
+            <header class="command-section__header"><span class="section-index">13</span><h2>家园杂项</h2><span class="section-count">3 个触发词</span></header>
+            <div class="command-list">
+                <div class="command-row"><div class="feature-name">家园鲜花</div><div class="commands"><code class="command">花价 服务器 [名称] [地图]</code></div></div>
+                <div class="command-row"><div class="feature-name">家园装饰</div><div class="commands"><code class="command">装饰 名称</code></div></div>
+                <div class="command-row"><div class="feature-name">器物图谱</div><div class="commands"><code class="command">器物 地图名称</code></div></div>
             </div>
         </section>
 
-        <section class="section span-2">
-            <div class="section-title">系统工具</div>
-            <div class="section-body">
-                <div class="feature"><div class="feature-name">维护公告</div><div class="commands"><span class="command">维护 [数量]</span></div></div>
-                <div class="feature"><div class="feature-name">新闻资讯</div><div class="commands"><span class="command">新闻 [数量]</span></div></div>
-                <div class="feature"><div class="feature-name">大区状态</div><div class="commands"><span class="command">区服</span><span class="command">开服 服务器</span></div></div>
-                <div class="feature"><div class="feature-name">技改记录</div><div class="commands"><span class="command">技改</span></div></div>
-                <div class="feature"><div class="feature-name">秘境方位</div><div class="commands"><span class="command">解密</span></div></div>
-                <div class="feature"><div class="feature-name">副本记录</div><div class="commands"><span class="command">副本 服务器 角色</span></div></div>
-                <div class="feature"><div class="feature-name">掉落统计</div><div class="commands"><span class="command">掉落 物品 [服务器] [数量]</span></div></div>
+        <section class="command-section">
+            <header class="command-section__header"><span class="section-index">14</span><h2>系统工具</h2><span class="section-count">8 个触发词</span></header>
+            <div class="command-list">
+                <div class="command-row"><div class="feature-name">维护公告</div><div class="commands"><code class="command">维护 [数量]</code></div></div>
+                <div class="command-row"><div class="feature-name">新闻资讯</div><div class="commands"><code class="command">新闻 [数量]</code></div></div>
+                <div class="command-row"><div class="feature-name">科举答案</div><div class="commands"><code class="command">科举 题目 [条数]</code></div></div>
+                <div class="command-row"><div class="feature-name">大区状态</div><div class="commands"><code class="command">区服</code><code class="command">开服 服务器</code></div></div>
+                <div class="command-row"><div class="feature-name">技改记录</div><div class="commands"><code class="command">技改</code></div></div>
+                <div class="command-row"><div class="feature-name">秘境方位</div><div class="commands"><code class="command">解密</code></div></div>
+                <div class="command-row"><div class="feature-name">掉落统计</div><div class="commands"><code class="command">掉落 物品 [服务器] [数量]</code></div></div>
             </div>
         </section>
 
-        <section class="section">
-            <div class="section-title">杂项功能</div>
-            <div class="section-body">
-                <div class="feature"><div class="feature-name">家园鲜花</div><div class="commands"><span class="command">花价 服务器 [名称] [地图]</span></div></div>
-                <div class="feature"><div class="feature-name">家园装饰</div><div class="commands"><span class="command">装饰 名称</span></div></div>
-                <div class="feature"><div class="feature-name">器物图谱</div><div class="commands"><span class="command">器物 地图名称</span></div></div>
-                <div class="feature"><div class="feature-name">科举答案</div><div class="commands"><span class="command">科举 题目 [条数]</span></div></div>
+        <section class="command-section">
+            <header class="command-section__header"><span class="section-index">15</span><h2>趣味互动</h2><span class="section-count">10 个触发词</span></header>
+            <div class="command-list">
+                <div class="command-row"><div class="feature-name">随机回答</div><div class="commands"><code class="command">答案之书</code><code class="command">喝什么</code><code class="command">吃什么</code></div></div>
+                <div class="command-row"><div class="feature-name">语录生成</div><div class="commands"><code class="command">舔狗语录</code><code class="command">疯狂星期四</code><code class="command">彩虹屁</code><code class="command">毒鸡汤</code><code class="command">朋友圈</code><code class="command">骚话</code><code class="command">渣男语录</code></div></div>
             </div>
         </section>
 
-        <section class="section span-2 section--danger">
-            <div class="section-title">避雷功能</div>
-            <div class="section-body">
-                <div class="feature"><div class="feature-name">避雷添加</div><div class="commands"><span class="command">避雷添加 名称 备注</span></div></div>
-                <div class="feature"><div class="feature-name">避雷查看</div><div class="commands"><span class="command">避雷查看</span></div></div>
-                <div class="feature"><div class="feature-name">避雷查询</div><div class="commands"><span class="command">避雷查询 名称</span></div></div>
-                <div class="feature"><div class="feature-name">避雷修改</div><div class="commands"><span class="command">避雷修改 ID 名称 备注</span></div></div>
-                <div class="feature"><div class="feature-name">避雷删除</div><div class="commands"><span class="command">避雷删除 ID</span></div></div>
+        <section class="command-section">
+            <header class="command-section__header"><span class="section-index">16</span><h2>百度贴吧</h2><span class="section-count">2 个触发词</span></header>
+            <div class="command-list">
+                <div class="command-row"><div class="feature-name">外观记录</div><div class="commands"><code class="command">贴吧物价 名称 [服务器] [数量]</code></div></div>
+                <div class="command-row"><div class="feature-name">贴吧内容</div><div class="commands"><code class="command">818 [服务器] [数量]</code></div></div>
             </div>
         </section>
 
-        <section class="section span-3 section--success push-section">
-            <div class="section-title">推送功能</div>
-            <div class="section-body">
-                <div class="feature"><div class="feature-name">绑定区服</div><div class="commands"><span class="command">绑定区服 [区服]</span><span class="command">解绑区服</span></div></div>
-                <div class="feature"><div class="feature-name">事件总开关</div><div class="commands"><span class="command">事件推送 开启/关闭</span></div></div>
-                <div class="feature"><div class="feature-name">订阅事件</div><div class="commands"><span class="command">事件推送 编号 开启/关闭</span></div></div>
-                <div class="feature"><div class="feature-name">订阅状态</div><div class="commands"><span class="command">事件推送 [状态/列表]</span></div></div>
+        <section class="command-section command-section--success">
+            <header class="command-section__header"><span class="section-index">17</span><h2>插件与推送</h2><span class="section-count">4 个触发词</span></header>
+            <div class="command-list">
+                <div class="command-row"><div class="feature-name">功能帮助</div><div class="commands"><code class="command">功能</code></div></div>
+                <div class="command-row"><div class="feature-name">区服绑定</div><div class="commands"><code class="command">绑定区服 [区服]</code><code class="command">解绑区服</code></div></div>
+                <div class="command-row"><div class="feature-name">事件推送</div><div class="commands"><code class="command">事件推送 [状态/列表]</code><code class="command">事件推送 开启/关闭</code><code class="command">事件推送 编号 开启/关闭</code></div></div>
+            </div>
+        </section>
+
+        <section class="command-section command-section--danger">
+            <header class="command-section__header"><span class="section-index">18</span><h2>避雷功能</h2><span class="section-count">5 个触发词</span></header>
+            <div class="command-list">
+                <div class="command-row"><div class="feature-name">新增记录</div><div class="commands"><code class="command">避雷添加 名称 备注</code></div></div>
+                <div class="command-row"><div class="feature-name">查看记录</div><div class="commands"><code class="command">避雷查看</code></div></div>
+                <div class="command-row"><div class="feature-name">查询记录</div><div class="commands"><code class="command">避雷查询 名称</code></div></div>
+                <div class="command-row"><div class="feature-name">修改记录</div><div class="commands"><code class="command">避雷修改 ID 名称 备注</code></div></div>
+                <div class="command-row"><div class="feature-name">删除记录</div><div class="commands"><code class="command">避雷删除 ID</code></div></div>
             </div>
         </section>
     </main>
 
     <footer class="footer help-footer">
-        指令与参数之间使用空格分隔，带有 <strong>[ ]</strong> 的参数可以省略；会话绑定区服后可省略区服参数，在区服位置填写“全区”可查询全区数据。
+        会话绑定区服后可省略指令中的区服参数；在区服位置填写“全区”可显式查询全区数据。
     </footer>
 </div>

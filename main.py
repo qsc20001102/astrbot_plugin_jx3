@@ -1,5 +1,4 @@
 import inspect
-import re
 from pathlib import Path
 from sys import maxsize
 from typing import cast
@@ -8,15 +7,15 @@ from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api.star import Context, Star, register, StarTools
 from astrbot.api import logger
 from astrbot.api import AstrBotConfig
-from astrbot.api.web import error_response, json_response, request
-
 from .core.sqlite import AsyncSQLiteDB
 from .core.jx3api_data import JX3APIService
 from .core.jx3box_data import JX3BOXService
-from .core.event_push import EVENT_NAMES, EventPushService
+from .core.event_push import EventPushService
 from .core.bilei_data import BiLeidata
 from .core.kungfu_alias import KungfuAliasService
 from .core.server_binding import ServerBindingService
+from .core.session_control import SessionControlService
+from .core.webui import WebUIService
 from .core.message import MessageBuilder
 from .core.fun_basic import load_as_base64
 
@@ -26,7 +25,7 @@ PLUGIN_NAME = "astrbot_plugin_jx3"
 @register("astrbot_plugin_jx3", 
           "fxdyz", 
           "聚合剑网三游戏数据，提供查询、图片渲染、本地避雷和实时事件推送。",
-          "3.4.2",
+          "3.4.3",
           "https://github.com/qsc20001102/astrbot_plugin_jx3"
 )
 class Jx3ApiPlugin(Star):
@@ -49,7 +48,7 @@ class Jx3ApiPlugin(Star):
         # 构造所有类
         self.create_all()
         # 注册插件管理页接口
-        self._register_web_apis(context)
+        self.webui.register(context, PLUGIN_NAME)
 
 
         # 声明指令集
@@ -66,6 +65,7 @@ class Jx3ApiPlugin(Star):
             await self.init_trade_item_cache_data()
             await self.kungfu_alias.initialize()
             await self.server_binding.initialize()
+            await self.session_control.initialize()
 
             # 获取区服目录，用于识别完整参数与区服别名。
             await self.server_binding.update_server_catalog(
@@ -165,11 +165,20 @@ class Jx3ApiPlugin(Star):
             self.local_sql_db,
             self.server_alias_seed_path,
         )
+        self.session_control = SessionControlService(self.local_sql_db)
         self.event_push = EventPushService(
             cast(Context, self.context),
             self.conf,
             self.local_sql_db,
             self.server_binding,
+            self.session_control,
+        )
+        self.webui = WebUIService(
+            self.jx3api,
+            self.event_push,
+            self.server_binding,
+            self.kungfu_alias,
+            self.session_control,
         )
         self.jx3cmd = MessageBuilder(
             self.jx3api,
@@ -278,7 +287,7 @@ class Jx3ApiPlugin(Star):
             "资历排行": self. jx3cmd.zilipaixing,
             "技能": self. jx3cmd.jineng,
             "奇穴": self. jx3cmd.qixue,
-            "聊天": self. jx3cmd.liaotian,
+            "发言": self. jx3cmd.liaotian,
             "统战": self. jx3cmd.tongzhanyy,
             "小药": self. jx3cmd.xiaoyao,
             "骗子": self. jx3cmd.pianzhi,
@@ -493,6 +502,13 @@ class Jx3ApiPlugin(Star):
         event.stop_event()
         event.should_call_llm(True)
 
+        if not self.session_control.is_allowed(event.unified_msg_origin):
+            logger.info(
+                f"会话控制已拦截插件指令：command={cmd}, "
+                f"session={event.unified_msg_origin}"
+            )
+            return
+
         try:
             args = await self._prepare_server_args(handler, event, args)
             ret = await self._call_with_auto_args(handler, event, args)
@@ -526,117 +542,3 @@ class Jx3ApiPlugin(Star):
         """解除当前会话的区服绑定。"""
         await self.server_binding.delete_binding(event.unified_msg_origin)
         await event.send(event.plain_result("当前会话已解除区服绑定。"))
-
-    def _register_web_apis(self, context: Context):
-        routes = (
-            ("dashboard", self.page_dashboard, ["GET"], "读取会话管理数据"),
-            ("bindings/save", self.page_save_binding, ["POST"], "保存会话区服绑定"),
-            ("bindings/delete", self.page_delete_binding, ["POST"], "删除会话区服绑定"),
-            ("aliases/save", self.page_save_aliases, ["POST"], "保存区服别名"),
-            ("aliases/delete", self.page_delete_aliases, ["POST"], "删除区服别名"),
-            ("kungfu/save", self.page_save_kungfu, ["POST"], "保存心法别名"),
-            ("servers/refresh", self.page_refresh_servers, ["POST"], "刷新区服目录"),
-        )
-        for path, handler, methods, description in routes:
-            context.register_web_api(
-                f"/{PLUGIN_NAME}/{path}",
-                handler,
-                methods,
-                description,
-            )
-
-    async def page_dashboard(self):
-        bindings = await self.server_binding.list_bindings()
-        subscriptions = await self.event_push.list_subscription_statuses()
-        aliases = await self.server_binding.list_aliases()
-        kungfu = await self.kungfu_alias.list_kungfu()
-        return json_response(
-            {
-                "bindings": bindings,
-                "subscriptions": subscriptions,
-                "aliases": aliases,
-                "kungfu": kungfu,
-                "servers": self.server_binding.known_servers(),
-                "events": {str(action): name for action, name in EVENT_NAMES.items()},
-            }
-        )
-
-    async def page_save_binding(self):
-        payload = await request.json(default={})
-        if not isinstance(payload, dict):
-            return error_response("请求正文必须是 JSON 对象", status_code=400)
-        try:
-            await self.server_binding.set_binding(
-                str(payload.get("session_id") or ""),
-                str(payload.get("server") or ""),
-            )
-        except ValueError as exc:
-            return error_response(str(exc), status_code=400)
-        return json_response({"saved": True})
-
-    async def page_delete_binding(self):
-        payload = await request.json(default={})
-        session_id = str(payload.get("session_id") or "") if isinstance(payload, dict) else ""
-        if not session_id.strip():
-            return error_response("会话 ID 不能为空", status_code=400)
-        await self.server_binding.delete_binding(session_id)
-        return json_response({"deleted": True})
-
-    async def page_save_aliases(self):
-        payload = await request.json(default={})
-        if not isinstance(payload, dict):
-            return error_response("请求正文必须是 JSON 对象", status_code=400)
-        raw_aliases = payload.get("aliases", [])
-        if isinstance(raw_aliases, str):
-            aliases = re.split(r"[,，;；\n]+", raw_aliases)
-        elif isinstance(raw_aliases, list):
-            aliases = [str(value) for value in raw_aliases]
-        else:
-            return error_response("别名必须是字符串或数组", status_code=400)
-        try:
-            await self.server_binding.set_aliases(
-                str(payload.get("server") or ""),
-                aliases,
-            )
-        except ValueError as exc:
-            return error_response(str(exc), status_code=400)
-        return json_response({"saved": True})
-
-    async def page_delete_aliases(self):
-        payload = await request.json(default={})
-        server = str(payload.get("server") or "") if isinstance(payload, dict) else ""
-        if not server.strip():
-            return error_response("标准区服名不能为空", status_code=400)
-        await self.server_binding.delete_aliases(server)
-        return json_response({"deleted": True})
-
-    async def page_save_kungfu(self):
-        payload = await request.json(default={})
-        if not isinstance(payload, dict):
-            return error_response("请求正文必须是 JSON 对象", status_code=400)
-        raw_aliases = payload.get("aliases", [])
-        if isinstance(raw_aliases, str):
-            aliases = re.split(r"[,，;；\n]+", raw_aliases)
-        elif isinstance(raw_aliases, list):
-            aliases = [str(value) for value in raw_aliases]
-        else:
-            return error_response("别名必须是字符串或数组", status_code=400)
-        try:
-            await self.kungfu_alias.save_aliases(
-                payload.get("pzid"),
-                aliases,
-            )
-        except ValueError as exc:
-            return error_response(str(exc), status_code=400)
-        return json_response({"saved": True})
-
-    async def page_refresh_servers(self):
-        servers = await self.jx3api.server_list()
-        if not servers:
-            return error_response("区服目录刷新失败", status_code=502)
-        await self.server_binding.update_server_catalog(servers)
-        return json_response({"servers": self.server_binding.known_servers()})
-
-
-
-

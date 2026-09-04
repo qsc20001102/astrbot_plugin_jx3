@@ -31,6 +31,18 @@ class KungfuAliasService:
         await self._seed_defaults()
 
     async def _seed_defaults(self):
+        records = self._load_seed_defaults()
+        for values in records:
+            await self.sql.execute(
+                """
+                INSERT OR IGNORE INTO kungfu
+                    (pzid, name, name1, name2, name3, name4, name5)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                values,
+            )
+
+    def _load_seed_defaults(self) -> list[tuple[Any, ...]]:
         try:
             records = json.loads(self.seed_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
@@ -39,21 +51,40 @@ class KungfuAliasService:
         if not isinstance(records, list):
             raise RuntimeError("心法种子数据必须是数组")
 
+        normalized_records: list[tuple[Any, ...]] = []
+        seen_pzids: set[int] = set()
         for record in records:
             if not isinstance(record, dict):
                 continue
             pzid = self._parse_pzid(record.get("pzid"))
+            if pzid in seen_pzids:
+                continue
+            seen_pzids.add(pzid)
             name = self._clean(record.get("name"))
             aliases = self._normalize_aliases(name, record.get("aliases") or [])
             values = [*aliases, *([None] * (self.MAX_ALIASES - len(aliases)))]
-            await self.sql.execute(
+            normalized_records.append((pzid, name, *values))
+        return normalized_records
+
+    async def restore_defaults(self) -> int:
+        """使用随插件分发的 JSON 种子完整重写心法表。"""
+        records = self._load_seed_defaults()
+        statements: list[tuple[str, tuple[Any, ...]]] = [
+            ("DELETE FROM kungfu", ()),
+        ]
+        statements.extend(
+            (
                 """
-                INSERT OR IGNORE INTO kungfu
+                INSERT INTO kungfu
                     (pzid, name, name1, name2, name3, name4, name5)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (pzid, name, *values),
+                values,
             )
+            for values in records
+        )
+        await self.sql.execute_transaction(statements)
+        return len(records)
 
     async def list_kungfu(self) -> list[dict[str, Any]]:
         rows = await self.sql.fetch_all(

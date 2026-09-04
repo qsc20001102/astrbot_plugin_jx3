@@ -37,6 +37,20 @@ class AsyncSQLiteDB:
         async with self.conn.execute(sql, params):
             await self.conn.commit()
 
+    async def execute_transaction(
+        self,
+        statements: List[Tuple[str, Tuple[Any, ...]]],
+    ):
+        """在同一事务内顺序执行多条参数化 SQL。"""
+        await self.conn.execute("BEGIN IMMEDIATE")
+        try:
+            for sql, params in statements:
+                await self.conn.execute(sql, params)
+            await self.conn.commit()
+        except Exception:
+            await self.conn.rollback()
+            raise
+
     async def fetch_one(self, sql: str, params: Tuple = ()) -> Optional[Dict[str, Any]]:
         async with self.conn.execute(sql, params) as cursor:
             row = await cursor.fetchone()

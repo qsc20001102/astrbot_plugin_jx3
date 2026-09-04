@@ -486,7 +486,7 @@ class MessageBuilder:
         return await self.T2I_image_msg(event, lambda: self.jx3api.qixue(name,0))
 
     async def  liaotian(self, event: AstrMessageEvent, server:str, name: str, limit:int = 20, page:int = 1):
-        """ 聊天 服务器 角色 条数 页数"""
+        """ 发言 服务器 角色 条数 页数"""
         return await self.T2I_image_msg(event, lambda: self.jx3api.juesheliaotian(server,name,limit,page))
 
     async def  tongzhanyy(self, event: AstrMessageEvent, server: str = ""):
