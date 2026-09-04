@@ -192,7 +192,7 @@ class MessageBuilder:
             await event.send(event.plain_result("猪脑过载，请稍后再试"))
 
 
-    async def handler_plain_image_msg(self, event: AstrMessageEvent, action1, action2, result_handler=None, timeout: int = 10):
+    async def handler_plain_image_msg(self, event: AstrMessageEvent, action1, action2, result_handler=None, timeout: int = 15):
         """通用两轮会话：首轮数字键值对裁剪后交给次轮函数。"""
         try:
             option_map = await action1()
@@ -205,7 +205,7 @@ class MessageBuilder:
                 await event.send(event.plain_result("选项序号格式异常"))
                 return
 
-            menu_lines = ["请选择序号"]
+            menu_lines = [f"请选择序号（{timeout}后自动选择第一条）"]
             menu_lines.extend(
                 f"{key}、{label}"
                 for key, label in options.items()
