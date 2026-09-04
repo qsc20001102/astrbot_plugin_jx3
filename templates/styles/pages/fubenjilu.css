@@ -4,7 +4,7 @@
         align-items: center;
         gap: 24px;
         margin-bottom: 20px;
-        font-size: 14px;
+        font-size: 18px;
         color: var(--jx3-text-secondary);
     }
 
@@ -30,7 +30,7 @@
 
     .map-name {
         color: var(--jx3-text);
-        font-size: 18px;
+        font-size: 20px;
         font-weight: 700;
         line-height: 1.5;
     }
@@ -38,7 +38,7 @@
     .map-progress {
         margin-top: 7px;
         color: var(--jx3-text-muted);
-        font-size: 13px;
+        font-size: 18px;
         font-weight: 500;
     }
 
@@ -71,9 +71,9 @@
      * 奖励已经获取，显示灰色
      */
     .boss-item.finished {
-        color: #d5e0e9;
-        background: #24384b;
-        border: 1px solid #60788f;
+        color: #3f5263;
+        background: #e5eaee;
+        border: 1px solid #8696a4;
     }
 
     .boss-item.finished:hover {
@@ -85,8 +85,8 @@
      * 奖励尚未获取，显示绿色
      */
     .boss-item.unfinished {
-        color: #c8f3dc;
-        background: #183f34;
+        color: #165b3b;
+        background: #e1f2e9;
         border: 1px solid #438d68;
     }
 
@@ -98,7 +98,7 @@
         position: absolute;
         top: 6px;
         right: 8px;
-        font-size: 11px;
+        font-size: 17px;
         font-weight: 700;
         opacity: 0.65;
     }
@@ -106,7 +106,7 @@
     .boss-name {
         padding-right: 18px;
         overflow: hidden;
-        font-size: 15px;
+        font-size: 19px;
         font-weight: 700;
         line-height: 1.4;
         text-overflow: ellipsis;
@@ -119,7 +119,7 @@
         justify-content: center;
         gap: 5px;
         margin-top: 6px;
-        font-size: 12px;
+        font-size: 18px;
         font-weight: 500;
     }
 
@@ -130,25 +130,25 @@
         width: 16px;
         height: 16px;
         border-radius: 50%;
-        font-size: 11px;
+        font-size: 17px;
         font-weight: 800;
     }
 
     .boss-item.finished .status-icon {
-        color: #e7eef4;
-        background: rgba(192, 211, 226, 0.16);
+        color: #304352;
+        background: #d2dbe2;
     }
 
     .boss-item.unfinished .status-icon {
-        color: #d7f8e6;
-        background: rgba(98, 188, 146, 0.18);
+        color: #155b3a;
+        background: #c8e7d7;
     }
 
     .empty-data {
         padding: 50px 20px;
         color: var(--jx3-text-muted);
         text-align: center;
-        background: rgba(13, 41, 66, 0.82);
+        background: var(--jx3-surface);
         border: 1px solid var(--jx3-border-faint);
         border-radius: 12px;
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);

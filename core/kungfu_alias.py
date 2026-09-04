@@ -73,17 +73,21 @@ class KungfuAliasService:
             for row in rows
         ]
 
-    async def save(self, pzid: Any, name: Any, aliases: Iterable[Any]):
+    async def save_aliases(self, pzid: Any, aliases: Iterable[Any]):
+        """只更新已有心法的别名，不允许修改 ID 和标准名称。"""
         normalized_pzid = self._parse_pzid(pzid)
-        normalized_name = self._clean(name)
-        if not normalized_name:
-            raise ValueError("标准心法名不能为空")
-        if len(normalized_name) > 64:
-            raise ValueError("标准心法名过长")
+        rows = await self.list_kungfu()
+        current = next(
+            (row for row in rows if row["pzid"] == normalized_pzid),
+            None,
+        )
+        if current is None:
+            raise ValueError("心法不存在")
 
+        normalized_name = current["name"]
         normalized_aliases = self._normalize_aliases(normalized_name, aliases)
         occupied: dict[str, str] = {}
-        for row in await self.list_kungfu():
+        for row in rows:
             if row["pzid"] == normalized_pzid:
                 continue
             for value in [row["name"], *row["aliases"]]:
@@ -100,17 +104,11 @@ class KungfuAliasService:
         ]
         await self.sql.execute(
             """
-            INSERT INTO kungfu (pzid, name, name1, name2, name3, name4, name5)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(pzid) DO UPDATE SET
-                name=excluded.name,
-                name1=excluded.name1,
-                name2=excluded.name2,
-                name3=excluded.name3,
-                name4=excluded.name4,
-                name5=excluded.name5
+            UPDATE kungfu
+            SET name1=?, name2=?, name3=?, name4=?, name5=?
+            WHERE pzid=?
             """,
-            (normalized_pzid, normalized_name, *values),
+            (*values, normalized_pzid),
         )
 
     def _normalize_aliases(self, name: str, aliases: Iterable[Any]) -> list[str]:

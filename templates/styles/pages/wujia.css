@@ -7,7 +7,7 @@
     }
 
     .goods-desc {
-        font-size: 16px;
+        font-size: 20px;
         line-height: 1.8;
         color: var(--jx3-text-secondary);
         margin: 0 0 10px;
@@ -20,7 +20,7 @@
         align-items: center;
         flex-wrap: wrap;
         gap: 20px 40px;
-        font-size: 18px;
+        font-size: 20px;
         margin-bottom: 30px;
         color: var(--jx3-text-muted);
     }
@@ -43,7 +43,7 @@
     }
 
     .table-title {
-        font-size: 20px;
+        font-size: 22px;
         font-weight: 700;
         margin-bottom: 8px;
         text-align: center;
@@ -75,7 +75,7 @@
     }
 
     .table-card.notice thead {
-        background: rgba(63, 111, 153, 0.78);
+        background: #dcebf6;
     }
 
     /* ===== 万宝楼在售（绿色） ===== */
@@ -86,7 +86,7 @@
     }
 
     .table-card.sale thead {
-        background: rgba(43, 111, 82, 0.78);
+        background: #dcefe5;
     }
 
     /* ===== 查询区服（紫色） ===== */
@@ -97,5 +97,5 @@
     }
 
     .table-card.query thead {
-        background: rgba(90, 67, 126, 0.8);
+        background: #e9e0f3;
     }

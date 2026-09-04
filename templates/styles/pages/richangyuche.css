@@ -8,7 +8,7 @@
 /* 表头 */
 .week {
     text-align: center;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 700;
     color: var(--jx3-text-secondary);
 }
@@ -24,17 +24,18 @@
 
 /* 状态样式 */
 .card.past {
-    background: rgba(71, 91, 108, 0.72);
-    color: var(--jx3-text-secondary);
+    background: #e2e7eb;
+    color: #4d5d6b;
 }
 
 .card.today {
-    background: rgba(53, 113, 165, 0.9);
-    color: var(--jx3-text);
+    background: #d9ebf8;
+    color: #123e60;
+    border: 2px solid #397aab;
 }
 
 .card.future {
-    background: rgba(13, 41, 66, 0.82);
+    background: var(--jx3-surface);
     color: var(--jx3-text);
     border: 1px solid var(--jx3-border-faint);
 }
@@ -46,6 +47,6 @@
 }
 
 .line {
-    font-size: 16px;
+    font-size: 20px;
     margin-top: 6px;
 }

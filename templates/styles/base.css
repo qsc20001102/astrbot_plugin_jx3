@@ -11,20 +11,18 @@ body {
 }
 
 body.jx3-template {
-    min-width: calc(var(--jx3-page-width) + 94px);
-    padding: 20px;
+    min-width: calc(var(--jx3-page-width) + 64px);
+    padding: 12px;
     color: var(--jx3-text);
     font-family: var(--jx3-font);
-    font-size: 16px;
-    line-height: 1.6;
+    font-size: var(--jx3-font-size);
+    line-height: 1.65;
     background-color: var(--jx3-bg);
     background-image:
-        radial-gradient(circle at 50% -10%, rgba(67, 111, 150, 0.34), transparent 38%),
-        linear-gradient(180deg, rgba(4, 17, 29, 0.18), rgba(4, 17, 29, 0.72)),
-        url("{{ icons.img.get('bg', '') }}");
-    background-repeat: no-repeat, no-repeat, repeat;
-    background-size: 100% 560px, 100% 100%, 540px 316px;
-    background-blend-mode: screen, normal, multiply;
+        radial-gradient(circle at 50% -10%, rgba(190, 145, 63, 0.18), transparent 40%),
+        linear-gradient(180deg, #f8fafb 0, var(--jx3-bg) 520px);
+    background-repeat: no-repeat, no-repeat;
+    background-size: 100% 560px, 100% 100%;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
 }
@@ -32,13 +30,13 @@ body.jx3-template {
 .jx3-frame {
     position: relative;
     width: 100%;
-    min-height: calc(100vh - 40px);
-    padding: 26px;
+    min-height: calc(100vh - 24px);
+    padding: 18px;
     border: 1px solid var(--jx3-border-strong);
-    background: rgba(4, 17, 29, 0.2);
+    background: rgba(255, 255, 255, 0.72);
     box-shadow:
-        inset 0 0 0 3px rgba(4, 17, 29, 0.9),
-        inset 0 0 0 4px rgba(203, 160, 78, 0.2),
+        inset 0 0 0 3px rgba(255, 255, 255, 0.9),
+        inset 0 0 0 4px rgba(126, 83, 27, 0.18),
         var(--jx3-shadow-md);
 }
 
@@ -74,7 +72,7 @@ body.jx3-template {
     .data-header,
     .collection-section
 ) {
-    width: var(--jx3-page-width);
+    width: min(100%, calc(var(--jx3-page-width) + 240px));
     max-width: none;
     margin-right: auto;
     margin-left: auto;
@@ -88,12 +86,12 @@ body.jx3-template {
 .jx3-template h1 {
     margin: 0 0 var(--jx3-space-6);
     color: var(--jx3-text);
-    font-size: 34px;
+    font-size: 42px;
     line-height: 1.25;
     font-weight: 800;
     letter-spacing: 0.06em;
     text-align: center;
-    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.32);
+    text-shadow: none;
 }
 
 .jx3-template h2,

@@ -26,7 +26,7 @@ PLUGIN_NAME = "astrbot_plugin_jx3"
 @register("astrbot_plugin_jx3", 
           "fxdyz", 
           "聚合剑网三游戏数据，提供查询、图片渲染、本地避雷和实时事件推送。",
-          "3.4.1",
+          "3.4.2",
           "https://github.com/qsc20001102/astrbot_plugin_jx3"
 )
 class Jx3ApiPlugin(Star):
@@ -177,6 +177,7 @@ class Jx3ApiPlugin(Star):
             self.bilei,
             self.event_push,
             self.icons,
+            self.conf.get("image_render_quality", {}),
         )
 
 
@@ -244,24 +245,11 @@ class Jx3ApiPlugin(Star):
             "战绩": self. jx3cmd.zhanji,
             "名剑排行": self. jx3cmd.mingjianpaihang,
             "名剑统计": self. jx3cmd.mingjiantongji,
-            "名士五十强": self. jx3cmd.mingshiwushiqiang,
-            "老江湖五十强": self. jx3cmd.laojianghuwushiqiang,
-            "兵甲藏家五十强": self. jx3cmd.bingjiacangjiawushiqiang,
-            "名师五十强": self. jx3cmd.mingshiwushiqiang_mentor,
-            "阵营英雄五十强": self. jx3cmd.zhengyingyingxiongwushiqiang,
-            "薪火相传五十强": self. jx3cmd.xinhuoxiangchuanwushiqiang,
-            "庐园广记一百强": self. jx3cmd.luyuanguangjiyibaiqiang,
-            "浩气神兵宝甲五十强": self. jx3cmd.haoqishenbingbaojiawushiqiang,
-            "恶人神兵宝甲五十强": self. jx3cmd.erenshenbingbaojiawushiqiang,
-            "浩气爱心帮会五十强": self. jx3cmd.haoqiaixinbanghuiwushiqiang,
-            "恶人爱心帮会五十强": self. jx3cmd.erenaixinbanghuiwushiqiang,
-            "赛季恶人五十强": self. jx3cmd.saijierenwushiqiang,
-            "赛季浩气五十强": self. jx3cmd.saijihaoqiwushiqiang,
-            "上周恶人五十强": self. jx3cmd.shangzhouerenwushiqiang,
-            "上周浩气五十强": self. jx3cmd.shangzhouhaoqiwushiqiang,
-            "本周恶人五十强": self. jx3cmd.benzhouerenwushiqiang,
-            "本周浩气五十强": self. jx3cmd.benzhouhaoqiwushiqiang,
+            "帮会排行": self. jx3cmd.banghuipaihang,
+            "阵营排行": self. jx3cmd.zhenyingpaihang,
+            "其他排行": self. jx3cmd.qitapaihang,
             "试炼排行": self. jx3cmd.shilianpaixing,
+            "资历": self. jx3cmd.zili,
             "阵营拍卖": self. jx3cmd.zhengyingpaimai,
             "的卢": self. jx3cmd.dilujilu,
             "金价": self. jx3cmd.jinjia,
@@ -321,16 +309,16 @@ class Jx3ApiPlugin(Star):
             "开服": self. jx3cmd.kaifu,
             "技改": self. jx3cmd.jigai,
             "解密": self. jx3cmd.jiemi,
-            "副本": self. jx3cmd.fubeng,
             "掉落": self. jx3cmd.diaoluo,
 
             "宏": self. jx3cmd.hong,
-            "资历": self. jx3cmd.zili,
             "交易行": self. jx3cmd.jiaoyihang,
 
             "绑定区服": self.bind_server,
             "解绑区服": self.unbind_server,
+            
             "事件推送": self.jx3cmd.shijian_tuisong,
+
             "避雷添加": self.jx3cmd.bilei_add,
             "避雷查看": self.jx3cmd.bilei_all,
             "避雷查询": self.jx3cmd.bilei_select,
@@ -634,9 +622,8 @@ class Jx3ApiPlugin(Star):
         else:
             return error_response("别名必须是字符串或数组", status_code=400)
         try:
-            await self.kungfu_alias.save(
+            await self.kungfu_alias.save_aliases(
                 payload.get("pzid"),
-                payload.get("name"),
                 aliases,
             )
         except ValueError as exc:
@@ -649,9 +636,6 @@ class Jx3ApiPlugin(Star):
             return error_response("区服目录刷新失败", status_code=502)
         await self.server_binding.update_server_catalog(servers)
         return json_response({"servers": self.server_binding.known_servers()})
-
-
-
 
 
 

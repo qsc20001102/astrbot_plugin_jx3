@@ -6,7 +6,7 @@
         display: flex;
         gap: 18px;
         margin-top: 10px;
-        font-size: 15px;
+        font-size: 19px;
         color: var(--jx3-text-muted);
     }
 
@@ -15,7 +15,7 @@
         height: 34px;
         border-radius: 6px;
         flex: 0 0 auto;
-        background: rgba(7, 26, 43, 0.6);
+        background: var(--jx3-surface-muted);
     }
 
     .item-name {
@@ -56,6 +56,6 @@
 
     .time {
         color: var(--jx3-text-muted);
-        font-size: 14px;
+        font-size: 18px;
         white-space: nowrap;
     }

@@ -14,7 +14,7 @@
         align-items: center;
         gap: 10px;
         color: #565d70;
-        font-size: 16px;
+        font-size: 18px;
         white-space: nowrap;
     }
 
@@ -28,7 +28,7 @@
     .meta {
         margin-top: 12px;
         color: #7a7f99;
-        font-size: 15px;
+        font-size: 18px;
         line-height: 1.7;
     }
 
@@ -46,13 +46,13 @@
     }
 
     .summary-name {
-        font-size: 24px;
+        font-size: 28px;
         font-weight: 800;
         color: #222;
     }
 
     .summary-percent {
-        font-size: 34px;
+        font-size: 38px;
         line-height: 1;
         font-weight: 900;
         color: #d93939;
@@ -62,7 +62,7 @@
     .score {
         margin-top: 8px;
         color: #656d80;
-        font-size: 15px;
+        font-size: 18px;
         font-variant-numeric: tabular-nums;
     }
 
@@ -96,7 +96,7 @@
 
     .item-name {
         min-width: 0;
-        font-size: 17px;
+        font-size: 19px;
         font-weight: 800;
         color: #303543;
         word-break: break-word;
@@ -104,12 +104,12 @@
 
     .item-percent {
         color: #d93939;
-        font-size: 18px;
+        font-size: 20px;
         font-weight: 900;
         white-space: nowrap;
         font-variant-numeric: tabular-nums;
     }
 
     .item .score {
-        font-size: 14px;
+        font-size: 18px;
     }

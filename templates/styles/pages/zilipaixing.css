@@ -3,7 +3,7 @@
      */
     .rank-col {
         color: #d93939;
-        font-size: 18px;
+        font-size: 20px;
         font-weight: 800;
         white-space: nowrap;
     }
@@ -38,7 +38,7 @@
         width: 100%;
         min-width: 0;
         color: var(--jx3-text);
-        font-size: 17px;
+        font-size: 19px;
         font-weight: 700;
         white-space: nowrap;
     }
@@ -68,7 +68,7 @@
         padding-left: 10px;
         padding-right: 10px;
         color: var(--jx3-text);
-        font-size: 17px;
+        font-size: 19px;
         font-weight: 600;
     }
 
@@ -79,7 +79,7 @@
         padding-left: 8px;
         padding-right: 8px;
         color: var(--jx3-text-secondary);
-        font-size: 17px;
+        font-size: 19px;
     }
 
     /*
@@ -89,7 +89,7 @@
         padding-left: 6px;
         padding-right: 10px;
         color: #d93939;
-        font-size: 18px;
+        font-size: 20px;
         font-weight: 800;
         white-space: nowrap;
         font-variant-numeric: tabular-nums;

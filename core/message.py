@@ -1,5 +1,6 @@
 from typing import Any
 
+from aiocqhttp.exceptions import ActionFailed
 from astrbot.core import html_renderer
 from astrbot.api import logger
 from astrbot.api.event import AstrMessageEvent, MessageChain
@@ -16,18 +17,67 @@ from .bilei_data import BiLeidata
 
 class MessageBuilder:
     """回复消息构建"""
+
+    _RENDER_FORMATS = {"jpeg", "png"}
+    _DEVICE_SCALE_FACTOR_LEVELS = {
+        1.0: "normal",
+        1.3: "high",
+        1.8: "ultra",
+    }
     def __init__(self, 
                  jx3api: JX3APIService, 
                  jx3box: JX3BOXService,  
                  bilei: BiLeidata, 
                  event_push: EventPushService,
-                 icons: dict[str, dict[str, str]]
+                 icons: dict[str, dict[str, str]],
+                 render_config: dict[str, Any] | None = None,
             ):
         self.jx3api = jx3api
         self.jx3box = jx3box
         self.bilei = bilei
         self.event_push = event_push
         self.icons = icons
+        self.render_config = render_config if isinstance(render_config, dict) else {}
+
+
+    def _build_render_options(
+        self,
+        overrides: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """根据插件配置构造 AstrBot HTML 截图参数。"""
+        image_format = str(self.render_config.get("format", "jpeg")).lower()
+        if image_format not in self._RENDER_FORMATS:
+            image_format = "jpeg"
+
+        try:
+            device_scale_factor = float(
+                self.render_config.get("device_scale_factor", 1.3)
+            )
+        except (TypeError, ValueError):
+            device_scale_factor = 1.3
+        scale_factor_level = self._DEVICE_SCALE_FACTOR_LEVELS.get(
+            device_scale_factor,
+            "high",
+        )
+
+        try:
+            jpeg_quality = int(self.render_config.get("jpeg_quality", 100))
+        except (TypeError, ValueError):
+            jpeg_quality = 100
+        jpeg_quality = max(1, min(100, jpeg_quality))
+
+        options: dict[str, Any] = {
+            "quality": jpeg_quality,
+            "device_scale_factor_level": scale_factor_level,
+            "scale": "device",
+            "full_page": True,
+            "omit_background": False,
+            "type": image_format,
+        }
+        options.update(overrides or {})
+        if options.get("type") == "png":
+            options.pop("quality", None)
+        return options
 
 
     async def html_render(
@@ -42,7 +92,7 @@ class MessageBuilder:
             tmpl,
             data,
             return_url=return_url,
-            options=options,
+            options=self._build_render_options(options),
         )
     
 
@@ -56,7 +106,7 @@ class MessageBuilder:
                 await event.send(event.plain_result(data["msg"])) 
         except Exception as e:
             logger.error(f"功能函数执行错误: {e}")
-            await event.send(event.plain_result("猪脑过载，请稍后再试")) 
+            await event.send(event.plain_result("猪脑过载，请稍后再试"))
 
 
     async def T2I_image_msg(
@@ -69,22 +119,25 @@ class MessageBuilder:
         data = await action()
         try:
             if data["code"] == 200:
-                options = {
-                    "quality": 100,
-                    "device_scale_factor_level": "normal",
-                    "full_page": True,
-                    "omit_background": False,
-                    "type": "jpeg"
-                }
-                options.update(render_options or {})
-                if options.get("type") == "png":
-                    options.pop("quality", None)
                 data["data"]["icons"] = self.icons
-                url = await self.html_render(data["temp"], data["data"], options=options)
+                url = await self.html_render(
+                    data["temp"],
+                    data["data"],
+                    options=render_options,
+                )
                 await event.send(event.image_result(url)) 
             else:
                 await event.send(event.plain_result(data["msg"])) 
 
+        except ActionFailed as e:
+            if e.retcode == 1200:
+                logger.warning(
+                    "图片消息发送回执超时，消息可能已经成功送达，"
+                    "不再发送错误提示。"
+                )
+                return
+            logger.error(f"功能函数执行错误: {e}")
+            await event.send(event.plain_result("猪脑过载，请稍后再试"))
         except Exception as e:
             logger.error(f"功能函数执行错误: {e}")
             await event.send(event.plain_result("猪脑过载，请稍后再试"))
@@ -131,7 +184,7 @@ class MessageBuilder:
             if data.get("data"):
                 chain.message(str(data["data"]))
             if data.get("temp"):
-                url = await self.html_render(data["temp"], {}, options={})
+                url = await self.html_render(data["temp"], {})
                 chain.url_image(url)
             await event.send(chain)
         except Exception as e:
@@ -191,6 +244,9 @@ class MessageBuilder:
                     controller.stop()
                     return
 
+                # 已取得有效选择，先结束等待计时，再执行可能超过 timeout 的
+                # API 请求与图片渲染，避免超时分支重复发送默认第一项。
+                controller.stop()
                 try:
                     await send_selected(
                         new_event,
@@ -199,8 +255,6 @@ class MessageBuilder:
                 except Exception as e:
                     logger.error(f"二轮查询执行错误: {e}")
                     await new_event.send(MessageChain().message("猪脑过载，请稍后再试"))
-
-                controller.stop()
 
             try:
                 await option_select_waiter(event)
@@ -291,73 +345,29 @@ class MessageBuilder:
         """ 名剑统计 模式"""
         return await self.T2I_image_msg(event, lambda: self.jx3api.mingjiantongji(mode))
 
-    async def  mingshiwushiqiang(self, event: AstrMessageEvent, server: str):
-        """ 名士五十强 服务器"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.rank_statistical("名士五十强", server))
+    async def banghuipaihang(self, event: AstrMessageEvent, server: str):
+        """帮会排行 服务器。"""
+        return await self.handler_plain_image_msg(
+            event,
+            lambda: self.jx3api.banghui_rank_menu(),
+            lambda selected: self.jx3api.rank_statistical_select(server,selected,),
+        )
 
-    async def  laojianghuwushiqiang(self, event: AstrMessageEvent, server: str):
-        """ 老江湖五十强 服务器"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.rank_statistical("老江湖五十强", server))
+    async def zhenyingpaihang(self, event: AstrMessageEvent, server: str):
+        """阵营排行 服务器。"""
+        return await self.handler_plain_image_msg(
+            event,
+            lambda: self.jx3api.zhenying_rank_menu(),
+            lambda selected: self.jx3api.rank_statistical_select(server,selected,),
+        )
 
-    async def  bingjiacangjiawushiqiang(self, event: AstrMessageEvent, server: str):
-        """ 兵甲藏家五十强 服务器"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.rank_statistical("兵甲藏家五十强", server))
-
-    async def  mingshiwushiqiang_mentor(self, event: AstrMessageEvent, server: str):
-        """ 名师五十强 服务器"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.rank_statistical("名师五十强", server))
-
-    async def  zhengyingyingxiongwushiqiang(self, event: AstrMessageEvent, server: str):
-        """ 阵营英雄五十强 服务器"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.rank_statistical("阵营英雄五十强", server))
-
-    async def  xinhuoxiangchuanwushiqiang(self, event: AstrMessageEvent, server: str):
-        """ 薪火相传五十强 服务器"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.rank_statistical("薪火相传五十强", server))
-
-    async def  luyuanguangjiyibaiqiang(self, event: AstrMessageEvent, server: str):
-        """ 庐园广记一百强 服务器"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.rank_statistical("庐园广记一百强", server))
-
-    async def  haoqishenbingbaojiawushiqiang(self, event: AstrMessageEvent, server: str):
-        """ 浩气神兵宝甲五十强 服务器"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.rank_statistical("浩气神兵宝甲五十强", server))
-
-    async def  erenshenbingbaojiawushiqiang(self, event: AstrMessageEvent, server: str ):
-        """ 恶人神兵宝甲五十强 服务器"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.rank_statistical("恶人神兵宝甲五十强", server))
-
-    async def  haoqiaixinbanghuiwushiqiang(self, event: AstrMessageEvent, server: str ):
-        """ 浩气爱心帮会五十强 服务器"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.rank_statistical("浩气爱心帮会五十强", server))
-
-    async def  erenaixinbanghuiwushiqiang(self, event: AstrMessageEvent, server: str ):
-        """ 恶人爱心帮会五十强 服务器"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.rank_statistical("恶人爱心帮会五十强", server))
-
-    async def  saijierenwushiqiang(self, event: AstrMessageEvent, server: str):
-        """ 赛季恶人五十强 服务器"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.rank_statistical("赛季恶人五十强", server))
-
-    async def  saijihaoqiwushiqiang(self, event: AstrMessageEvent, server: str ):
-        """ 赛季浩气五十强 服务器"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.rank_statistical("赛季浩气五十强", server))
-
-    async def  shangzhouerenwushiqiang(self, event: AstrMessageEvent, server: str ):
-        """ 上周恶人五十强 服务器"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.rank_statistical("上周恶人五十强", server))
-
-    async def  shangzhouhaoqiwushiqiang(self, event: AstrMessageEvent, server: str ):
-        """ 上周浩气五十强 服务器"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.rank_statistical("上周浩气五十强", server))
-
-    async def  benzhouerenwushiqiang(self, event: AstrMessageEvent, server: str ):
-        """ 本周恶人五十强 服务器"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.rank_statistical("本周恶人五十强", server))
-
-    async def  benzhouhaoqiwushiqiang(self, event: AstrMessageEvent, server: str ):
-        """ 本周浩气五十强 服务器"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.rank_statistical("本周浩气五十强", server))
+    async def qitapaihang(self, event: AstrMessageEvent, server: str):
+        """其他排行 服务器。"""
+        return await self.handler_plain_image_msg(
+            event,
+            lambda: self.jx3api.qita_rank_menu(),
+            lambda selected: self.jx3api.rank_statistical_select(server,selected,),
+        )
 
     async def  shilianpaixing(self, event: AstrMessageEvent, server: str , name: str):
         """ 试炼排行 服务器 心法 """

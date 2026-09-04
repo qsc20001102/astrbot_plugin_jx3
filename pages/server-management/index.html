@@ -76,17 +76,9 @@
       </section>
 
       <section class="panel" id="aliases-panel" role="tabpanel" hidden>
-        <form class="editor editor--aliases" id="alias-form">
-          <label>
-            <span>标准区服名</span>
-            <input id="alias-server" name="server" maxlength="64" list="server-options" placeholder="例如：梦江南" required />
-          </label>
-          <label>
-            <span>别名（多个别名用逗号分隔）</span>
-            <input id="alias-values" name="aliases" placeholder="例如：梦江、梦江南服、MJ" />
-          </label>
-          <button class="button button--primary" type="submit">保存别名</button>
-        </form>
+        <div class="section-intro">
+          <div><h2>区服别名</h2><p>标准区服名称为只读；点击对应行的“编辑”可修改别名。</p></div>
+        </div>
         <div class="table-wrap">
           <table>
             <thead><tr><th>标准区服名</th><th>别名</th><th class="actions">操作</th></tr></thead>
@@ -96,24 +88,12 @@
       </section>
 
       <section class="panel" id="kungfu-panel" role="tabpanel" hidden>
-        <form class="editor editor--kungfu" id="kungfu-form">
-          <label>
-            <span>心法 ID（JX3BOX 配装 ID）</span>
-            <input id="kungfu-pzid" name="pzid" type="number" min="1" step="1" placeholder="例如：10014" required />
-          </label>
-          <label>
-            <span>标准心法名</span>
-            <input id="kungfu-name" name="name" maxlength="64" placeholder="例如：紫霞功" required />
-          </label>
-          <label>
-            <span>别名（最多 5 个，用逗号分隔）</span>
-            <input id="kungfu-aliases" name="aliases" placeholder="例如：气纯、紫霞" />
-          </label>
-          <button class="button button--primary" type="submit">保存心法</button>
-        </form>
+        <div class="section-intro">
+          <div><h2>心法别名</h2><p>标准心法名称为只读；点击对应行的“编辑”可修改最多 5 个别名。</p></div>
+        </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>心法 ID</th><th>标准心法名</th><th>别名</th><th class="actions">操作</th></tr></thead>
+            <thead><tr><th>标准心法名</th><th>别名</th><th class="actions">操作</th></tr></thead>
             <tbody id="kungfu-body"></tbody>
           </table>
         </div>

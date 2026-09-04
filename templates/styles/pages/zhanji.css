@@ -9,13 +9,13 @@
 }
 
 .role-name {
-    font-size: 40px;
+    font-size: 44px;
     font-weight: bold;
 }
 
 .sub-info {
     margin-top: 6px;
-    font-size: 22px;
+    font-size: 25px;
 }
 
 /* ===== 头像 + 核心数据 ===== */
@@ -57,12 +57,12 @@
 }
 
 .stat-title {
-    font-size: 26px;
+    font-size: 30px;
     color: var(--jx3-text-muted);
 }
 
 .stat-value {
-    font-size: 36px;
+    font-size: 40px;
     margin-top: 8px;
     font-weight: bold;
 }
@@ -89,6 +89,6 @@
 }
 
 .time-col {
-    font-size: 16px;
+    font-size: 18px;
     font-variant-numeric: tabular-nums;
 }

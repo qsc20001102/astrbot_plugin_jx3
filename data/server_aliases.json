@@ -3,5 +3,15 @@
   {"server": "唯我独尊", "aliases": ["唯满侠"]},
   {"server": "乾坤一掷", "aliases": ["华乾"]},
   {"server": "剑胆琴心", "aliases": ["煎蛋"]},
-  {"server": "斗转星移", "aliases": ["姨妈"]}
+  {"server": "斗转星移", "aliases": ["姨妈"]},
+  {"server": "蝶恋花", "aliases": []},
+  {"server": "飞龙在天", "aliases": []},
+  {"server": "绝代天骄", "aliases": []},
+  {"server": "龙争虎斗", "aliases": []},
+  {"server": "眉间雪", "aliases": []},
+  {"server": "破阵子", "aliases": []},
+  {"server": "山海相逢", "aliases": []},
+  {"server": "天鹅坪", "aliases": []},
+  {"server": "幽月轮", "aliases": []},
+  {"server": "长安城", "aliases": []}
 ]

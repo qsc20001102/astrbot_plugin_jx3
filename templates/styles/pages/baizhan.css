@@ -11,13 +11,13 @@
     }
 
     .time {
-        font-size: 18px;
+        font-size: 20px;
         font-weight: 600;
         color: var(--jx3-text-secondary);
     }
 
     .boss-final {
-        font-size: 22px;
+        font-size: 24px;
         font-weight: 800;
         color: #d63031;
     }
@@ -47,7 +47,7 @@
 
     .index {
         font-weight: bold;
-        font-size: 18px;
+        font-size: 20px;
         color: var(--jx3-text);
         margin-bottom: 4px;
     }
@@ -55,13 +55,13 @@
     .boss {
         color: #d63031;
         font-weight: 700;
-        font-size: 16px;
+        font-size: 18px;
         margin-bottom: 6px;
     }
 
     .buff {
         color: var(--jx3-blue);
-        font-size: 14px;
+        font-size: 18px;
         line-height: 1.5em;
         word-break: break-word;
     }

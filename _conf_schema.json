@@ -40,5 +40,43 @@
     "type": "string",
     "default": "",
     "hint": "用于付费事件推送，不填写只推送免费事件。"
+  },
+  "image_render_quality": {
+    "description": "图片渲染质量",
+    "type": "object",
+    "items": {
+      "device_scale_factor": {
+        "description": "渲染清晰度",
+        "type": "string",
+        "options": [
+          "1.0",
+          "1.3",
+          "1.8"
+        ],
+        "default": "1.3",
+        "hint": "数值越高越清晰，同时图片更大、渲染耗时更多。"
+      },
+      "format": {
+        "description": "输出格式",
+        "type": "string",
+        "options": [
+          "jpeg",
+          "png"
+        ],
+        "default": "jpeg",
+        "hint": "JPEG 文件通常更小；PNG 为无损格式但文件更大。透明背景的特殊页面仍会自动使用 PNG。"
+      },
+      "jpeg_quality": {
+        "description": "JPEG 质量",
+        "type": "int",
+        "default": 100,
+        "slider": {
+          "min": 1,
+          "max": 100,
+          "step": 1
+        },
+        "hint": "仅输出格式为 JPEG 时生效；数值越高细节越完整，文件也越大。"
+      }
+    }
   }
 }

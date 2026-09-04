@@ -15,7 +15,62 @@ from .sqlite import AsyncSQLiteDB
 from .fun_basic import load_template,gold_to_parts,week_to_num,compare_date_str,format_time,format_remaining
 
 
+ROLE_RANK_NAMES = {
+    "名士五十强",
+    "老江湖五十强",
+    "兵甲藏家五十强",
+    "名师五十强",
+    "阵营英雄五十强",
+    "薪火相传五十强",
+    "庐园广记一百强",
+}
+TONG_RANK_NAMES0 = {
+    "赛季恶人五十强",
+    "赛季浩气五十强",
+    "本周恶人五十强",
+    "本周浩气五十强",
+}
+TONG_RANK_NAMES1 = {
+    "浩气神兵宝甲五十强",
+    "恶人神兵宝甲五十强",
+    "浩气爱心帮会五十强",
+    "恶人爱心帮会五十强",
+}
+TONG_RANK_NAMES2 = {
+    "上周恶人五十强",
+    "上周浩气五十强",
+}
 
+GUILD_RANK_OPTIONS = {
+    "1": "浩气神兵宝甲五十强",
+    "2": "恶人神兵宝甲五十强",
+    "3": "浩气爱心帮会五十强",
+    "4": "恶人爱心帮会五十强",
+}
+CAMP_RANK_OPTIONS = {
+    "1": "赛季恶人五十强",
+    "2": "赛季浩气五十强",
+    "3": "上周恶人五十强",
+    "4": "上周浩气五十强",
+    "5": "本周恶人五十强",
+    "6": "本周浩气五十强",
+}
+OTHER_RANK_OPTIONS = {
+    "1": "名士五十强",
+    "2": "老江湖五十强",
+    "3": "兵甲藏家五十强",
+    "4": "名师五十强",
+    "5": "阵营英雄五十强",
+    "6": "薪火相传五十强",
+    "7": "庐园广记一百强",
+}
+
+RANK_NAMES = frozenset().union(
+    ROLE_RANK_NAMES,
+    TONG_RANK_NAMES0,
+    TONG_RANK_NAMES1,
+    TONG_RANK_NAMES2,
+)
 
 
 class JX3APIService:
@@ -456,33 +511,36 @@ class JX3APIService:
         )         
 
 
+    async def banghui_rank_menu(self) -> Dict[str, str]:
+        """帮会排行榜选择内容。"""
+        return GUILD_RANK_OPTIONS.copy()
+
+    async def zhenying_rank_menu(self) -> Dict[str, str]:
+        """阵营排行榜选择内容。"""
+        return CAMP_RANK_OPTIONS.copy()
+
+    async def qita_rank_menu(self) -> Dict[str, str]:
+        """其他排行榜选择内容。"""
+        return OTHER_RANK_OPTIONS.copy()
+
+    async def rank_statistical_select(self, server: str, selected: Dict[str, Any],) -> Dict[str, Any]:
+        """排行榜次轮：根据单项选择数据查询对应榜单。"""
+        if not isinstance(selected, dict) or len(selected) != 1:
+            return_data = self._init_return_data()
+            return_data["msg"] = "排行榜选项数据格式异常"
+            return return_data
+
+        rank_name = str(next(iter(selected.values())) or "").strip()
+        if rank_name not in RANK_NAMES:
+            return_data = self._init_return_data()
+            return_data["msg"] = "无效排行榜选项"
+            return return_data
+
+        return await self.rank_statistical(rank_name, server)
+
     async def rank_statistical(self, name: str, server: str) -> Dict[str, Any]:
         """排行榜单"""
-        ROLE_RANK_NAMES = {
-            "名士五十强",
-            "老江湖五十强",
-            "兵甲藏家五十强",
-            "名师五十强",
-            "阵营英雄五十强",
-            "薪火相传五十强",
-            "庐园广记一百强",
-        }
-        TONG_RANK_NAMES0 = {
-            "赛季恶人五十强",
-            "赛季浩气五十强",
-            "本周恶人五十强",
-            "本周浩气五十强",
-        }
-        TONG_RANK_NAMES1 = {
-            "浩气神兵宝甲五十强",
-            "恶人神兵宝甲五十强",
-            "浩气爱心帮会五十强",
-            "恶人爱心帮会五十强",
-        }
-        TONG_RANK_NAMES2 = {
-            "上周恶人五十强",
-            "上周浩气五十强",
-        }
+
         if name in ROLE_RANK_NAMES:
             template_name = "rank_role.html"
         elif name in TONG_RANK_NAMES0:
@@ -494,7 +552,11 @@ class JX3APIService:
 
         # 数据处理
         async def processor(data: Any, return_data: Dict[str, Any]) -> None:   
-            items = data.get("data", [])
+            items = data.get("data") or []
+            if isinstance(items, list):
+                items = items[:50]
+            else:
+                items = []
 
             return_data["data"] = {
                 "items": items,
