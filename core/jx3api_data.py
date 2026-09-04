@@ -116,6 +116,49 @@ class JX3APIService:
             }
         )
 
+    async def token_stats(self) -> Optional[Dict[str, Any]]:
+        """查询当前配置 JX3API Token 的等级、用量及有效状态。"""
+        if not str(self.token or "").strip():
+            return None
+
+        try:
+            data = await self._api.post(
+                "https://www.jx3api.com/token/stats",
+                data={"token": self.token},
+                out_key="data",
+                success_codes=(200, "200"),
+                return_error=True,
+            )
+        except Exception as exc:
+            logger.warning(f"查询 JX3API Token 统计失败: {exc}")
+            return None
+
+        if isinstance(data, APIErrorResponse):
+            logger.warning(
+                f"JX3API Token 统计返回错误: "
+                f"code={data.code}, msg={data.message or '未知错误'}"
+            )
+            return None
+        if not isinstance(data, dict):
+            return None
+
+        def nonnegative_int(value: Any) -> Optional[int]:
+            if isinstance(value, bool):
+                return None
+            try:
+                number = int(value)
+            except (TypeError, ValueError):
+                return None
+            return number if number >= 0 else None
+
+        valid = data.get("valid")
+        return {
+            "level": nonnegative_int(data.get("level")),
+            "used": nonnegative_int(data.get("used")),
+            "remaining": nonnegative_int(data.get("remaining")),
+            "valid": valid if isinstance(valid, bool) else None,
+        }
+
 
     def _init_return_data(self) -> Dict[str, Any]:
             """初始化标准的返回数据结构"""

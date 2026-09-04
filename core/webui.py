@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import re
 from typing import TYPE_CHECKING, Any
 
@@ -87,11 +88,21 @@ class WebUIService:
         raise ValueError("别名必须是字符串或数组")
 
     async def dashboard(self):
-        bindings = await self.server_binding.list_bindings()
-        subscriptions = await self.event_push.list_subscription_statuses()
-        aliases = await self.server_binding.list_aliases()
-        kungfu = await self.kungfu_alias.list_kungfu()
-        session_control = await self.session_control.get_state()
+        (
+            bindings,
+            subscriptions,
+            aliases,
+            kungfu,
+            session_control,
+            token_stats,
+        ) = await asyncio.gather(
+            self.server_binding.list_bindings(),
+            self.event_push.list_subscription_statuses(),
+            self.server_binding.list_aliases(),
+            self.kungfu_alias.list_kungfu(),
+            self.session_control.get_state(),
+            self.jx3api.token_stats(),
+        )
         return json_response(
             {
                 "bindings": bindings,
@@ -103,6 +114,7 @@ class WebUIService:
                     str(action): name for action, name in EVENT_NAMES.items()
                 },
                 "session_control": session_control,
+                "token_stats": token_stats,
             }
         )
 

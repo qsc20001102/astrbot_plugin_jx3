@@ -7,12 +7,40 @@ const state = {
   servers: [],
   events: {},
   session_control: { mode: "all", entries: [] },
+  token_stats: null,
 };
 const editing = { bindingSession: null, controlSession: null, aliasServer: null, kungfuPzid: null };
 const restoreConfirmationTimers = new WeakMap();
 let toastTimer;
 
 const byId = (id) => document.getElementById(id);
+
+function formatUsageCount(value) {
+  return Number.isSafeInteger(value) && value >= 0
+    ? value.toLocaleString("zh-CN")
+    : "—";
+}
+
+function renderTokenStats() {
+  const stats = state.token_stats;
+  byId("token-level").textContent = Number.isSafeInteger(stats?.level)
+    ? `LV.${stats.level}`
+    : "—";
+  byId("token-used").textContent = formatUsageCount(stats?.used);
+  byId("token-remaining").textContent = formatUsageCount(stats?.remaining);
+
+  const status = byId("token-valid");
+  status.classList.remove("token-status--valid", "token-status--invalid");
+  if (stats?.valid === true) {
+    status.textContent = "有效";
+    status.classList.add("token-status--valid");
+  } else if (stats?.valid === false) {
+    status.textContent = "无效";
+    status.classList.add("token-status--invalid");
+  } else {
+    status.textContent = "未获取";
+  }
+}
 
 function showToast(message, isError = false) {
   const toast = byId("toast");
@@ -525,6 +553,7 @@ function renderKungfu() {
 }
 
 function render() {
+  renderTokenStats();
   renderServerOptions();
   renderSessionOptions();
   renderSessionControl();

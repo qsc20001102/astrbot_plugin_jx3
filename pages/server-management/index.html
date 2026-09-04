@@ -17,6 +17,25 @@
         <button class="button button--secondary" id="refresh" type="button">刷新数据</button>
       </header>
 
+      <section class="token-summary" aria-label="JX3API 令牌统计">
+        <div class="token-stat">
+          <span>令牌等级</span>
+          <strong id="token-level">—</strong>
+        </div>
+        <div class="token-stat">
+          <span>已用次数</span>
+          <strong id="token-used">—</strong>
+        </div>
+        <div class="token-stat">
+          <span>剩余次数</span>
+          <strong id="token-remaining">—</strong>
+        </div>
+        <div class="token-stat">
+          <span>令牌状态</span>
+          <strong class="token-status" id="token-valid">未获取</strong>
+        </div>
+      </section>
+
       <nav class="tabs" aria-label="管理分类" role="tablist">
         <button class="tab is-active" type="button" role="tab" aria-selected="true" data-tab="session-control">会话控制</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="subscriptions">事件推送</button>
