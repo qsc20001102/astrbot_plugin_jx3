@@ -13,6 +13,7 @@ class KungfuAliasService:
     def __init__(self, sqlite: AsyncSQLiteDB, seed_path: Path):
         self.sql = sqlite
         self.seed_path = seed_path
+        self._kungfu_lookup: dict[str, str] = {}
 
     async def initialize(self):
         await self.sql.execute(
@@ -29,6 +30,7 @@ class KungfuAliasService:
             """
         )
         await self._seed_defaults()
+        await self._reload_cache()
 
     async def _seed_defaults(self):
         records = self._load_seed_defaults()
@@ -84,6 +86,7 @@ class KungfuAliasService:
             for values in records
         )
         await self.sql.execute_transaction(statements)
+        await self._reload_cache()
         return len(records)
 
     async def list_kungfu(self) -> list[dict[str, Any]]:
@@ -141,6 +144,36 @@ class KungfuAliasService:
             """,
             (*values, normalized_pzid),
         )
+        await self._reload_cache()
+
+    async def _reload_cache(self):
+        """Refresh the canonical kungfu name and alias lookup cache.
+
+        Returns:
+            None.
+        """
+        rows = await self.list_kungfu()
+        lookup = {
+            self._key(row["name"]): row["name"]
+            for row in rows
+            if row["name"]
+        }
+        for row in rows:
+            for alias in row["aliases"]:
+                lookup.setdefault(self._key(alias), row["name"])
+        self._kungfu_lookup = lookup
+
+    def resolve_kungfu(self, value: Any) -> str:
+        """Resolve a canonical kungfu name or alias to its canonical name.
+
+        Args:
+            value: Canonical kungfu name or configured alias.
+
+        Returns:
+            Canonical kungfu name when matched; otherwise the cleaned input.
+        """
+        kungfu = self._clean(value)
+        return self._kungfu_lookup.get(self._key(kungfu), kungfu)
 
     def _normalize_aliases(self, name: str, aliases: Iterable[Any]) -> list[str]:
         result: list[str] = []

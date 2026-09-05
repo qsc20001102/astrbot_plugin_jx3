@@ -321,9 +321,13 @@ class MessageBuilder:
         """ 阵营事件 阵营"""
         return await self.T2I_image_msg(event, lambda: self.jx3api.zhenyingevent(name,50))
 
-    async def  yanhuachaxun(self, event: AstrMessageEvent,server: str,name: str = "" ):
-        """ 烟花 服务器 角色"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.yanhuachaxun(server,name))
+    async def yanhuachaxun(self, event: AstrMessageEvent, server: str, name: str = "", limit: int = 50):
+        """ 烟花 服务器 角色 条数"""
+        if limit <= 0:
+            return event.plain_result("条数必须为正整数")
+        return await self.T2I_image_msg(
+            event, lambda: self.jx3api.yanhuachaxun(server, name, limit)
+        )
 
     async def  shuma(self, event: AstrMessageEvent,server: str ): 
         """ 刷马 服务器"""
@@ -369,9 +373,9 @@ class MessageBuilder:
             lambda selected: self.jx3api.rank_statistical_select(server,selected,),
         )
 
-    async def  shilianpaixing(self, event: AstrMessageEvent, server: str , name: str):
+    async def  shilianpaixing(self, event: AstrMessageEvent, server: str , kungfu: str):
         """ 试炼排行 服务器 心法 """
-        return await self.T2I_image_msg(event, lambda: self.jx3api.shilianpaixing(name, server))
+        return await self.T2I_image_msg(event, lambda: self.jx3api.shilianpaixing(kungfu, server))
 
     async def  zhengyingpaimai(self, event: AstrMessageEvent,server: str , name: str = "", limit: int = 50 ):
         """ 阵营拍卖 物品名称 服务器"""
@@ -465,25 +469,25 @@ class MessageBuilder:
         """ 角色 服务器 名称 """
         return await self.plain_msg(event, lambda: self.jx3api.jueshe(server, name, 1))
 
-    async def  zhenyan(self, event: AstrMessageEvent, name: str):
+    async def  zhenyan(self, event: AstrMessageEvent, kungfu: str):
         """ 阵眼 心法"""
-        return await self.plain_msg(event, lambda: self.jx3api.zhenyan(name))
+        return await self.plain_msg(event, lambda: self.jx3api.zhenyan(kungfu))
 
-    async def  peizhuang(self, event: AstrMessageEvent,name: str, tags: str = ""):
+    async def  peizhuang(self, event: AstrMessageEvent, kungfu: str, tags: str = ""):
         """ 配装 心法 类型"""
-        return await self.plain_msg(event, lambda: self.jx3box.peizhuang(name,tags))
+        return await self.plain_msg(event, lambda: self.jx3box.peizhuang(kungfu,tags))
 
     async def  zilipaixing(self, event: AstrMessageEvent, server: str = "", school: str = ""):
         """ 资历排行 服务器 门派 """
         return await self.T2I_image_msg(event, lambda: self.jx3api.zilipaixing(server, school))
 
-    async def  jineng(self, event: AstrMessageEvent, name: str):
+    async def  jineng(self, event: AstrMessageEvent, kungfu: str):
         """ 技能 心法"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.jineng(name,0))
+        return await self.T2I_image_msg(event, lambda: self.jx3api.jineng(kungfu,0))
 
-    async def  qixue(self, event: AstrMessageEvent, name: str):
+    async def  qixue(self, event: AstrMessageEvent, kungfu: str):
         """ 奇穴 心法"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.qixue(name,0))
+        return await self.T2I_image_msg(event, lambda: self.jx3api.qixue(kungfu,0))
 
     async def  liaotian(self, event: AstrMessageEvent, server:str, name: str, limit:int = 20, page:int = 1):
         """ 发言 服务器 角色 条数 页数"""
@@ -493,9 +497,9 @@ class MessageBuilder:
         """ 统战 服务器"""
         return await self.plain_msg(event, lambda: self.jx3api.tongzhanyy(server))
 
-    async def  xiaoyao(self, event: AstrMessageEvent, name:str = ""):
+    async def  xiaoyao(self, event: AstrMessageEvent, kungfu:str = ""):
         """ 小药 心法"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.xiaoyao(name))
+        return await self.T2I_image_msg(event, lambda: self.jx3api.xiaoyao(kungfu))
 
     async def  pianzhi(self, event: AstrMessageEvent, uid: str, server:str = ""):
         """ 骗子 uid 服务器"""
@@ -618,12 +622,12 @@ class MessageBuilder:
         return await self.T2I_image_msg(event, lambda: self.jx3api.diaoluo(name, server, limit))
 
 
-    async def  hong(self, event: AstrMessageEvent,name: str):
+    async def  hong(self, event: AstrMessageEvent, kungfu: str):
         """ 宏 心法"""
         return await self.handler_plain_image_msg(
             event,
-            lambda: self.jx3box.hong1(name),
-            lambda selected: self.jx3box.hong_select(name, selected),
+            lambda: self.jx3box.hong1(kungfu),
+            lambda selected: self.jx3box.hong_select(kungfu, selected),
             result_handler=self.plain_image_msg,
         )
 

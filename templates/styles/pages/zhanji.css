@@ -83,6 +83,14 @@
     font-weight: bold;
 }
 
+.data-table tr.match-win > td {
+    color: var(--jx3-green);
+}
+
+.data-table tr.match-lose > td {
+    color: var(--jx3-red);
+}
+
 .mvp {
     color: #f5a623;
     font-weight: bold;

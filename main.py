@@ -25,7 +25,7 @@ PLUGIN_NAME = "astrbot_plugin_jx3"
 @register("astrbot_plugin_jx3", 
           "fxdyz", 
           "聚合剑网三游戏数据，提供查询、图片渲染、本地避雷和实时事件推送。",
-          "3.4.3",
+          "3.4.4",
           "https://github.com/qsc20001102/astrbot_plugin_jx3"
 )
 class Jx3ApiPlugin(Star):
@@ -407,14 +407,6 @@ class Jx3ApiPlugin(Star):
         has_server_arg = server_index < len(prepared)
 
         if bound_server:
-            required_count = sum(
-                parameter.default is inspect.Parameter.empty
-                for parameter in params
-            )
-            has_required_parameter_after_server = any(
-                parameter.default is inspect.Parameter.empty
-                for parameter in params[server_index + 1:]
-            )
             explicit_server = (
                 has_server_arg
                 and (
@@ -422,11 +414,6 @@ class Jx3ApiPlugin(Star):
                         prepared[server_index]
                     )
                     or self.server_binding.is_known_server(prepared[server_index])
-                    or len(prepared) >= len(params)
-                    or (
-                        has_required_parameter_after_server
-                        and len(prepared) >= required_count
-                    )
                 )
             )
             if explicit_server:
@@ -440,6 +427,34 @@ class Jx3ApiPlugin(Star):
                 prepared[server_index]
             )
 
+        return prepared
+
+    def _prepare_kungfu_args(self, handler, args: list[str]) -> list[str]:
+        """Resolve the kungfu parameter through the global alias catalog.
+
+        Args:
+            handler: Command handler whose signature defines argument positions.
+            args: Positional command arguments after server preparation.
+
+        Returns:
+            Arguments with a recognized kungfu alias replaced by its canonical name.
+        """
+        params = [
+            parameter
+            for parameter in inspect.signature(handler).parameters.values()
+            if parameter.name not in {"self", "event"}
+        ]
+        kungfu_index = next(
+            (index for index, parameter in enumerate(params) if parameter.name == "kungfu"),
+            None,
+        )
+        if kungfu_index is None or kungfu_index >= len(args):
+            return args
+
+        prepared = list(args)
+        prepared[kungfu_index] = self.kungfu_alias.resolve_kungfu(
+            prepared[kungfu_index]
+        )
         return prepared
 
 
@@ -511,6 +526,7 @@ class Jx3ApiPlugin(Star):
 
         try:
             args = await self._prepare_server_args(handler, event, args)
+            args = self._prepare_kungfu_args(handler, args)
             ret = await self._call_with_auto_args(handler, event, args)
             if ret is not None:
                 yield ret

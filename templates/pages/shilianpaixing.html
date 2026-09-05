@@ -21,10 +21,10 @@
         {% for item in items %}
             <tr>
                 <td class="data-cell--rank">{{ loop.index }}</td>
-                <td class="data-cell--name">{{ item.role_name }}</td>
-                <td class="data-cell--nowrap data-cell--numeric">{{ item.equip_score }}</td>
-                <td class="data-cell--nowrap data-cell--numeric">{{ item.max_level }}</td>
-                <td class="data-cell--score">{{ item.total_score }}</td>
+                <td class="data-cell--name">{{ item.roleName }}</td>
+                <td class="data-cell--nowrap data-cell--numeric">{{ item.equipScore }}</td>
+                <td class="data-cell--nowrap data-cell--numeric">{{ item.maxLevel }}</td>
+                <td class="data-cell--score">{{ item.totalScore }}</td>
             </tr>
         {% endfor %}
         </tbody>

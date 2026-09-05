@@ -11,7 +11,6 @@
                 <th>排名</th>
                 <th>头像</th>
                 <th>角色</th>
-                <th>区服</th>
                 <th>门派</th>
                 <th>分数</th>
                 <th>胜率</th>
@@ -35,11 +34,16 @@
 
                 <td>{{ m.roleName }}</td>
 
-                <td>{{ m.zoneName }} · {{ m.serverName }}</td>
+                <td>
+                    <div class="icon-label">
+                        {% if icons.sect.get(m.forceName) %}
+                        <img class="icon-label__icon" src="{{ icons.sect[m.forceName] }}" alt="{{ m.forceName }}">
+                        {% endif %}
+                        <span>{{ m.forceName }}</span>
+                    </div>
+                </td>
 
-                <td>{{ m.forceName }}</td>
-
-                <td>{{ m.score }}</td>
+                <td>{{ m.matchScore }}</td>
 
                 <td class="winrate data-cell--numeric">{{ m.winRate }}</td>
             </tr>

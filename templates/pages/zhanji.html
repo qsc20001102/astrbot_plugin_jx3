@@ -16,34 +16,34 @@
         </div>
     </div>
 
-    <!-- 头像 + 当前 3v3 表现 -->
+    <!-- 当前查询模式表现 -->
     <div class="stats-wrap">
 
         <!-- 右侧数据 -->
         <div class="stats">
             <div class="stat-box">
                 <div class="stat-title">名剑积分</div>
-                <div class="stat-value mmr">{{ performance['3v3'].mmr }}</div>
+                <div class="stat-value mmr">{{ currentPerformance.mmr }}</div>
             </div>
 
             <div class="stat-box">
                 <div class="stat-title">名剑段位</div>
-                <div class="stat-value">{{ performance['3v3'].grade }}</div>
+                <div class="stat-value">{{ currentPerformance.grade }}</div>
             </div>
 
             <div class="stat-box">
                 <div class="stat-title">胜率</div>
-                <div class="stat-value winrate">{{ performance['3v3'].winRate }}%</div>
+                <div class="stat-value winrate">{{ currentPerformance.winRate }}%</div>
             </div>
 
             <div class="stat-box">
                 <div class="stat-title">总场数</div>
-                <div class="stat-value">{{ performance['3v3'].totalCount }}</div>
+                <div class="stat-value">{{ currentPerformance.totalCount }}</div>
             </div>
 
             <div class="stat-box">
                 <div class="stat-title">MVP次数</div>
-                <div class="stat-value">{{ performance['3v3'].mvpCount }}</div>
+                <div class="stat-value">{{ currentPerformance.mvpCount }}</div>
             </div>
         </div>
 
@@ -66,7 +66,7 @@
 
         <tbody>
         {% for m in history %}
-            <tr>
+            <tr class="{{ 'match-win' if m.won else 'match-lose' }}">
                 <td class="time-col start-time" data-ts="{{ m.startTime }}">{{ m.startTime }}</td>
                 <td class="duration-col">{{ m.endTime - m.startTime }}</td>
                 <td class="kungfu-col">{{ m.kungfu }}</td>

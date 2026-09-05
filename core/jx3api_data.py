@@ -451,10 +451,11 @@ class JX3APIService:
         )  
             
 
-    async def yanhuachaxun(self, server: str, name:str ) -> Dict[str, Any]:
+    async def yanhuachaxun(self, server: str, name: str, limit: int) -> Dict[str, Any]:
         """烟花记录"""
         # 数据处理
         async def processor(data: Any, return_data: Dict[str, Any]) -> None:
+            data = data[:limit]
             for item in data:
                 item["time"] = format_time(item.get("time"))
 
@@ -511,7 +512,13 @@ class JX3APIService:
     async def zhanji(self, name: str, server:str, mode:str) -> Dict[str, Any]:
         """战绩"""
         # 数据处理
-        async def processor(data: Any, return_data: Dict[str, Any]) -> None:   
+        async def processor(data: Any, return_data: Dict[str, Any]) -> None:
+            performance_key = {
+                "22": "2v2",
+                "33": "3v3",
+                "55": "5v5",
+            }.get(str(mode), "3v3")
+            data["currentPerformance"] = data["performance"][performance_key]
             return_data["data"] = data
             
         return await self._request_api(
