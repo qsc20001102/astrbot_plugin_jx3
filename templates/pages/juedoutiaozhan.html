@@ -1,0 +1,41 @@
+{# template-title: 决斗挑战榜 #}
+{# template-components: data-table #}
+
+
+<div class="container data-page">
+    <h1>{{ name }}</h1>
+    <div class="data-page__meta">{{ server }} · {{ mode_name }}{% if update_time %} · 更新时间：{{ update_time }}{% endif %}</div>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>排名</th>
+                <th>被悬赏</th>
+                <th>门派</th>
+                <th>赏金</th>
+                <th>剩余时间</th>
+                <th>发起人</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for item in items %}
+            <tr>
+                <td class="data-cell--rank">{{ loop.index }}</td>
+                <td class="data-cell--name data-cell--nowrap">{{ item.name }}</td>
+                <td>
+                    <div class="icon-label">
+                        {% if icons.sect.get(item.forceName) %}
+                        <img class="icon-label__icon" src="{{ icons.sect[item.forceName] }}" alt="{{ item.forceName }}">
+                        {% endif %}
+                        <span>{{ item.forceName }}</span>
+                    </div>
+                </td>
+                <td class="data-cell--score">{{ item.money }}</td>
+                <td class="data-cell--time">{{ item.remainingTime }}</td>
+                <td class="data-cell--name data-cell--wrap">{{ item.payerName }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>

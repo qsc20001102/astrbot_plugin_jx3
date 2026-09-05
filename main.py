@@ -25,7 +25,7 @@ PLUGIN_NAME = "astrbot_plugin_jx3"
 @register("astrbot_plugin_jx3", 
           "fxdyz", 
           "聚合剑网三游戏数据，提供查询、图片渲染、本地避雷和实时事件推送。",
-          "3.4.4",
+          "3.4.5",
           "https://github.com/qsc20001102/astrbot_plugin_jx3"
 )
 class Jx3ApiPlugin(Star):
@@ -254,6 +254,11 @@ class Jx3ApiPlugin(Star):
             "战绩": self. jx3cmd.zhanji,
             "名剑排行": self. jx3cmd.mingjianpaihang,
             "名剑统计": self. jx3cmd.mingjiantongji,
+            "跨服名剑": self.jx3cmd.kuafumingjian,
+            "武林争霸": self.jx3cmd.wulinzhengba,
+            "捕快荣誉": self.jx3cmd.bukairongyu,
+            "江湖浪客": self.jx3cmd.jianghulangke,
+            "决斗挑战": self.jx3cmd.juedoutiaozhan,
             "帮会排行": self. jx3cmd.banghuipaihang,
             "阵营排行": self. jx3cmd.zhenyingpaihang,
             "其他排行": self. jx3cmd.qitapaihang,

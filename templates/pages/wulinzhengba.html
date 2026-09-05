@@ -1,0 +1,43 @@
+{# template-title: 武林争霸赛 #}
+{# template-components: data-table #}
+
+
+<div class="container data-page">
+    <h1>{{ name }}</h1>
+    <div class="data-page__meta">{{ server }} · {{ camp_name }}{% if update_time %} · 更新时间：{{ update_time }}{% endif %}</div>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>排名</th>
+                <th>帮会名称</th>
+                <th>帮主</th>
+                <th>所属服务器</th>
+                <th>阵营</th>
+                <th>胜场</th>
+                <th>败场</th>
+                <th>积分</th>
+                <th>最后比赛时间</th>
+            </tr>
+        </thead>
+
+        <tbody>
+        {% for item in items %}
+            <tr>
+                <td class="data-cell--rank">{{ loop.index }}</td>
+                <td class="data-cell--name data-cell--wrap">{{ item.tongName }}</td>
+                <td class="data-cell--name data-cell--wrap">{{ item.masterName }}</td>
+                <td class="data-cell--nowrap">{{ item.serverName }}</td>
+                {% set camp_name = item.campName or '未知' %}
+                <td class="data-cell--camp data-cell--nowrap">
+                    <img class="data-camp-icon" src="{{ icons.img.get(camp_name) or icons.img.get('未知') }}" alt="{{ camp_name }}" title="{{ camp_name }}">
+                </td>
+                <td class="data-cell--nowrap data-cell--numeric">{{ item.winCount }}</td>
+                <td class="data-cell--nowrap data-cell--numeric">{{ item.loseCount }}</td>
+                <td class="data-cell--score">{{ item.totalScore }}</td>
+                <td class="data-cell--time">{{ item.lastMatchTimeText }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>

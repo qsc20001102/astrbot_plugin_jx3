@@ -349,6 +349,47 @@ class MessageBuilder:
         """ 名剑统计 模式"""
         return await self.T2I_image_msg(event, lambda: self.jx3api.mingjiantongji(mode))
 
+    async def kuafumingjian(self, event: AstrMessageEvent, server: str, mode: int = 1,):
+        """跨服名剑 服务器 [模式]。"""
+        if mode not in {0, 1, 2}:
+            return event.plain_result("竞技模式仅支持 0=2v2、1=3v3、2=5v5")
+        return await self.T2I_image_msg(
+            event,
+            lambda: self.jx3api.kuafumingjian(server, mode),
+        )
+
+    async def wulinzhengba(self,event: AstrMessageEvent,server: str,camp: int = 1,):
+        """武林争霸 服务器 [阵营]。"""
+        if camp not in {1, 2}:
+            return event.plain_result("阵营仅支持 1=浩气、2=恶人")
+        return await self.T2I_image_msg(
+            event,
+            lambda: self.jx3api.wulinzhengba(server, camp),
+        )
+
+    async def bukairongyu(self, event: AstrMessageEvent, server: str):
+        """捕快荣誉 服务器。"""
+        return await self.T2I_image_msg(
+            event,
+            lambda: self.jx3api.bukairongyu(server),
+        )
+
+    async def jianghulangke(self, event: AstrMessageEvent, server: str):
+        """江湖浪客 服务器。"""
+        return await self.T2I_image_msg(
+            event,
+            lambda: self.jx3api.jianghulangke(server),
+        )
+
+    async def juedoutiaozhan(self,event: AstrMessageEvent,server: str,mode: int = 1,):
+        """决斗挑战 服务器 [模式]。"""
+        if mode not in {1, 2}:
+            return event.plain_result("模式仅支持 1=公开、2=私密")
+        return await self.T2I_image_msg(
+            event,
+            lambda: self.jx3api.juedoutiaozhan(server, mode),
+        )
+
     async def banghuipaihang(self, event: AstrMessageEvent, server: str):
         """帮会排行 服务器。"""
         return await self.handler_plain_image_msg(

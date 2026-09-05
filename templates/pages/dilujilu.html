@@ -33,11 +33,17 @@
                 <td>{{ m.refreshTime }}</td>
                 <td>{{ m.captureTime }}</td>
                 <td>{{ m.captureRoleName }}</td>
-                <td>{{ m.captureCampName }}</td>
+                {% set capture_camp_name = m.captureCampName or '未知' %}
+                <td class="data-cell--camp data-cell--nowrap">
+                    <img class="data-camp-icon" src="{{ icons.img.get(capture_camp_name) or icons.img.get('未知') }}" alt="{{ capture_camp_name }}" title="{{ capture_camp_name }}">
+                </td>
                 <td>{{ m.auctionTime }}</td>
                 <td>{{ m.auctionAmount }}</td>
                 <td>{{ m.auctionRoleName }}</td>
-                <td>{{ m.auctionCampName }}</td>
+                {% set auction_camp_name = m.auctionCampName or '未知' %}
+                <td class="data-cell--camp data-cell--nowrap">
+                    <img class="data-camp-icon" src="{{ icons.img.get(auction_camp_name) or icons.img.get('未知') }}" alt="{{ auction_camp_name }}" title="{{ auction_camp_name }}">
+                </td>
             </tr>
         {% endfor %}
         </tbody>

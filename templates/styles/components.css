@@ -353,6 +353,14 @@
     background: var(--jx3-surface-muted);
 }
 
+.jx3-template .data-camp-icon {
+    display: block;
+    width: 46px;
+    height: 40px;
+    margin: 0 auto;
+    object-fit: contain;
+}
+
 .jx3-template .data-table tr.camp-haoqi {
     color: var(--jx3-blue);
 }

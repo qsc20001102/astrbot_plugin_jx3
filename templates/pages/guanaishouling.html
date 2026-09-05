@@ -30,7 +30,10 @@
                         class="camp-haoqi"
                     {% endif %}
                 >
-                    <td class="data-cell--camp data-cell--nowrap data-cell--strong">{{ item.camp_name }}</td>
+                    {% set camp_name = item.camp_name or '未知' %}
+                    <td class="data-cell--camp data-cell--nowrap">
+                        <img class="data-camp-icon" src="{{ icons.img.get(camp_name) or icons.img.get('未知') }}" alt="{{ camp_name }}" title="{{ camp_name }}">
+                    </td>
                     <td class="data-cell--camp data-cell--name data-cell--nowrap">{{ item.castle }}</td>
                     <td class="data-cell--nowrap data-cell--strong">{{ item.str_status }}</td>
                     <td class="data-cell--time">{{ item.start_time }}</td>

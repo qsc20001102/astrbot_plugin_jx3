@@ -560,6 +560,162 @@ class JX3APIService:
             template="mingjiantongji.html"
         )         
 
+    async def kuafumingjian(self, server: str, mode: int = 1) -> Dict[str, Any]:
+        """跨服名剑榜。"""
+        mode_names = {0: "2v2", 1: "3v3", 2: "5v5"}
+
+        async def processor(data: Any, return_data: Dict[str, Any]) -> None:
+            items = data.get("data") or []
+            if not isinstance(items, list):
+                items = []
+
+            return_data["data"] = {
+                "items": [item for item in items if isinstance(item, dict)],
+                "name": data.get("name") or "跨服名剑榜",
+                "server": data.get("server") or server or "全区",
+                "mode_name": mode_names[mode],
+                "update_time": format_time(data.get("time")),
+            }
+
+        return await self._request_api(
+            path="/rank/arena",
+            params={"server": server, "mode": mode, "token": self.token},
+            processor=processor,
+            template="kuafumingjian.html",
+        )
+
+    async def wulinzhengba(self, server: str, camp: int = 1) -> Dict[str, Any]:
+        """武林争霸赛帮会榜。"""
+        camp_names = {1: "浩气盟", 2: "恶人谷"}
+
+        def format_match_time(value: Any) -> str:
+            try:
+                total_seconds = int(value)
+            except (TypeError, ValueError):
+                return ""
+            if total_seconds < 0:
+                return ""
+
+            hours, remainder = divmod(total_seconds, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            if hours:
+                return f"{hours}时{minutes:02d}分{seconds:02d}秒"
+            return f"{minutes}分{seconds:02d}秒"
+
+        async def processor(data: Any, return_data: Dict[str, Any]) -> None:
+            items = data.get("data") or []
+            if not isinstance(items, list):
+                items = []
+
+            rank_items = []
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                rank_item = item.copy()
+                rank_item["lastMatchTimeText"] = format_match_time(
+                    item.get("lastMatchTime")
+                )
+                rank_items.append(rank_item)
+
+            return_data["data"] = {
+                "items": rank_items,
+                "name": data.get("name") or "武林争霸赛",
+                "server": data.get("server") or server or "全区",
+                "camp_name": camp_names[camp],
+                "update_time": format_time(data.get("time")),
+            }
+
+        return await self._request_api(
+            path="/rank/championship",
+            params={"server": server, "camp": camp, "token": self.token},
+            processor=processor,
+            template="wulinzhengba.html",
+        )
+
+    async def _bounty_rank(self,server: str,path: str,fallback_name: str,show_hostile_count: bool,) -> Dict[str, Any]:
+        """处理捕快荣誉和江湖浪客共用的榜单结构。"""
+
+        async def processor(data: Any, return_data: Dict[str, Any]) -> None:
+            items = data.get("data") or []
+            if not isinstance(items, list):
+                items = []
+
+            return_data["data"] = {
+                "items": [item for item in items if isinstance(item, dict)],
+                "name": data.get("name") or fallback_name,
+                "server": data.get("server") or server or "全区",
+                "show_hostile_count": show_hostile_count,
+                "update_time": format_time(data.get("time")),
+            }
+
+        return await self._request_api(
+            path=path,
+            params={"server": server, "token": self.token},
+            processor=processor,
+            template="bounty_rank.html",
+        )
+
+    async def bukairongyu(self, server: str) -> Dict[str, Any]:
+        """捕快荣誉榜。"""
+        return await self._bounty_rank(
+            server=server,
+            path="/rank/constable",
+            fallback_name="捕快荣誉榜",
+            show_hostile_count=False,
+        )
+
+    async def jianghulangke(self, server: str) -> Dict[str, Any]:
+        """江湖浪客榜。"""
+        return await self._bounty_rank(
+            server=server,
+            path="/rank/outlaw",
+            fallback_name="江湖浪客榜",
+            show_hostile_count=True,
+        )
+
+    async def juedoutiaozhan(self,server: str,mode: int = 1,) -> Dict[str, Any]:
+        """决斗挑战榜。"""
+        mode_names = {1: "公开", 2: "私密"}
+
+        async def processor(data: Any, return_data: Dict[str, Any]) -> None:
+            items = data.get("data") or []
+            if not isinstance(items, list):
+                items = []
+
+            now_timestamp = int(datetime.now().timestamp())
+            rank_items = []
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                rank_item = item.copy()
+                try:
+                    timeout = int(item.get("timeOut"))
+                except (TypeError, ValueError):
+                    remaining_time = ""
+                else:
+                    remaining_time = (
+                        format_remaining(timeout)
+                        if timeout > now_timestamp
+                        else "已结束"
+                    )
+                rank_item["remainingTime"] = remaining_time
+                rank_items.append(rank_item)
+
+            return_data["data"] = {
+                "items": rank_items,
+                "name": data.get("name") or "决斗挑战榜",
+                "server": data.get("server") or server or "全区",
+                "mode_name": mode_names[mode],
+                "update_time": format_time(data.get("time")),
+            }
+
+        return await self._request_api(
+            path="/rank/wanted",
+            params={"server": server, "mode": mode, "token": self.token},
+            processor=processor,
+            template="juedoutiaozhan.html",
+        )
+
 
     async def banghui_rank_menu(self) -> Dict[str, str]:
         """帮会排行榜选择内容。"""

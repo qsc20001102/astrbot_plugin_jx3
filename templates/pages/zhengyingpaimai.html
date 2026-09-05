@@ -29,7 +29,10 @@
                 <td>{{ m.server }}</td>
                 <td>{{ m.itemName }}</td>
                 <td>{{ m.roleName }}</td>
-                <td>{{ m.campName }}</td>
+                {% set camp_name = m.campName or '未知' %}
+                <td class="data-cell--camp data-cell--nowrap">
+                    <img class="data-camp-icon" src="{{ icons.img.get(camp_name) or icons.img.get('未知') }}" alt="{{ camp_name }}" title="{{ camp_name }}">
+                </td>
                 <td>{{ m.itemAmount }}</td>
                 <td>{{ m.time }}</td>
             </tr>
