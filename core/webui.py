@@ -10,6 +10,8 @@ from astrbot.api.web import error_response, json_response, request
 from .event_push import EVENT_NAMES
 
 if TYPE_CHECKING:
+    from .bilei_data import BiLeidata
+    from .cache import CacheService
     from .event_push import EventPushService
     from .jx3api_data import JX3APIService
     from .kungfu_alias import KungfuAliasService
@@ -27,12 +29,16 @@ class WebUIService:
         server_binding: ServerBindingService,
         kungfu_alias: KungfuAliasService,
         session_control: SessionControlService,
+        bilei: BiLeidata,
+        cache: CacheService,
     ):
         self.jx3api = jx3api
         self.event_push = event_push
         self.server_binding = server_binding
         self.kungfu_alias = kungfu_alias
         self.session_control = session_control
+        self.bilei = bilei
+        self.cache = cache
 
     def register(self, context: Context, plugin_name: str):
         routes = (
@@ -63,6 +69,16 @@ class WebUIService:
                 ["POST"],
                 "删除会话控制名单",
             ),
+            (
+                "bilei/legacy/migrate",
+                self.migrate_legacy_bilei,
+                ["POST"],
+                "迁移旧避雷记录到指定会话",
+            ),
+            ("cache/settings/save", self.save_cache_setting, ["POST"], "保存缓存时间"),
+            ("cache/limits/save", self.save_cache_limits, ["POST"], "保存缓存容量限制"),
+            ("cache/item/clear", self.clear_cache_item, ["POST"], "清理单项缓存"),
+            ("cache/clear", self.clear_cache, ["POST"], "清理查询缓存"),
         )
         for path, handler, methods, description in routes:
             context.register_web_api(
@@ -94,14 +110,18 @@ class WebUIService:
             aliases,
             kungfu,
             session_control,
+            legacy_bilei,
             token_stats,
+            cache,
         ) = await asyncio.gather(
             self.server_binding.list_bindings(),
             self.event_push.list_subscription_statuses(),
             self.server_binding.list_aliases(),
             self.kungfu_alias.list_kungfu(),
             self.session_control.get_state(),
+            self.bilei.list_legacy_records(),
             self.jx3api.token_stats(),
+            self.cache.dashboard(),
         )
         return json_response(
             {
@@ -114,7 +134,9 @@ class WebUIService:
                     str(action): name for action, name in EVENT_NAMES.items()
                 },
                 "session_control": session_control,
+                "legacy_bilei": legacy_bilei,
                 "token_stats": token_stats,
+                "cache": cache,
             }
         )
 
@@ -193,7 +215,7 @@ class WebUIService:
         return json_response({"restored": restored})
 
     async def refresh_servers(self):
-        servers = await self.jx3api.server_list()
+        servers = await self.jx3api.server_list(force_refresh=True)
         if not servers:
             return error_response("区服目录刷新失败", status_code=502)
         await self.server_binding.update_server_catalog(servers)
@@ -226,3 +248,57 @@ class WebUIService:
         except ValueError as exc:
             return error_response(str(exc), status_code=400)
         return json_response({"deleted": True})
+
+    async def migrate_legacy_bilei(self):
+        try:
+            payload = await self._json_payload()
+            await self.bilei.migrate_legacy_record(
+                payload.get("id"),
+                payload.get("session_id"),
+            )
+        except ValueError as exc:
+            return error_response(str(exc), status_code=400)
+        return json_response({"migrated": True})
+
+    async def save_cache_setting(self):
+        try:
+            payload = await self._json_payload()
+            await self.cache.set_ttl(
+                str(payload.get("cache_type") or ""),
+                str(payload.get("cache_name") or ""),
+                payload.get("ttl_seconds"),
+                payload.get("inherit") is True,
+            )
+        except ValueError as exc:
+            return error_response(str(exc), status_code=400)
+        return json_response({"saved": True})
+
+    async def save_cache_limits(self):
+        try:
+            payload = await self._json_payload()
+            await self.cache.set_limits(
+                payload.get("api_memory_entries"),
+                payload.get("image_max_mb"),
+            )
+        except ValueError as exc:
+            return error_response(str(exc), status_code=400)
+        return json_response({"saved": True})
+
+    async def clear_cache_item(self):
+        try:
+            payload = await self._json_payload()
+            removed = await self.cache.clear_item(
+                str(payload.get("cache_type") or ""),
+                str(payload.get("cache_name") or ""),
+            )
+        except ValueError as exc:
+            return error_response(str(exc), status_code=400)
+        return json_response({"cleared": True, "removed": removed})
+
+    async def clear_cache(self):
+        try:
+            payload = await self._json_payload()
+            removed = await self.cache.clear(str(payload.get("cache_type") or ""))
+        except ValueError as exc:
+            return error_response(str(exc), status_code=400)
+        return json_response({"cleared": True, "removed": removed})

@@ -32,7 +32,7 @@
 .help-rules {
     display: grid;
     gap: 5px;
-    min-width: 300px;
+    min-width: 720px;
     color: var(--jx3-text-secondary);
     font-size: 20px;
     text-align: right;
@@ -205,14 +205,4 @@
 .command-section--danger .section-index {
     border-color: rgba(178, 56, 50, 0.35);
     color: var(--jx3-red);
-}
-
-.help-page .help-footer {
-    margin-top: 17px;
-    padding: 13px 16px 2px;
-    border-top: 1px solid var(--jx3-border-soft);
-    color: var(--jx3-text-muted);
-    font-size: 20px;
-    line-height: 1.7;
-    text-align: center;
 }

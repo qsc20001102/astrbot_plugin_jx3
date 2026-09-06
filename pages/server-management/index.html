@@ -12,7 +12,7 @@
       <header class="page-header">
         <div>
           <h1>剑网三插件管理</h1>
-          <p>管理事件推送、会话访问范围、区服绑定及别名。</p>
+          <p>管理会话访问范围、查询缓存、避雷迁移、事件推送、区服绑定及别名。</p>
         </div>
         <button class="button button--secondary" id="refresh" type="button">刷新数据</button>
       </header>
@@ -42,6 +42,8 @@
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="bindings">区服绑定</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="aliases">区服别名</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="kungfu">心法别名</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-tab="cache">缓存管理</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-tab="bilei-migration">避雷迁移</button>
       </nav>
 
       <section class="panel is-active" id="session-control-panel" role="tabpanel">
@@ -96,6 +98,93 @@
           <table>
             <thead><tr><th>会话 ID</th><th>名单类型</th><th>备注</th><th class="actions">操作</th></tr></thead>
             <tbody id="control-entries-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel" id="cache-panel" role="tabpanel" hidden>
+        <div class="section-intro section-intro--actions">
+          <div>
+            <h2>查询与图片缓存</h2>
+            <p>接口数据以 JSON 保存到 SQLite，渲染图片保存到插件数据目录。图片命中时会直接发送，不再请求其上游接口；缓存时间使用秒，填写 0 可关闭对应缓存。</p>
+          </div>
+          <div class="cache-clear-actions">
+            <button class="button button--secondary" id="clear-api-cache" type="button">清空接口缓存</button>
+            <button class="button button--secondary" id="clear-image-cache" type="button">清空图片缓存</button>
+          </div>
+        </div>
+
+        <div class="cache-summary" aria-label="缓存统计">
+          <div class="cache-stat"><span>接口缓存（SQLite）</span><strong id="api-cache-count">0 条</strong><small id="api-cache-size">0 B</small></div>
+          <div class="cache-stat"><span>图片缓存</span><strong id="image-cache-count">0 张</strong><small id="image-cache-size">0 B</small></div>
+          <div class="cache-stat"><span>接口内存缓存</span><strong id="api-memory-summary">0 / 256 条</strong><small>最久未使用优先淘汰</small></div>
+          <div class="cache-stat"><span>默认缓存时间</span><strong id="cache-default-summary">300 / 600 秒</strong><small>接口 / 图片</small></div>
+        </div>
+
+        <form class="cache-defaults" id="cache-default-form">
+          <label>
+            <span>接口数据默认缓存时间（秒）</span>
+            <input id="api-default-ttl" type="number" min="0" max="2592000" step="1" required />
+          </label>
+          <label>
+            <span>图片默认缓存时间（秒）</span>
+            <input id="image-default-ttl" type="number" min="0" max="2592000" step="1" required />
+          </label>
+          <button class="button button--primary" type="submit">保存默认时间</button>
+        </form>
+
+        <form class="cache-defaults cache-limits" id="cache-limit-form">
+          <label>
+            <span>接口内存缓存最大条数</span>
+            <input id="api-memory-limit" type="number" min="1" max="100000" step="1" required />
+          </label>
+          <label>
+            <span>图片缓存最大容量（MB）</span>
+            <input id="image-size-limit" type="number" min="1" max="10240" step="1" required />
+          </label>
+          <button class="button button--primary" type="submit">保存容量限制</button>
+        </form>
+
+        <details class="cache-group" open>
+          <summary>JX3API 接口数据缓存</summary>
+          <div class="cache-toolbar">
+            <input id="api-cache-filter" type="search" placeholder="筛选接口路径" aria-label="筛选接口路径" />
+            <span>单项设置优先；恢复后通常继承全局时间，“安全默认”项目恢复为 0 秒。</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>接口路径</th><th>缓存时间（秒）</th><th>配置状态</th><th class="actions">操作</th></tr></thead>
+              <tbody id="api-cache-settings-body"></tbody>
+            </table>
+          </div>
+        </details>
+
+        <details class="cache-group" open>
+          <summary>渲染图片缓存</summary>
+          <div class="cache-toolbar">
+            <input id="image-cache-filter" type="search" placeholder="筛选图片指令" aria-label="筛选图片指令" />
+            <span>图片缓存时间决定最终结果的新鲜度；过期后才重新请求数据并渲染。</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>图片指令</th><th>缓存时间（秒）</th><th>配置状态</th><th class="actions">操作</th></tr></thead>
+              <tbody id="image-cache-settings-body"></tbody>
+            </table>
+          </div>
+        </details>
+      </section>
+
+      <section class="panel" id="bilei-migration-panel" role="tabpanel" hidden>
+        <div class="section-intro">
+          <div>
+            <h2>迁移旧避雷数据</h2>
+            <p>旧版记录暂存在历史公共数据区。请为每条记录选择或输入目标会话，迁移后该记录仅能在目标会话中访问。剩余 <strong id="legacy-bilei-count">0</strong> 条。</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>避雷名称</th><th>避雷备注</th><th>时间</th><th>记录人</th><th>目标会话</th><th class="actions">操作</th></tr></thead>
+            <tbody id="legacy-bilei-body"></tbody>
           </table>
         </div>
       </section>

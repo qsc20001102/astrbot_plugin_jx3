@@ -50,6 +50,22 @@ body.jx3-template {
     pointer-events: none;
 }
 
+.jx3-data-time {
+    width: min(100%, calc(var(--jx3-page-width) + 240px));
+    margin: 18px auto 0;
+    padding: 12px 4px 2px;
+    border-top: 1px solid var(--jx3-border-faint);
+    color: var(--jx3-text-muted);
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-align: right;
+}
+
+.jx3-data-time time {
+    font-variant-numeric: tabular-nums;
+}
+
 .jx3-frame::before {
     top: 8px;
     left: 8px;

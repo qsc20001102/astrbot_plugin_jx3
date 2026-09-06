@@ -1,24 +1,48 @@
+from datetime import datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from aiocqhttp.exceptions import ActionFailed
-from astrbot.core import html_renderer
+
 from astrbot.api import logger
 from astrbot.api.event import AstrMessageEvent, MessageChain
+from astrbot.core import html_renderer
 from astrbot.core.utils.session_waiter import (
     SessionController,
     session_waiter,
 )
 
+from .bilei_data import BiLeidata
+from .cache import CacheService
+from .event_push import EventPushService
 from .jx3api_data import JX3APIService
 from .jx3box_data import JX3BOXService
-from .event_push import EventPushService
-from .bilei_data import BiLeidata
 
 
 class MessageBuilder:
     """回复消息构建"""
 
+    IMAGE_RENDER_HANDLERS = frozenset(
+        {
+            "helps", "richangyuche", "qiongyewei", "pifenghui", "yunchongshe",
+            "chutianshe", "guanaishouling", "zhenyingevent", "yanhuachaxun",
+            "zhanji", "mingjianpaihang", "mingjiantongji", "kuafumingjian",
+            "wulinzhengba", "bukairongyu", "jianghulangke", "juedoutiaozhan",
+            "banghuipaihang", "zhenyingpaihang", "qitapaihang", "shilianpaixing",
+            "zhengyingpaimai", "dilujilu", "jinjia", "wujia", "chengbeng",
+            "bangzhanjilu", "shapan", "zhueevent", "qiyuhuizong", "weizuoqiyu",
+            "jinqiqiyu", "juesheqiyu", "qiyutongji", "qiyugonglue", "jingnai",
+            "baizhan", "chengjiu", "zilipaixing", "jineng", "qixue", "liaotian",
+            "xiaoyao", "huajia", "zhuangshi", "qiwu", "baishi", "shoutu",
+            "tuanduizhaomu", "tuanzhang", "tuanpai", "zhuangtai", "fubeng",
+            "diaoluo", "hong", "zili", "jiaoyihang", "bilei_all", "bilei_select",
+        }
+    )
+
     _RENDER_FORMATS = {"jpeg", "png"}
+    _DATA_TIME_MARKER = "data-jx3-data-time"
+    _DATA_TIME_ZONE = ZoneInfo("Asia/Shanghai")
+    _SESSION_SCOPED_IMAGE_NAMES = frozenset({"避雷查看", "避雷查询"})
     _DEVICE_SCALE_FACTOR_LEVELS = {
         1.0: "normal",
         1.3: "high",
@@ -31,6 +55,7 @@ class MessageBuilder:
                  event_push: EventPushService,
                  icons: dict[str, dict[str, str]],
                  render_config: dict[str, Any] | None = None,
+                 cache: CacheService | None = None,
             ):
         self.jx3api = jx3api
         self.jx3box = jx3box
@@ -38,6 +63,7 @@ class MessageBuilder:
         self.event_push = event_push
         self.icons = icons
         self.render_config = render_config if isinstance(render_config, dict) else {}
+        self.cache = cache
 
 
     def _build_render_options(
@@ -94,7 +120,151 @@ class MessageBuilder:
             return_url=return_url,
             options=self._build_render_options(options),
         )
-    
+
+    @staticmethod
+    def _format_data_time(result: dict[str, Any] | None = None) -> str:
+        """优先使用接口缓存创建时间，否则使用本次数据生成时间。"""
+        cache_metadata = (result or {}).get("_cache") or {}
+        timestamp = cache_metadata.get("created_at")
+        try:
+            numeric_timestamp = float(timestamp)
+            if numeric_timestamp > 10_000_000_000:
+                numeric_timestamp /= 1000
+            if numeric_timestamp > 0:
+                return datetime.fromtimestamp(
+                    numeric_timestamp,
+                    tz=MessageBuilder._DATA_TIME_ZONE,
+                ).strftime("%Y-%m-%d %H:%M:%S")
+        except (TypeError, ValueError, OSError, OverflowError):
+            pass
+        return datetime.now(MessageBuilder._DATA_TIME_ZONE).strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
+
+    @classmethod
+    def _ensure_data_time_footer(cls, template: str) -> str:
+        """为不使用公共布局的动态 HTML 补上统一的数据时间区域。"""
+        if cls._DATA_TIME_MARKER in template:
+            return template
+        footer = """
+<style>
+.jx3-data-time {
+    box-sizing: border-box;
+    width: 100%;
+    margin-top: 18px;
+    padding: 12px 24px 4px;
+    border-top: 1px solid rgba(148, 163, 184, 0.35);
+    color: #64748b;
+    font: 500 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    letter-spacing: 0.02em;
+    text-align: right;
+}
+</style>
+<footer class="jx3-data-time" data-jx3-data-time>
+    数据时间：<time>{{ data_time }}</time>
+</footer>
+"""
+        body_end = template.lower().rfind("</body>")
+        if body_end >= 0:
+            return f"{template[:body_end]}{footer}{template[body_end:]}"
+        return f"{template}{footer}"
+
+    async def _render_image_file(
+        self,
+        template: str,
+        render_data: dict[str, Any],
+        cache_name: str = "",
+        render_options: dict[str, Any] | None = None,
+        include_icons: bool = False,
+        source_signature: str = "",
+        variant_signature: str = "",
+        cache_key_override: str = "",
+        cache_lock_held: bool = False,
+        message_text: str = "",
+        data_time: str = "",
+    ) -> str:
+        """命中时返回持久化图片，未命中时渲染一次并写入缓存。"""
+        effective_cache_name = cache_name or (
+            self.cache.current_command() if self.cache else ""
+        )
+        options = self._build_render_options(render_options)
+        cache_key = cache_key_override
+        if self.cache and effective_cache_name:
+            if not cache_key:
+                cache_key = self.cache.build_image_key(
+                    effective_cache_name,
+                    template,
+                    render_data,
+                    options,
+                    source_signature=source_signature,
+                    variant_signature=(
+                        variant_signature or self.cache.current_command_signature()
+                    ),
+                )
+            cached_path = await self.cache.get_image(cache_key, effective_cache_name)
+            if cached_path:
+                return str(cached_path)
+
+        async def render_and_save() -> str:
+            payload = dict(render_data)
+            payload["data_time"] = data_time or self._format_data_time()
+            if include_icons:
+                payload["icons"] = self.icons
+            rendered_path = await self.html_render(
+                self._ensure_data_time_footer(template),
+                payload,
+                return_url=False,
+                options=options,
+            )
+            if self.cache and cache_key:
+                saved_path = await self.cache.save_image(
+                    cache_key,
+                    effective_cache_name,
+                    rendered_path,
+                    str(options.get("type") or "jpeg"),
+                    message_text=message_text,
+                )
+                if saved_path:
+                    return str(saved_path)
+            return rendered_path
+
+        if not self.cache or not cache_key:
+            return await render_and_save()
+        if cache_lock_held:
+            return await render_and_save()
+
+        async with self.cache.image_lock(cache_key):
+            cached_path = await self.cache.get_image(cache_key, effective_cache_name)
+            if cached_path:
+                return str(cached_path)
+            return await render_and_save()
+
+    def _image_request_identity(
+        self,
+        event: AstrMessageEvent,
+        cache_name: str,
+        render_options: dict[str, Any] | None,
+        cache_variant: str,
+    ) -> tuple[str, str]:
+        if not self.cache:
+            return cache_name, ""
+        effective_cache_name = cache_name or self.cache.current_command()
+        if (
+            not effective_cache_name
+            or self.cache.get_ttl("image", effective_cache_name) <= 0
+        ):
+            return effective_cache_name, ""
+        variant_signature = cache_variant or self.cache.current_command_signature()
+        scope_signature = ""
+        if effective_cache_name in self._SESSION_SCOPED_IMAGE_NAMES:
+            scope_signature = self.cache.value_signature(event.unified_msg_origin)
+        return effective_cache_name, self.cache.build_image_request_key(
+            effective_cache_name,
+            self._build_render_options(render_options),
+            variant_signature,
+            scope_signature,
+        )
+
 
     async def plain_msg(self, event: AstrMessageEvent, action):
         """最终将数据整理成文本发送"""
@@ -114,20 +284,62 @@ class MessageBuilder:
         event: AstrMessageEvent,
         action,
         render_options: dict | None = None,
+        cache_name: str = "",
+        cache_variant: str = "",
     ):
         """最终将数据渲染成图片发送"""
-        data = await action()
         try:
-            if data["code"] == 200:
-                data["data"]["icons"] = self.icons
-                url = await self.html_render(
+            effective_cache_name, request_key = self._image_request_identity(
+                event,
+                cache_name,
+                render_options,
+                cache_variant,
+            )
+            data = None
+            image_path = ""
+
+            async def request_and_render(cache_lock_held: bool = False):
+                nonlocal data
+                data = await action()
+                if data["code"] != 200:
+                    return ""
+                return await self._render_image_file(
                     data["temp"],
                     data["data"],
-                    options=render_options,
+                    cache_name=effective_cache_name,
+                    render_options=render_options,
+                    include_icons=True,
+                    source_signature=str(
+                        (data.get("_cache") or {}).get("data_hash") or ""
+                    ),
+                    variant_signature=cache_variant,
+                    cache_key_override=request_key,
+                    cache_lock_held=cache_lock_held,
+                    data_time=self._format_data_time(data),
                 )
-                await event.send(event.image_result(url)) 
+
+            if self.cache and request_key:
+                async with self.cache.image_lock(request_key):
+                    cached_path = await self.cache.get_image(
+                        request_key,
+                        effective_cache_name,
+                    )
+                    image_path = (
+                        str(cached_path)
+                        if cached_path
+                        else await request_and_render(cache_lock_held=True)
+                    )
             else:
-                await event.send(event.plain_result(data["msg"])) 
+                image_path = await request_and_render()
+
+            if image_path:
+                await event.send(event.image_result(image_path))
+            else:
+                await event.send(
+                    event.plain_result(
+                        (data or {}).get("msg") or "获取接口信息失败"
+                    )
+                )
 
         except ActionFailed as e:
             if e.retcode == 1200:
@@ -170,22 +382,69 @@ class MessageBuilder:
             await event.send(event.plain_result("猪脑过载，请稍后再试")) 
 
 
-    async def plain_image_msg(self, event: AstrMessageEvent, action):
+    async def plain_image_msg(
+        self,
+        event: AstrMessageEvent,
+        action,
+        cache_name: str = "",
+        cache_variant: str = "",
+    ):
         """发送正文文本，并把可选 HTML 正文渲染为附图。"""
         try:
-            data = await action()
-            if data.get("code") != 200:
+            effective_cache_name, request_key = self._image_request_identity(
+                event,
+                cache_name,
+                None,
+                cache_variant,
+            )
+            data = None
+            image_path = ""
+            message_text = ""
+
+            async def request_and_render(cache_lock_held: bool = False):
+                nonlocal data, message_text
+                data = await action()
+                if data.get("code") != 200:
+                    return ""
+                message_text = str(data.get("data") or "")
+                if not data.get("temp"):
+                    return ""
+                return await self._render_image_file(
+                    data["temp"],
+                    {},
+                    cache_name=effective_cache_name,
+                    variant_signature=cache_variant,
+                    cache_key_override=request_key,
+                    cache_lock_held=cache_lock_held,
+                    message_text=message_text,
+                    data_time=self._format_data_time(data),
+                )
+
+            if self.cache and request_key:
+                async with self.cache.image_lock(request_key):
+                    cached_entry = await self.cache.get_image_entry(
+                        request_key,
+                        effective_cache_name,
+                    )
+                    if cached_entry:
+                        image_path = str(cached_entry[0])
+                        message_text = cached_entry[1]
+                    else:
+                        image_path = await request_and_render(cache_lock_held=True)
+            else:
+                image_path = await request_and_render()
+
+            if data is not None and data.get("code") != 200:
                 await event.send(
                     event.plain_result(data.get("msg") or "获取详细数据失败")
                 )
                 return
 
             chain = MessageChain()
-            if data.get("data"):
-                chain.message(str(data["data"]))
-            if data.get("temp"):
-                url = await self.html_render(data["temp"], {})
-                chain.url_image(url)
+            if message_text:
+                chain.message(message_text)
+            if image_path:
+                chain.file_image(image_path)
             await event.send(chain)
         except Exception as e:
             logger.error(f"功能函数执行错误: {e}")
@@ -213,14 +472,25 @@ class MessageBuilder:
             await event.send(event.plain_result("\n".join(menu_lines)))
             user_id = event.get_sender_id()
             send_result = result_handler or self.T2I_image_msg
+            cache_name = self.cache.current_command() if self.cache else ""
+            cache_variant = (
+                self.cache.current_command_signature() if self.cache else ""
+            )
 
             async def send_selected(
                 target_event: AstrMessageEvent,
                 selected: dict[str, Any],
             ):
+                selected_variant = cache_variant
+                if self.cache:
+                    selected_variant = (
+                        f"{cache_variant}:{self.cache.value_signature(selected)}"
+                    )
                 await send_result(
                     target_event,
                     lambda: action2(selected),
+                    cache_name=cache_name,
+                    cache_variant=selected_variant,
                 )
 
             @session_waiter(timeout=timeout)
@@ -323,8 +593,7 @@ class MessageBuilder:
 
     async def yanhuachaxun(self, event: AstrMessageEvent, server: str, name: str = "", limit: int = 50):
         """ 烟花 服务器 角色 条数"""
-        if limit <= 0:
-            return event.plain_result("条数必须为正整数")
+        limit = limit if limit > 0 else 50
         return await self.T2I_image_msg(
             event, lambda: self.jx3api.yanhuachaxun(server, name, limit)
         )
@@ -349,22 +618,20 @@ class MessageBuilder:
         """ 名剑统计 模式"""
         return await self.T2I_image_msg(event, lambda: self.jx3api.mingjiantongji(mode))
 
-    async def kuafumingjian(self, event: AstrMessageEvent, server: str, mode: int = 1,):
+    async def kuafumingjian(self, event: AstrMessageEvent, server: str, mode: int = 33):
         """跨服名剑 服务器 [模式]。"""
-        if mode not in {0, 1, 2}:
-            return event.plain_result("竞技模式仅支持 0=2v2、1=3v3、2=5v5")
+        api_mode = {22: 0, 33: 1, 55: 2}.get(mode, 1)
         return await self.T2I_image_msg(
             event,
-            lambda: self.jx3api.kuafumingjian(server, mode),
+            lambda: self.jx3api.kuafumingjian(server, api_mode),
         )
 
-    async def wulinzhengba(self,event: AstrMessageEvent,server: str,camp: int = 1,):
+    async def wulinzhengba(self,event: AstrMessageEvent,server: str,camp: str = "浩气盟",):
         """武林争霸 服务器 [阵营]。"""
-        if camp not in {1, 2}:
-            return event.plain_result("阵营仅支持 1=浩气、2=恶人")
+        api_camp = {"浩气盟": 1, "恶人谷": 2}.get(camp, 1)
         return await self.T2I_image_msg(
             event,
-            lambda: self.jx3api.wulinzhengba(server, camp),
+            lambda: self.jx3api.wulinzhengba(server, api_camp),
         )
 
     async def bukairongyu(self, event: AstrMessageEvent, server: str):
@@ -381,13 +648,12 @@ class MessageBuilder:
             lambda: self.jx3api.jianghulangke(server),
         )
 
-    async def juedoutiaozhan(self,event: AstrMessageEvent,server: str,mode: int = 1,):
+    async def juedoutiaozhan(self,event: AstrMessageEvent,server: str,mode: int = "公开",):
         """决斗挑战 服务器 [模式]。"""
-        if mode not in {1, 2}:
-            return event.plain_result("模式仅支持 1=公开、2=私密")
+        api_mode = {"公开": 1, "私密": 2}.get(mode, 1)
         return await self.T2I_image_msg(
             event,
-            lambda: self.jx3api.juedoutiaozhan(server, mode),
+            lambda: self.jx3api.juedoutiaozhan(server, api_mode),
         )
 
     async def banghuipaihang(self, event: AstrMessageEvent, server: str):
@@ -687,23 +953,49 @@ class MessageBuilder:
 
     async def bilei_add(self, event: AstrMessageEvent,name: str, text: str):
         """避雷添加 名称 备注"""
-        return await self.plain_msg(event, lambda: self.bilei.add(name,text,event.get_sender_name()))
+        return await self.plain_msg(
+            event,
+            lambda: self.bilei.add(
+                event.unified_msg_origin,
+                name,
+                text,
+                event.get_sender_name(),
+            ),
+        )
     
     async def bilei_all(self, event: AstrMessageEvent):
         """避雷查看"""
-        return await self.T2I_image_msg(event, self.bilei.all)
+        return await self.T2I_image_msg(
+            event,
+            lambda: self.bilei.all(event.unified_msg_origin),
+        )
     
     async def bilei_select(self, event: AstrMessageEvent, name:str):
         """避雷查询"""
-        return await self.T2I_image_msg(event, lambda: self.bilei.select(name))
+        return await self.T2I_image_msg(
+            event,
+            lambda: self.bilei.select(event.unified_msg_origin, name),
+        )
 
     async def bilei_update(self, event: AstrMessageEvent, id:int, name: str, text: str):
         """避雷修改 ID 名称 备注"""
-        return await self.plain_msg(event, lambda: self.bilei.update(id,name,text,event.get_sender_name()))
+        return await self.plain_msg(
+            event,
+            lambda: self.bilei.update(
+                event.unified_msg_origin,
+                id,
+                name,
+                text,
+                event.get_sender_name(),
+            ),
+        )
 
     async def bilei_delete(self, event: AstrMessageEvent, id:int):
         """避雷删除 ID"""
-        return await self.plain_msg(event, lambda: self.bilei.delete(id))
+        return await self.plain_msg(
+            event,
+            lambda: self.bilei.delete(event.unified_msg_origin, id),
+        )
 
 
     async def shijian_tuisong(

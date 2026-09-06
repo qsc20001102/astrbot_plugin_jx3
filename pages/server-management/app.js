@@ -7,7 +7,15 @@ const state = {
   servers: [],
   events: {},
   session_control: { mode: "all", entries: [] },
+  legacy_bilei: [],
   token_stats: null,
+  cache: {
+    defaults: { api: 300, image: 300 },
+    limits: { api_memory_entries: 256, image_max_mb: 512 },
+    api: [],
+    images: [],
+    stats: {},
+  },
 };
 const editing = { bindingSession: null, controlSession: null, aliasServer: null, kungfuPzid: null };
 const restoreConfirmationTimers = new WeakMap();
@@ -19,6 +27,14 @@ function formatUsageCount(value) {
   return Number.isSafeInteger(value) && value >= 0
     ? value.toLocaleString("zh-CN")
     : "—";
+}
+
+function formatBytes(value) {
+  const bytes = Number(value) || 0;
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 ** 3) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+  return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
 }
 
 function renderTokenStats() {
@@ -392,6 +408,76 @@ function renderBindings() {
   }));
 }
 
+function renderLegacyBilei() {
+  const records = state.legacy_bilei || [];
+  const body = byId("legacy-bilei-body");
+  byId("legacy-bilei-count").textContent = String(records.length);
+  if (!records.length) {
+    body.replaceChildren(emptyRow(7, "没有待迁移的旧避雷数据"));
+    return;
+  }
+
+  body.replaceChildren(...records.map((item) => {
+    const row = document.createElement("tr");
+    const id = document.createElement("td");
+    const name = document.createElement("td");
+    const note = document.createElement("td");
+    const time = document.createElement("td");
+    const user = document.createElement("td");
+    const target = document.createElement("td");
+    const actions = document.createElement("td");
+    id.dataset.label = "ID";
+    name.dataset.label = "避雷名称";
+    note.dataset.label = "避雷备注";
+    time.dataset.label = "时间";
+    user.dataset.label = "记录人";
+    target.dataset.label = "目标会话";
+    actions.dataset.label = "操作";
+    id.textContent = String(item.id);
+    name.textContent = item.name || "—";
+    note.textContent = item.text || "—";
+    note.className = "legacy-note-cell";
+    time.textContent = item.time || "—";
+    user.textContent = item.user || "—";
+    target.className = "legacy-session-cell";
+    actions.className = "actions";
+
+    const sessionInput = document.createElement("input");
+    sessionInput.className = "inline-editor";
+    sessionInput.maxLength = 512;
+    sessionInput.required = true;
+    sessionInput.setAttribute("list", "session-options");
+    sessionInput.setAttribute("aria-label", `避雷记录 ${item.id} 的目标会话`);
+    sessionInput.placeholder = "选择已有会话或直接输入";
+    target.append(sessionInput);
+
+    const migrateButton = button("迁移", "", async () => {
+      if (!sessionInput.reportValidity()) return;
+      sessionInput.disabled = true;
+      migrateButton.disabled = true;
+      const migrated = await mutate(
+        "bilei/legacy/migrate",
+        { id: item.id, session_id: sessionInput.value },
+        `避雷记录 ${item.id} 已迁移`,
+      );
+      if (!migrated) {
+        sessionInput.disabled = false;
+        migrateButton.disabled = false;
+        sessionInput.focus();
+      }
+    });
+    sessionInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        migrateButton.click();
+      }
+    });
+    actions.append(migrateButton);
+    row.append(id, name, note, time, user, target, actions);
+    return row;
+  }));
+}
+
 function renderSubscriptions() {
   const body = byId("subscriptions-body");
   const bindings = bindingMap();
@@ -552,15 +638,134 @@ function renderKungfu() {
   }));
 }
 
+function cacheSettingRow(cacheType, item) {
+  const row = document.createElement("tr");
+  const name = document.createElement("td");
+  const ttl = document.createElement("td");
+  const status = document.createElement("td");
+  const actions = document.createElement("td");
+  name.dataset.label = cacheType === "api" ? "接口路径" : "图片指令";
+  ttl.dataset.label = "缓存时间（秒）";
+  status.dataset.label = "配置状态";
+  actions.dataset.label = "操作";
+  name.textContent = item.name;
+  name.className = "cache-name-cell";
+  actions.className = "actions";
+
+  const input = document.createElement("input");
+  input.className = "inline-editor inline-editor--ttl";
+  input.type = "number";
+  input.min = "0";
+  input.max = "2592000";
+  input.step = "1";
+  input.required = true;
+  input.value = String(item.ttl_seconds);
+  input.setAttribute("aria-label", `${item.name}缓存时间（秒）`);
+  ttl.append(input);
+
+  const badge = document.createElement("span");
+  badge.className = `cache-badge ${item.overridden ? "cache-badge--custom" : ""}`.trim();
+  badge.textContent = item.overridden
+    ? "独立设置"
+    : item.safe_default
+      ? "安全默认"
+      : "继承默认";
+  status.append(badge);
+
+  const saveButton = button("保存", "", async () => {
+    if (!input.reportValidity()) return;
+    saveButton.disabled = true;
+    restoreButton.disabled = true;
+    const saved = await mutate(
+      "cache/settings/save",
+      { cache_type: cacheType, cache_name: item.name, ttl_seconds: Number(input.value) },
+      `${item.name}缓存时间已保存`,
+    );
+    if (!saved) {
+      saveButton.disabled = false;
+      restoreButton.disabled = false;
+    }
+  });
+  const restoreButton = button("恢复默认", "", async () => {
+    restoreButton.disabled = true;
+    saveButton.disabled = true;
+    const saved = await mutate(
+      "cache/settings/save",
+      { cache_type: cacheType, cache_name: item.name, inherit: true },
+      `${item.name}已恢复默认时间`,
+    );
+    if (!saved) {
+      restoreButton.disabled = false;
+      saveButton.disabled = false;
+    }
+  });
+  const clearButton = button("清除此项", "link-button--danger", async () => {
+    clearButton.disabled = true;
+    const cleared = await mutate(
+      "cache/item/clear",
+      { cache_type: cacheType, cache_name: item.name },
+      `${item.name}缓存已清除，下次调用将重新生成`,
+    );
+    if (!cleared) clearButton.disabled = false;
+  });
+  restoreButton.disabled = !item.overridden;
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      saveButton.click();
+    }
+  });
+  actions.append(saveButton, restoreButton, clearButton);
+  row.append(name, ttl, status, actions);
+  return row;
+}
+
+function renderCacheTable(cacheType) {
+  const isApi = cacheType === "api";
+  const items = isApi ? state.cache.api : state.cache.images;
+  const filter = byId(isApi ? "api-cache-filter" : "image-cache-filter")
+    .value.trim().toLocaleLowerCase("zh-CN");
+  const visible = items.filter((item) => item.name.toLocaleLowerCase("zh-CN").includes(filter));
+  const body = byId(isApi ? "api-cache-settings-body" : "image-cache-settings-body");
+  body.replaceChildren(...(
+    visible.length
+      ? visible.map((item) => cacheSettingRow(cacheType, item))
+      : [emptyRow(4, filter ? "没有匹配的缓存项目" : "暂无缓存项目")]
+  ));
+}
+
+function renderCache() {
+  const cache = state.cache || { defaults: {}, limits: {}, api: [], images: [], stats: {} };
+  const stats = cache.stats || {};
+  const apiDefault = cache.defaults?.api ?? 300;
+  const imageDefault = cache.defaults?.image ?? 600;
+  const memoryLimit = cache.limits?.api_memory_entries ?? stats.api_memory_limit ?? 256;
+  const imageLimitMb = cache.limits?.image_max_mb ?? 512;
+  byId("api-cache-count").textContent = `${stats.api_count || 0} 条`;
+  byId("api-cache-size").textContent = formatBytes(stats.api_size_bytes);
+  byId("image-cache-count").textContent = `${stats.image_count || 0} 张`;
+  byId("image-cache-size").textContent = `${formatBytes(stats.image_size_bytes)} / ${formatBytes(stats.image_limit_bytes)}`;
+  byId("api-default-ttl").value = String(apiDefault);
+  byId("image-default-ttl").value = String(imageDefault);
+  byId("api-memory-limit").value = String(memoryLimit);
+  byId("image-size-limit").value = String(imageLimitMb);
+  byId("api-memory-summary").textContent = `${stats.api_memory_count || 0} / ${memoryLimit} 条`;
+  byId("cache-default-summary").textContent = `${apiDefault} / ${imageDefault} 秒`;
+  renderCacheTable("api");
+  renderCacheTable("image");
+}
+
 function render() {
   renderTokenStats();
   renderServerOptions();
   renderSessionOptions();
   renderSessionControl();
+  renderLegacyBilei();
   renderBindings();
   renderSubscriptions();
   renderAliases();
   renderKungfu();
+  renderCache();
 }
 
 async function loadData() {
@@ -689,6 +894,72 @@ byId("restore-kungfu").addEventListener("click", async (event) => {
     "心法别名已恢复默认",
     () => { editing.kungfuPzid = null; },
   );
+});
+
+byId("api-cache-filter").addEventListener("input", () => renderCacheTable("api"));
+byId("image-cache-filter").addEventListener("input", () => renderCacheTable("image"));
+
+byId("cache-default-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const submit = event.currentTarget.querySelector('button[type="submit"]');
+  submit.disabled = true;
+  try {
+    await bridge.apiPost("cache/settings/save", {
+      cache_type: "api",
+      cache_name: "*",
+      ttl_seconds: Number(byId("api-default-ttl").value),
+    });
+    await bridge.apiPost("cache/settings/save", {
+      cache_type: "image",
+      cache_name: "*",
+      ttl_seconds: Number(byId("image-default-ttl").value),
+    });
+    await loadData();
+    showToast("默认缓存时间已保存");
+  } catch (error) {
+    showToast(error?.message || "默认缓存时间保存失败", true);
+  } finally {
+    submit.disabled = false;
+  }
+});
+
+byId("cache-limit-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const submit = event.currentTarget.querySelector('button[type="submit"]');
+  submit.disabled = true;
+  try {
+    await bridge.apiPost("cache/limits/save", {
+      api_memory_entries: Number(byId("api-memory-limit").value),
+      image_max_mb: Number(byId("image-size-limit").value),
+    });
+    await loadData();
+    showToast("缓存容量限制已保存并立即生效");
+  } catch (error) {
+    showToast(error?.message || "缓存容量限制保存失败", true);
+  } finally {
+    submit.disabled = false;
+  }
+});
+
+async function clearCache(cacheType, control) {
+  control.disabled = true;
+  try {
+    const result = await bridge.apiPost("cache/clear", { cache_type: cacheType });
+    await loadData();
+    const removed = result?.removed?.[cacheType] ?? 0;
+    showToast(`${cacheType === "api" ? "接口" : "图片"}缓存已清空，共清理 ${removed} 项`);
+  } catch (error) {
+    showToast(error?.message || "缓存清理失败", true);
+  } finally {
+    control.disabled = false;
+  }
+}
+
+byId("clear-api-cache").addEventListener("click", (event) => {
+  clearCache("api", event.currentTarget);
+});
+byId("clear-image-cache").addEventListener("click", (event) => {
+  clearCache("image", event.currentTarget);
 });
 
 byId("refresh").addEventListener("click", async (event) => {

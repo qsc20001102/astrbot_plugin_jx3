@@ -18,6 +18,7 @@ from .core.session_control import SessionControlService
 from .core.webui import WebUIService
 from .core.message import MessageBuilder
 from .core.fun_basic import load_as_base64
+from .core.cache import CacheService
 
 
 PLUGIN_NAME = "astrbot_plugin_jx3"
@@ -25,7 +26,7 @@ PLUGIN_NAME = "astrbot_plugin_jx3"
 @register("astrbot_plugin_jx3", 
           "fxdyz", 
           "聚合剑网三游戏数据，提供查询、图片渲染、本地避雷和实时事件推送。",
-          "3.4.5",
+          "3.4.6",
           "https://github.com/qsc20001102/astrbot_plugin_jx3"
 )
 class Jx3ApiPlugin(Star):
@@ -36,8 +37,11 @@ class Jx3ApiPlugin(Star):
 
         # 指令前缀
         self.prefix = self.conf.get("prefix",{})
-        if self.prefix.get("enable"):
-            logger.info(f"已启用指令前缀功能，前缀为：{self.prefix.get('text')}")
+        prefix_text = str(self.prefix.get("text") or "").strip()
+        if self.prefix.get("enable") and prefix_text:
+            logger.info(f"已启用指令前缀功能，前缀为：{prefix_text}")
+        elif self.prefix.get("enable"):
+            logger.warning("指令前缀已开启但内容为空，将按未开启前缀处理")
         else:
             logger.info(f"未启用指令前缀功能。")
 
@@ -61,7 +65,9 @@ class Jx3ApiPlugin(Star):
         """可选择实现异步的插件初始化方法，当实例化该插件类之后会自动调用该方法。"""     
         try:
             # 数据库初始化
-            await self.init_bilei_data()
+            await self.local_sql_db.connect()
+            await self.cache.initialize()
+            await self.bilei.initialize()
             await self.init_trade_item_cache_data()
             await self.kungfu_alias.initialize()
             await self.server_binding.initialize()
@@ -115,6 +121,7 @@ class Jx3ApiPlugin(Star):
 
         # SQLite本地路径
         self.local_data_path = self.local_data_dir / "local_data.db"
+        self.cache_image_dir = self.local_data_dir / "cache" / "images"
         self.kungfu_seed_path = self.plugin_data_dir / "kungfu.json"
         self.server_alias_seed_path = self.plugin_data_dir / "server_aliases.json"
 
@@ -153,9 +160,14 @@ class Jx3ApiPlugin(Star):
         """构造所有类"""
         # 数据库实例化
         self.local_sql_db = AsyncSQLiteDB(str(self.local_data_path))
+        self.cache = CacheService(
+            self.local_sql_db,
+            self.cache_image_dir,
+            (self.plugin_temp_dir,),
+        )
         # 剑网三功能实例化
         self.bilei = BiLeidata(self.local_sql_db)
-        self.jx3api = JX3APIService(self.conf, self.local_sql_db)
+        self.jx3api = JX3APIService(self.conf, self.local_sql_db, self.cache)
         self.jx3box = JX3BOXService(self.conf, self.local_sql_db, self.local_sql_db)
         self.kungfu_alias = KungfuAliasService(
             self.local_sql_db,
@@ -179,6 +191,8 @@ class Jx3ApiPlugin(Star):
             self.server_binding,
             self.kungfu_alias,
             self.session_control,
+            self.bilei,
+            self.cache,
         )
         self.jx3cmd = MessageBuilder(
             self.jx3api,
@@ -187,24 +201,9 @@ class Jx3ApiPlugin(Star):
             self.event_push,
             self.icons,
             self.conf.get("image_render_quality", {}),
+            self.cache,
         )
 
-
-    async def init_bilei_data(self):
-        """初始化避雷数据表"""
-        # 连接本地数据
-        await self.local_sql_db.connect()
-        # 创建bilei表
-        await self.local_sql_db.execute("""
-        CREATE TABLE IF NOT EXISTS bilei(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            text TEXT,
-            time TEXT,
-            user TEXT                                           
-        )
-        """)
-    
 
     async def init_trade_item_cache_data(self):
         """初始化交易行物品缓存，并清理已停用的资历缓存表。"""
@@ -339,6 +338,11 @@ class Jx3ApiPlugin(Star):
             "避雷修改": self.jx3cmd.bilei_update,
             "避雷删除": self.jx3cmd.bilei_delete,
         }
+        self.cache.register_image_names(
+            command_name
+            for command_name, handler in self.command_map.items()
+            if handler.__name__ in MessageBuilder.IMAGE_RENDER_HANDLERS
+        )
 
 
     def parse_message(self, text: str) -> list[str] | None:
@@ -350,11 +354,9 @@ class Jx3ApiPlugin(Star):
         # 前缀模式
         if self.prefix.get("enable"):
             prefix = str(self.prefix.get("text") or "").strip()
-            if not prefix:
-                return None
-            if text.startswith(prefix):
+            if prefix and text.startswith(prefix):
                 text = text[len(prefix):].strip()
-            else:
+            elif prefix:
                 # 非前缀消息，直接忽略
                 return None
 
@@ -529,15 +531,20 @@ class Jx3ApiPlugin(Star):
             )
             return
 
+        command_token = None
         try:
             args = await self._prepare_server_args(handler, event, args)
             args = self._prepare_kungfu_args(handler, args)
+            command_token = self.cache.enter_command(cmd, args)
             ret = await self._call_with_auto_args(handler, event, args)
             if ret is not None:
                 yield ret
         except Exception as e:
             logger.exception(f"指令执行失败: {cmd}, error={e}")
             yield event.plain_result("参数错误或执行失败")
+        finally:
+            if command_token is not None:
+                self.cache.leave_command(command_token)
 
     async def bind_server(
         self,

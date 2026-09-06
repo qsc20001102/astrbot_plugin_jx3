@@ -37,6 +37,12 @@ class AsyncSQLiteDB:
         async with self.conn.execute(sql, params):
             await self.conn.commit()
 
+    async def execute_affected(self, sql: str, params: Tuple = ()) -> int:
+        """执行写入语句并返回受影响的行数。"""
+        async with self.conn.execute(sql, params) as cursor:
+            await self.conn.commit()
+            return cursor.rowcount
+
     async def execute_transaction(
         self,
         statements: List[Tuple[str, Tuple[Any, ...]]],
