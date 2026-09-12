@@ -47,6 +47,35 @@
     "default": true,
     "hint": "验证 JX3API、JX3BOX 和事件推送连接的 TLS 证书。建议保持开启；仅在受信任的调试环境中临时关闭。"
   },
+  "team_management": {
+    "description": "团队管理",
+    "type": "object",
+    "items": {
+      "view_output": {
+        "description": "查看团队输出方式",
+        "type": "string",
+        "options": [
+          "图片",
+          "文本"
+        ],
+        "default": "图片",
+        "hint": "控制“查看团队”指令使用图片还是纯文本回复。"
+      },
+      "blacklist_provider": {
+        "description": "黑本模型配置",
+        "type": "string",
+        "default": "",
+        "_special": "select_provider",
+        "hint": "团队黑本使用的 AstrBot 对话模型；留空时使用当前会话的默认对话模型。"
+      },
+      "blacklist_prompt": {
+        "description": "黑本提示词",
+        "type": "text",
+        "default": "你是剑网3团队管理助手。请从团队成员中选择一名加入团队黑本。必须且只能选择团队数据中真实存在的一个角色，并严格使用以下格式回复：\n角色名：角色名称\n理由：简短明确的理由\n理由需要主要结合该成员的角色名称、不要参考心法、职责或老板标记，不要编造团队数据中不存在的信息，也不要输出其他内容。",
+        "hint": "此提示词会与指定团队的基本信息及完整成员数据拼接后统一发送给模型。"
+      }
+    }
+  },
   "image_render_quality": {
     "description": "图片渲染质量",
     "type": "object",

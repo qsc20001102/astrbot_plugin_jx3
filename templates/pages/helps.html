@@ -3,7 +3,7 @@
     <header class="top-info help-header">
         <div>
             <div class="top-name">剑网三综合查询插件</div>
-            <div class="top-summary">18 个功能分区 · 97 个触发指令</div>
+            <div class="top-summary">18 个功能分区 · 98 个触发指令</div>
         </div>
         <div class="help-rules">
             <span>会话绑定区服后可省略指令中的区服参数；在区服位置填写“全区”可显式查询全区数据</span>
@@ -194,6 +194,22 @@
                 <div class="command-row"><div class="feature-name">查询记录</div><div class="commands"><code class="command">避雷查询 名称</code></div></div>
                 <div class="command-row"><div class="feature-name">修改记录</div><div class="commands"><code class="command">避雷修改 ID 名称 备注</code></div></div>
                 <div class="command-row"><div class="feature-name">删除记录</div><div class="commands"><code class="command">避雷删除 ID</code></div></div>
+            </div>
+        </section>
+
+        <section class="command-section">
+            <header class="command-section__header"><span class="section-index">19</span><h2>团队管理</h2><span class="section-count">17 个触发词</span></header>
+            <div class="command-list">
+                <div class="command-row" data-description="群主、群管理员或 AstrBot 管理员；人数仅支持 10 或 25"><div class="feature-name">创建团队</div><div class="commands"><code class="command">开团 团名 人数 [公告]</code></div></div>
+                <div class="command-row" data-description="群主、群管理员或 AstrBot 管理员"><div class="feature-name">报名状态</div><div class="commands"><code class="command">打开报名 团编号</code><code class="command">关闭报名 团编号</code></div></div>
+                <div class="command-row" data-description="群主、群管理员或 AstrBot 管理员"><div class="feature-name">结束团队</div><div class="commands"><code class="command">结束团队 团编号</code><code class="command">结束全部团队</code></div></div>
+                <div class="command-row" data-description="群主、群管理员或 AstrBot 管理员"><div class="feature-name">清空成员</div><div class="commands"><code class="command">清空报名 团编号</code></div></div>
+                <div class="command-row" data-description="群主、群管理员或 AstrBot 管理员"><div class="feature-name">成员管理</div><div class="commands"><code class="command">修改报名 团编号 原角色名 新角色名 心法 [老板]</code><code class="command">交换位置 团编号 位置1 位置2</code></div></div>
+                <div class="command-row" data-description="范围填写默认10、默认25或团编号（例如 12）；群主、群管理员或 AstrBot 管理员"><div class="feature-name">查看限制</div><div class="commands"><code class="command">查看限制 范围</code></div></div>
+                <div class="command-row" data-description="类型支持职责或心法；职责目标支持 T、奶、DPS、老板；群主、群管理员或 AstrBot 管理员"><div class="feature-name">维护限制</div><div class="commands"><code class="command">添加限制 范围 类型 目标 最小 最大</code><code class="command">修改限制 范围 规则编号 类型 目标 最小 最大</code><code class="command">删除限制 范围 规则编号</code><code class="command">恢复默认限制 团编号</code></div></div>
+                <div class="command-row" data-description="使用插件配置的对话模型，留空则使用会话默认模型；群主、群管理员或 AstrBot 管理员"><div class="feature-name">团队黑本</div><div class="commands"><code class="command">团队黑本 团编号</code></div></div>
+                <div class="command-row"><div class="feature-name">报名操作</div><div class="commands"><code class="command">报名 团编号 心法 角色名 [老板]</code><code class="command">取消报名 团编号 角色名</code></div></div>
+                <div class="command-row" data-description="默认图片输出，可在插件配置中切换文本；无编号显示团队列表，带编号显示团队详情"><div class="feature-name">查看团队</div><div class="commands"><code class="command">查看团队 [团编号]</code></div></div>
             </div>
         </section>
     </main>

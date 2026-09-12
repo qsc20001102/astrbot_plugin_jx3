@@ -1,6 +1,7 @@
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from .sqlite import AsyncSQLiteDB
 
@@ -9,11 +10,21 @@ class KungfuAliasService:
     """维护本地心法名称、JX3BOX 配装 ID 和别名。"""
 
     MAX_ALIASES = 5
+    ROLE_TYPES = {"T", "HEALER", "DPS"}
+    DEFAULT_T_KUNGFU = {"洗髓经", "铁牢律", "铁骨衣", "明尊琉璃体"}
+    DEFAULT_HEALER_KUNGFU = {
+        "云裳心经",
+        "补天诀",
+        "相知",
+        "灵素",
+        "离经易道",
+    }
 
     def __init__(self, sqlite: AsyncSQLiteDB, seed_path: Path):
         self.sql = sqlite
         self.seed_path = seed_path
         self._kungfu_lookup: dict[str, str] = {}
+        self._role_type_lookup: dict[str, str] = {}
 
     async def initialize(self):
         await self.sql.execute(
@@ -25,12 +36,36 @@ class KungfuAliasService:
                 name2 TEXT,
                 name3 TEXT,
                 name4 TEXT,
-                name5 TEXT
+                name5 TEXT,
+                role_type TEXT NOT NULL DEFAULT 'DPS'
+                    CHECK(role_type IN ('T', 'HEALER', 'DPS'))
             )
             """
         )
+        columns = await self.sql.fetch_all("PRAGMA table_info(kungfu)")
+        if "role_type" not in {column["name"] for column in columns}:
+            await self.sql.execute(
+                """
+                ALTER TABLE kungfu
+                ADD COLUMN role_type TEXT NOT NULL DEFAULT 'DPS'
+                    CHECK(role_type IN ('T', 'HEALER', 'DPS'))
+                """
+            )
+            await self._apply_default_role_types()
         await self._seed_defaults()
         await self._reload_cache()
+
+    async def _apply_default_role_types(self):
+        for name in self.DEFAULT_T_KUNGFU:
+            await self.sql.execute(
+                "UPDATE kungfu SET role_type='T' WHERE name=?",
+                (name,),
+            )
+        for name in self.DEFAULT_HEALER_KUNGFU:
+            await self.sql.execute(
+                "UPDATE kungfu SET role_type='HEALER' WHERE name=?",
+                (name,),
+            )
 
     async def _seed_defaults(self):
         records = self._load_seed_defaults()
@@ -38,8 +73,8 @@ class KungfuAliasService:
             await self.sql.execute(
                 """
                 INSERT OR IGNORE INTO kungfu
-                    (pzid, name, name1, name2, name3, name4, name5)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (pzid, name, name1, name2, name3, name4, name5, role_type)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 values,
             )
@@ -65,7 +100,9 @@ class KungfuAliasService:
             name = self._clean(record.get("name"))
             aliases = self._normalize_aliases(name, record.get("aliases") or [])
             values = [*aliases, *([None] * (self.MAX_ALIASES - len(aliases)))]
-            normalized_records.append((pzid, name, *values))
+            normalized_records.append(
+                (pzid, name, *values, self._default_role_type(name))
+            )
         return normalized_records
 
     async def restore_defaults(self) -> int:
@@ -78,8 +115,8 @@ class KungfuAliasService:
             (
                 """
                 INSERT INTO kungfu
-                    (pzid, name, name1, name2, name3, name4, name5)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (pzid, name, name1, name2, name3, name4, name5, role_type)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 values,
             )
@@ -91,7 +128,7 @@ class KungfuAliasService:
 
     async def list_kungfu(self) -> list[dict[str, Any]]:
         rows = await self.sql.fetch_all(
-            "SELECT pzid, name, name1, name2, name3, name4, name5 "
+            "SELECT pzid, name, name1, name2, name3, name4, name5, role_type "
             "FROM kungfu ORDER BY pzid"
         )
         return [
@@ -103,6 +140,7 @@ class KungfuAliasService:
                     for key in ("name1", "name2", "name3", "name4", "name5")
                     if (alias := self._clean(row.get(key)))
                 ],
+                "role_type": self._normalize_role_type(row.get("role_type")),
             }
             for row in rows
         ]
@@ -146,6 +184,18 @@ class KungfuAliasService:
         )
         await self._reload_cache()
 
+    async def save_role_type(self, pzid: Any, role_type: Any):
+        """Update the global T/healer/DPS classification of one kungfu."""
+        normalized_pzid = self._parse_pzid(pzid)
+        normalized_role_type = self._normalize_role_type(role_type)
+        affected = await self.sql.execute_affected(
+            "UPDATE kungfu SET role_type=? WHERE pzid=?",
+            (normalized_role_type, normalized_pzid),
+        )
+        if not affected:
+            raise ValueError("心法不存在")
+        await self._reload_cache()
+
     async def _reload_cache(self):
         """Refresh the canonical kungfu name and alias lookup cache.
 
@@ -153,15 +203,14 @@ class KungfuAliasService:
             None.
         """
         rows = await self.list_kungfu()
-        lookup = {
-            self._key(row["name"]): row["name"]
-            for row in rows
-            if row["name"]
-        }
+        lookup = {self._key(row["name"]): row["name"] for row in rows if row["name"]}
         for row in rows:
             for alias in row["aliases"]:
                 lookup.setdefault(self._key(alias), row["name"])
         self._kungfu_lookup = lookup
+        self._role_type_lookup = {
+            row["name"]: row["role_type"] for row in rows if row["name"]
+        }
 
     def resolve_kungfu(self, value: Any) -> str:
         """Resolve a canonical kungfu name or alias to its canonical name.
@@ -174,6 +223,33 @@ class KungfuAliasService:
         """
         kungfu = self._clean(value)
         return self._kungfu_lookup.get(self._key(kungfu), kungfu)
+
+    def match_kungfu(self, value: Any) -> str | None:
+        """Return a canonical kungfu only when the name or alias is configured."""
+        kungfu = self._clean(value)
+        return self._kungfu_lookup.get(self._key(kungfu))
+
+    def role_type_of(self, value: Any) -> str:
+        """Return the configured role type for a canonical kungfu or alias."""
+        canonical = self.match_kungfu(value)
+        if not canonical:
+            raise ValueError("心法必须是心法配置中的标准名称或别名")
+        return self._role_type_lookup[canonical]
+
+    @classmethod
+    def _default_role_type(cls, name: str) -> str:
+        if name in cls.DEFAULT_T_KUNGFU:
+            return "T"
+        if name in cls.DEFAULT_HEALER_KUNGFU:
+            return "HEALER"
+        return "DPS"
+
+    @classmethod
+    def _normalize_role_type(cls, value: Any) -> str:
+        role_type = cls._clean(value).upper()
+        if role_type not in cls.ROLE_TYPES:
+            raise ValueError("心法职责只能选择 T、奶或 DPS")
+        return role_type
 
     def _normalize_aliases(self, name: str, aliases: Iterable[Any]) -> list[str]:
         result: list[str] = []

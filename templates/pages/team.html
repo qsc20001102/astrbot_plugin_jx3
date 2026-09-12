@@ -1,0 +1,83 @@
+{# template-title: 团队信息 #}
+
+
+<div class="container team-image-page">
+    {% if mode == "list" %}
+    <header class="team-image-header">
+        <div>
+            <span class="team-image-eyebrow">团队管理</span>
+            <h1>当前会话团队</h1>
+            <p>共 {{ teams|length }} 个团队</p>
+        </div>
+    </header>
+
+    {% if teams %}
+    <section class="team-summary-list">
+        {% for team in teams %}
+        <article class="team-summary-card">
+            <div class="team-summary-main">
+                <div class="team-summary-title">
+                    <strong>#{{ team.id }} {{ team.name }}</strong>
+                    <span class="team-status team-status--{{ 'open' if team.registration_open else 'closed' }}">
+                        {{ '报名中' if team.registration_open else '未开放' }}
+                    </span>
+                </div>
+                <p>{{ team.announcement or '暂无公告' }}</p>
+            </div>
+            <div class="team-summary-stats">
+                <span><b>{{ team.member_count }}</b>/{{ team.capacity }} 人</span>
+                <span>老板 <b>{{ team.boss_count }}</b> 人</span>
+            </div>
+        </article>
+        {% endfor %}
+    </section>
+    {% else %}
+    <div class="team-empty-state">当前会话暂无团队</div>
+    {% endif %}
+    {% else %}
+    <header class="team-image-header team-image-header--detail">
+        <div>
+            <span class="team-image-eyebrow">团队 #{{ team.id }}</span>
+            <h1>{{ team.name }}</h1>
+            <p>{{ team.announcement or '暂无公告' }}</p>
+        </div>
+        <div class="team-detail-stats">
+            <span class="team-status team-status--{{ 'open' if team.registration_open else 'closed' }}">
+                {{ '报名中' if team.registration_open else '未开放' }}
+            </span>
+            <strong>{{ team.member_count }}/{{ team.capacity }} 人</strong>
+            <span>老板 {{ team.boss_count }} 人</span>
+        </div>
+    </header>
+
+    <section class="team-slot-grid" style="--team-columns: {{ team.columns }}">
+        {% for member in team.slots %}
+        {% if member %}
+        <article class="team-image-slot team-image-slot--{{ member.role_class }}">
+            {% if icons.sect.get(member.kungfu) %}
+            <img class="team-image-slot__icon" src="{{ icons.sect[member.kungfu] }}" alt="">
+            {% else %}
+            <span class="team-image-slot__icon team-image-slot__icon--fallback">{{ member.kungfu[0] }}</span>
+            {% endif %}
+            <div class="team-image-slot__content">
+                <strong>{{ member.role_name }}</strong>
+                <div>
+                    <span>{{ member.visual_role }}</span>
+                    <small>{{ member.kungfu }}</small>
+                </div>
+            </div>
+        </article>
+        {% else %}
+        <div class="team-image-slot team-image-slot--empty">空</div>
+        {% endif %}
+        {% endfor %}
+    </section>
+
+    <div class="team-role-legend">
+        <span><i class="legend-dot legend-dot--boss"></i>老板</span>
+        <span><i class="legend-dot legend-dot--healer"></i>奶</span>
+        <span><i class="legend-dot legend-dot--tank"></i>T</span>
+        <span><i class="legend-dot legend-dot--dps"></i>DPS</span>
+    </div>
+    {% endif %}
+</div>

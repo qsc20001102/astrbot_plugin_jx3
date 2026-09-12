@@ -9,6 +9,10 @@ const state = {
   free_event_actions: [],
   session_control: { mode: "all", entries: [] },
   legacy_bilei: [],
+  teams: [],
+  team_kungfu_icons: {},
+  team_rule_sessions: [],
+  team_rule_config: null,
   token_stats: null,
   cache: {
     defaults: { api: 300, image: 300 },
@@ -18,7 +22,8 @@ const state = {
     stats: {},
   },
 };
-const editing = { bindingSession: null, controlSession: null, aliasServer: null, kungfuPzid: null, subscriptionSession: null };
+const editing = { bindingSession: null, controlSession: null, aliasServer: null, kungfuPzid: null, subscriptionSession: null, teamRuleId: null };
+const expandedTeamIds = new Set();
 let subscriptionSaving = false;
 const restoreConfirmationTimers = new WeakMap();
 let toastTimer;
@@ -202,6 +207,8 @@ function renderSessionOptions() {
     ...state.bindings.map((item) => item.session_id),
     ...state.subscriptions.map((item) => item.session_id),
     ...state.session_control.entries.map((item) => item.session_id),
+    ...state.teams.map((item) => item.session_id),
+    ...state.team_rule_sessions,
   ]);
   byId("session-options").replaceChildren(...[...sessionIds].sort().map((sessionId) => {
     const option = document.createElement("option");
@@ -671,19 +678,47 @@ function renderAliases() {
 
 function renderKungfu() {
   const body = byId("kungfu-body");
+  byId("kungfu-options").replaceChildren(...state.kungfu.map((item) => {
+    const option = document.createElement("option");
+    option.value = item.name;
+    option.label = `${roleTypeLabel(item.role_type)}｜${item.aliases.join("、")}`;
+    return option;
+  }));
   if (!state.kungfu.length) {
-    body.replaceChildren(emptyRow(3, "暂无心法配置"));
+    body.replaceChildren(emptyRow(4, "暂无心法配置"));
     return;
   }
   body.replaceChildren(...state.kungfu.map((item) => {
     const row = document.createElement("tr");
     const name = document.createElement("td");
+    const roleType = document.createElement("td");
     const aliases = document.createElement("td");
     const actions = document.createElement("td");
     name.dataset.label = "标准心法名";
+    roleType.dataset.label = "职责";
     aliases.dataset.label = "别名";
     actions.dataset.label = "操作";
     name.textContent = item.name;
+    const roleSelect = document.createElement("select");
+    roleSelect.className = "inline-editor inline-editor--compact";
+    roleSelect.setAttribute("aria-label", `${item.name}的职责`);
+    [["T", "T"], ["HEALER", "奶"], ["DPS", "DPS"]].forEach(([value, label]) => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = label;
+      roleSelect.append(option);
+    });
+    roleSelect.value = item.role_type;
+    roleSelect.addEventListener("change", async () => {
+      roleSelect.disabled = true;
+      const saved = await mutate(
+        "kungfu/role-type",
+        { pzid: item.pzid, role_type: roleSelect.value },
+        `${item.name}的职责已保存`,
+      );
+      if (!saved) roleSelect.disabled = false;
+    });
+    roleType.append(roleSelect);
     aliases.className = "alias-cell";
     actions.className = "actions";
     if (editing.kungfuPzid === item.pzid) {
@@ -718,7 +753,7 @@ function renderKungfu() {
         renderKungfu();
       }));
     }
-    row.append(name, aliases, actions);
+    row.append(name, roleType, aliases, actions);
     return row;
   }));
 }
@@ -843,6 +878,552 @@ function renderCache() {
   renderCacheTable("image");
 }
 
+function roleTypeLabel(value) {
+  if (value === "HEALER") return "奶";
+  if (value === "BOSS") return "老板";
+  return value;
+}
+
+function selectedTeamRuleScope() {
+  const value = byId("team-rule-scope").value;
+  if (value.startsWith("team:")) {
+    const teamId = Number(value.slice(5));
+    const team = state.teams.find((item) => item.id === teamId);
+    return { team_id: teamId, capacity: team?.capacity || 25 };
+  }
+  return { team_id: 0, capacity: Number(value.split(":")[1] || 25) };
+}
+
+function renderTeamRuleScopeOptions() {
+  const sessionId = byId("team-rule-session").value.trim();
+  const select = byId("team-rule-scope");
+  const previous = select.value;
+  const entries = [
+    { value: "default:10", label: "会话默认 · 10 人" },
+    { value: "default:25", label: "会话默认 · 25 人" },
+    ...state.teams
+      .filter((team) => team.session_id === sessionId)
+      .map((team) => ({
+        value: `team:${team.id}`,
+        label: `团队 #${team.id} ${team.name} · ${team.capacity} 人`,
+      })),
+  ];
+  select.replaceChildren(...entries.map((entry) => {
+    const option = document.createElement("option");
+    option.value = entry.value;
+    option.textContent = entry.label;
+    return option;
+  }));
+  select.value = entries.some((entry) => entry.value === previous)
+    ? previous
+    : "default:10";
+  if (state.team_rule_config) {
+    const selected = selectedTeamRuleScope();
+    if (
+      state.team_rule_config.session_id !== sessionId
+      || state.team_rule_config.team_id !== selected.team_id
+      || state.team_rule_config.capacity !== selected.capacity
+    ) {
+      state.team_rule_config = null;
+      resetTeamRuleEditor();
+    }
+  }
+}
+
+function renderTeamRuleTargets(selectedValue = "") {
+  const type = byId("team-rule-type").value;
+  const target = byId("team-rule-target");
+  let entries;
+  if (type === "role") {
+    entries = [
+      { value: "T", label: "T" },
+      { value: "HEALER", label: "奶" },
+      { value: "DPS", label: "DPS" },
+      { value: "BOSS", label: "老板" },
+    ];
+  } else {
+    entries = state.kungfu.map((item) => ({ value: item.name, label: item.name }));
+  }
+  target.replaceChildren(...entries.map((entry) => {
+    const option = document.createElement("option");
+    option.value = entry.value;
+    option.textContent = entry.label;
+    return option;
+  }));
+  target.disabled = false;
+  target.value = entries.some((entry) => entry.value === selectedValue)
+    ? selectedValue
+    : entries[0]?.value || "";
+}
+
+function resetTeamRuleEditor() {
+  editing.teamRuleId = null;
+  byId("team-rule-id").value = "";
+  byId("team-rule-type").value = "role";
+  renderTeamRuleTargets();
+  byId("team-rule-min").value = "0";
+  byId("team-rule-max").value = String(state.team_rule_config?.capacity || 25);
+  byId("team-rule-form").querySelector('button[type="submit"]').textContent = "新增规则";
+  byId("team-rule-cancel").hidden = true;
+}
+
+function teamRuleTargetLabel(rule) {
+  if (rule.rule_type === "role") return roleTypeLabel(rule.target_value);
+  return rule.target_value;
+}
+
+function teamRuleTypeLabel(ruleType) {
+  return { role: "职责", kungfu: "心法" }[ruleType] || ruleType;
+}
+
+function renderTeamRuleConfig() {
+  const config = state.team_rule_config;
+  const fields = byId("team-rule-fields");
+  const reset = byId("team-rule-reset");
+  if (!config) {
+    fields.disabled = true;
+    reset.hidden = true;
+    byId("team-rule-status").textContent = "请先选择会话和规则范围。";
+    byId("team-rule-body").replaceChildren(emptyRow(5, "尚未读取规则"));
+    return;
+  }
+
+  fields.disabled = false;
+  byId("team-rule-min").max = String(config.capacity);
+  byId("team-rule-max").max = String(config.capacity);
+  const isTeam = config.team_id > 0;
+  reset.hidden = !isTeam || config.inherited;
+  byId("team-rule-status").textContent = isTeam
+    ? config.inherited
+      ? `团队 #${config.team_id} 正在继承该会话的 ${config.capacity} 人默认规则；首次保存会复制默认规则并转为独立配置。`
+      : `团队 #${config.team_id} 正在使用独立规则，可恢复为继承 ${config.capacity} 人默认规则。`
+    : `正在配置该会话的 ${config.capacity} 人默认规则。`;
+
+  const body = byId("team-rule-body");
+  if (!config.rules.length) {
+    body.replaceChildren(emptyRow(5, "暂无限制规则，报名只受团队人数上限约束"));
+    return;
+  }
+  body.replaceChildren(...config.rules.map((rule) => {
+    const row = document.createElement("tr");
+    const type = document.createElement("td");
+    const target = document.createElement("td");
+    const minimum = document.createElement("td");
+    const maximum = document.createElement("td");
+    const actions = document.createElement("td");
+    type.dataset.label = "类型";
+    target.dataset.label = "目标";
+    minimum.dataset.label = "最小数量";
+    maximum.dataset.label = "最大数量";
+    actions.dataset.label = "操作";
+    type.textContent = teamRuleTypeLabel(rule.rule_type);
+    target.textContent = teamRuleTargetLabel(rule);
+    minimum.textContent = String(rule.min_count);
+    maximum.textContent = String(rule.max_count);
+    actions.className = "actions";
+    actions.append(button("编辑", "", () => {
+      editing.teamRuleId = rule.id;
+      byId("team-rule-id").value = String(rule.id);
+      byId("team-rule-type").value = rule.rule_type;
+      renderTeamRuleTargets(rule.target_value);
+      byId("team-rule-min").value = String(rule.min_count);
+      byId("team-rule-max").value = String(rule.max_count);
+      byId("team-rule-form").querySelector('button[type="submit"]').textContent = "保存修改";
+      byId("team-rule-cancel").hidden = false;
+    }));
+    if (!config.inherited) {
+      actions.append(button("删除", "link-button--danger", async (event) => {
+        if (!confirmRestoreInPage(
+          event.currentTarget,
+          `再次点击“删除”，确认移除“${teamRuleTargetLabel(rule)}”限制`,
+        )) return;
+        await mutateTeamRule("team-rules/delete", { rule_id: rule.id }, "限制规则已删除");
+      }));
+    }
+    row.append(type, target, minimum, maximum, actions);
+    return row;
+  }));
+}
+
+async function loadTeamRuleConfig() {
+  const sessionId = byId("team-rule-session").value.trim();
+  if (!sessionId) {
+    showToast("会话 ID 不能为空", true);
+    byId("team-rule-session").focus();
+    return false;
+  }
+  const scope = selectedTeamRuleScope();
+  try {
+    const result = await bridge.apiPost("team-rules/config", {
+      session_id: sessionId,
+      ...scope,
+    });
+    if (result?.team_not_found) {
+      showToast("团队不存在，已刷新团队列表", true);
+      await loadData();
+      return false;
+    }
+    state.team_rule_config = result.config;
+    resetTeamRuleEditor();
+    renderTeamRuleConfig();
+    return true;
+  } catch (error) {
+    showToast(error?.message || "读取限制规则失败", true);
+    return false;
+  }
+}
+
+async function mutateTeamRule(endpoint, extraPayload, successMessage) {
+  const config = state.team_rule_config;
+  if (!config) return false;
+  try {
+    const result = await bridge.apiPost(endpoint, {
+      session_id: config.session_id,
+      capacity: config.capacity,
+      team_id: config.team_id,
+      ...extraPayload,
+    });
+    if (result?.team_not_found) {
+      showToast("团队不存在，已刷新团队列表", true);
+      await loadData();
+      return false;
+    }
+    state.team_rule_config = result.config;
+    resetTeamRuleEditor();
+    renderTeamRuleConfig();
+    showToast(successMessage);
+    return true;
+  } catch (error) {
+    showToast(error?.message || "限制规则操作失败", true);
+    return false;
+  }
+}
+
+async function runTeamAction(endpoint, payload, successMessage) {
+  try {
+    const result = await bridge.apiPost(endpoint, payload);
+    await loadData();
+    if (result?.team_not_found) {
+      showToast("团队编号不存在，已刷新该会话的团队列表", true);
+      return false;
+    }
+    showToast(successMessage);
+    return true;
+  } catch (error) {
+    showToast(error?.message || "团队操作失败", true);
+    return false;
+  }
+}
+
+function renderTeams() {
+  const filter = byId("team-session-filter").value.trim();
+  const teams = state.teams.filter((team) => !filter || team.session_id.includes(filter));
+  const list = byId("team-list");
+  if (!teams.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = filter ? "该会话暂无团队" : "暂无团队，请先使用上方表单开团";
+    list.replaceChildren(empty);
+    return;
+  }
+
+  list.replaceChildren(...teams.map((team) => {
+    const card = document.createElement("article");
+    card.className = "team-card";
+    const isExpanded = expandedTeamIds.has(team.id);
+
+    const header = document.createElement("header");
+    header.className = "team-card__header";
+    const headingWrap = document.createElement("div");
+    const title = document.createElement("div");
+    title.className = "team-card__title";
+    const heading = document.createElement("h3");
+    heading.textContent = `#${team.id} ${team.name}`;
+    const status = document.createElement("span");
+    status.className = `state ${team.registration_open ? "state--on" : "state--off"}`;
+    status.textContent = team.registration_open ? "报名中" : "未开放";
+    title.append(heading, status);
+    const meta = document.createElement("p");
+    meta.className = "team-card__meta";
+    meta.textContent = `${team.session_id}｜${team.member_count}/${team.capacity} 人｜老板 ${team.boss_count} 人｜创建于 ${team.created_at}`;
+    headingWrap.append(title, meta);
+
+    const actions = document.createElement("div");
+    actions.className = "team-card__actions";
+    const toggleDetails = button(isExpanded ? "折叠详情" : "展开详情", "", () => {
+      const expanded = !expandedTeamIds.has(team.id);
+      if (expanded) expandedTeamIds.add(team.id);
+      else expandedTeamIds.delete(team.id);
+      details.hidden = !expanded;
+      toggleDetails.textContent = expanded ? "折叠详情" : "展开详情";
+      toggleDetails.setAttribute("aria-expanded", String(expanded));
+    });
+    toggleDetails.setAttribute("aria-expanded", String(isExpanded));
+    actions.append(
+      toggleDetails,
+      button(team.registration_open ? "关闭报名" : "打开报名", "", async (event) => {
+        const control = event.currentTarget;
+        control.disabled = true;
+        const saved = await runTeamAction(
+          "teams/registration",
+          { session_id: team.session_id, team_id: team.id, registration_open: !team.registration_open },
+          `团队 #${team.id} 已${team.registration_open ? "关闭" : "打开"}报名`,
+        );
+        if (!saved) control.disabled = false;
+      }),
+      button("清空报名", "", async (event) => {
+        if (!confirmRestoreInPage(
+          event.currentTarget,
+          `再次点击“清空报名”，确认移除团队 #${team.id} 的全部 ${team.member_count} 条报名`,
+        )) return;
+        await runTeamAction(
+          "teams/clear",
+          { session_id: team.session_id, team_id: team.id },
+          `团队 #${team.id} 的报名已清空`,
+        );
+      }),
+      button("结束团队", "link-button--danger", async (event) => {
+        if (!confirmRestoreInPage(
+          event.currentTarget,
+          `再次点击“结束团队”，确认删除团队 #${team.id} 及其全部报名`,
+        )) return;
+        await runTeamAction(
+          "teams/delete",
+          { session_id: team.session_id, team_id: team.id },
+          `团队 #${team.id} 已结束`,
+        );
+      }),
+    );
+    header.append(headingWrap, actions);
+
+    const announcement = document.createElement("p");
+    announcement.className = "team-announcement";
+    announcement.textContent = `公告：${team.announcement || "无"}`;
+
+    const memberEditor = document.createElement("form");
+    memberEditor.className = "team-member-editor";
+    memberEditor.hidden = true;
+    const editorTitle = document.createElement("strong");
+    editorTitle.className = "team-member-editor__title";
+    const originalName = document.createElement("input");
+    originalName.type = "hidden";
+    const nameLabel = document.createElement("label");
+    nameLabel.innerHTML = "<span>角色名</span>";
+    const nameInput = document.createElement("input");
+    nameInput.required = true;
+    nameInput.maxLength = 80;
+    nameLabel.append(nameInput);
+    const editKungfuLabel = document.createElement("label");
+    editKungfuLabel.innerHTML = "<span>心法</span>";
+    const editKungfuInput = document.createElement("input");
+    editKungfuInput.required = true;
+    editKungfuInput.maxLength = 50;
+    editKungfuInput.setAttribute("list", "kungfu-options");
+    editKungfuLabel.append(editKungfuInput);
+    const editBossLabel = document.createElement("label");
+    editBossLabel.className = "team-boss-choice";
+    const editBossInput = document.createElement("input");
+    editBossInput.type = "checkbox";
+    editBossLabel.append(editBossInput, "标记为老板");
+    const editorActions = document.createElement("div");
+    editorActions.className = "team-member-editor__actions";
+    const saveMember = document.createElement("button");
+    saveMember.className = "button button--primary";
+    saveMember.type = "submit";
+    saveMember.textContent = "保存成员";
+    const cancelEdit = button("取消", "", () => {
+      memberEditor.hidden = true;
+    });
+    editorActions.append(saveMember, cancelEdit);
+    memberEditor.append(
+      editorTitle,
+      originalName,
+      nameLabel,
+      editKungfuLabel,
+      editBossLabel,
+      editorActions,
+    );
+    memberEditor.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!memberEditor.reportValidity()) return;
+      saveMember.disabled = true;
+      const saved = await runTeamAction(
+        "teams/member-update",
+        {
+          session_id: team.session_id,
+          team_id: team.id,
+          role_name: originalName.value,
+          new_role_name: nameInput.value,
+          kungfu: editKungfuInput.value,
+          is_boss: editBossInput.checked,
+        },
+        `${nameInput.value} 的报名信息已更新`,
+      );
+      if (!saved) saveMember.disabled = false;
+    });
+
+    const openMemberEditor = (member) => {
+      originalName.value = member.role_name;
+      nameInput.value = member.role_name;
+      editKungfuInput.value = member.kungfu;
+      editBossInput.checked = Boolean(member.is_boss);
+      editorTitle.textContent = `修改 ${member.role_name}`;
+      memberEditor.hidden = false;
+      nameInput.focus();
+    };
+
+    const slots = document.createElement("div");
+    slots.className = "team-slots";
+    slots.style.setProperty("--team-columns", String(team.capacity / 5));
+    for (let slotNumber = 1; slotNumber <= team.capacity; slotNumber += 1) {
+      const member = team.members.find((item) => item.slot_number === slotNumber);
+      const cell = document.createElement("div");
+      cell.dataset.slot = String(slotNumber);
+      cell.setAttribute("aria-label", member ? `${member.role_name}，${member.kungfu}` : "空位置");
+      if (!member) {
+        cell.className = "team-slot team-slot--empty";
+        cell.textContent = "空";
+      } else {
+        const roleClass = member.is_boss
+          ? "boss"
+          : { T: "tank", HEALER: "healer", DPS: "dps" }[member.role_type] || "dps";
+        cell.className = `team-slot team-slot--member team-slot--${roleClass}`;
+        cell.draggable = true;
+
+        const icon = document.createElement("img");
+        icon.className = "team-slot__icon";
+        icon.alt = "";
+        const iconSource = state.team_kungfu_icons?.[member.kungfu];
+        if (iconSource) {
+          icon.src = iconSource;
+          icon.addEventListener("error", () => { icon.hidden = true; });
+        } else {
+          icon.hidden = true;
+        }
+        const memberText = document.createElement("div");
+        memberText.className = "team-slot__content";
+        const memberName = document.createElement("strong");
+        memberName.className = "team-slot__name";
+        memberName.textContent = member.role_name;
+        const kungfu = document.createElement("span");
+        kungfu.className = "team-slot__kungfu";
+        kungfu.textContent = member.kungfu;
+        memberText.append(memberName, kungfu);
+        const memberActions = document.createElement("div");
+        memberActions.className = "team-slot__actions";
+        const editMember = button("编辑", "", (event) => {
+          event.stopPropagation();
+          openMemberEditor(member);
+        });
+        editMember.draggable = false;
+        const remove = button("移除", "link-button--danger", async (event) => {
+          event.stopPropagation();
+          if (!confirmRestoreInPage(
+            event.currentTarget,
+            `再次点击“移除”，确认将 ${member.role_name} 移出团队 #${team.id}`,
+          )) return;
+          await runTeamAction(
+            "teams/cancel",
+            { session_id: team.session_id, team_id: team.id, role_name: member.role_name },
+            `${member.role_name} 已移出团队 #${team.id}`,
+          );
+        });
+        remove.draggable = false;
+        memberActions.append(editMember, remove);
+        cell.append(icon, memberText, memberActions);
+        cell.addEventListener("click", (event) => {
+          if (!event.target.closest("button")) openMemberEditor(member);
+        });
+        cell.addEventListener("dragstart", (event) => {
+          event.dataTransfer.effectAllowed = "move";
+          event.dataTransfer.setData("text/plain", String(slotNumber));
+          cell.classList.add("is-dragging");
+        });
+        cell.addEventListener("dragend", () => {
+          cell.classList.remove("is-dragging");
+          slots.querySelectorAll(".is-drop-target").forEach((item) => {
+            item.classList.remove("is-drop-target");
+          });
+        });
+      }
+      cell.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        cell.classList.add("is-drop-target");
+      });
+      cell.addEventListener("dragleave", () => cell.classList.remove("is-drop-target"));
+      cell.addEventListener("drop", async (event) => {
+        event.preventDefault();
+        cell.classList.remove("is-drop-target");
+        const firstSlot = Number(event.dataTransfer.getData("text/plain"));
+        if (!firstSlot || firstSlot === slotNumber) return;
+        await runTeamAction(
+          "teams/swap",
+          {
+            session_id: team.session_id,
+            team_id: team.id,
+            first_slot: firstSlot,
+            second_slot: slotNumber,
+          },
+          `团队 #${team.id} 的位置已调整`,
+        );
+      });
+      slots.append(cell);
+    }
+
+    const signup = document.createElement("form");
+    signup.className = "team-signup-form";
+    const kungfuLabel = document.createElement("label");
+    kungfuLabel.innerHTML = "<span>心法</span>";
+    const kungfuInput = document.createElement("input");
+    kungfuInput.maxLength = 50;
+    kungfuInput.placeholder = "标准心法或别名";
+    kungfuInput.required = true;
+    kungfuInput.setAttribute("list", "kungfu-options");
+    kungfuLabel.append(kungfuInput);
+    const roleLabel = document.createElement("label");
+    roleLabel.innerHTML = "<span>角色名</span>";
+    const roleInput = document.createElement("input");
+    roleInput.maxLength = 80;
+    roleInput.placeholder = "游戏角色名";
+    roleInput.required = true;
+    roleLabel.append(roleInput);
+    const bossLabel = document.createElement("label");
+    bossLabel.className = "team-boss-choice";
+    const bossInput = document.createElement("input");
+    bossInput.type = "checkbox";
+    bossLabel.append(bossInput, "标记为老板");
+    const submit = document.createElement("button");
+    submit.className = "button button--primary";
+    submit.type = "submit";
+    submit.textContent = "添加报名";
+    signup.append(kungfuLabel, roleLabel, bossLabel, submit);
+    signup.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      submit.disabled = true;
+      const saved = await runTeamAction(
+        "teams/signup",
+        {
+          session_id: team.session_id,
+          team_id: team.id,
+          kungfu: kungfuInput.value,
+          role_name: roleInput.value,
+          is_boss: bossInput.checked,
+        },
+        `${roleInput.value} 已加入团队 #${team.id}`,
+      );
+      if (!saved) submit.disabled = false;
+    });
+
+    const details = document.createElement("div");
+    details.className = "team-card__details";
+    details.hidden = !isExpanded;
+    details.append(announcement, slots, memberEditor, signup);
+    card.append(header, details);
+    return card;
+  }));
+}
+
 function render() {
   renderTokenStats();
   renderServerOptions();
@@ -854,6 +1435,10 @@ function render() {
   renderAliases();
   renderKungfu();
   renderCache();
+  renderTeamRuleScopeOptions();
+  renderTeamRuleTargets(byId("team-rule-target").value);
+  renderTeamRuleConfig();
+  renderTeams();
 }
 
 async function loadData() {
@@ -880,7 +1465,8 @@ function resetRestoreConfirmation(control) {
   restoreConfirmationTimers.delete(control);
   delete control.dataset.confirming;
   control.classList.remove("button--danger");
-  control.textContent = "恢复默认";
+  control.textContent = control.dataset.confirmLabel || "恢复默认";
+  delete control.dataset.confirmLabel;
 }
 
 function confirmRestoreInPage(control, confirmation) {
@@ -889,6 +1475,7 @@ function confirmRestoreInPage(control, confirmation) {
     return true;
   }
 
+  control.dataset.confirmLabel = control.textContent;
   control.dataset.confirming = "true";
   control.classList.add("button--danger");
   control.textContent = "再次点击确认";
@@ -1010,6 +1597,92 @@ byId("control-entry-form").addEventListener("submit", async (event) => {
   if (saved) event.currentTarget.reset();
 });
 
+byId("team-session-filter").addEventListener("input", (event) => {
+  const sessionId = event.currentTarget.value.trim();
+  if (sessionId) {
+    byId("team-create-session").value = sessionId;
+    byId("team-rule-session").value = sessionId;
+  }
+  renderTeamRuleScopeOptions();
+  renderTeamRuleConfig();
+  renderTeams();
+});
+
+byId("team-rule-session").addEventListener("input", () => {
+  renderTeamRuleScopeOptions();
+  renderTeamRuleConfig();
+});
+byId("team-rule-scope").addEventListener("change", () => {
+  state.team_rule_config = null;
+  resetTeamRuleEditor();
+  renderTeamRuleConfig();
+});
+byId("team-rule-load").addEventListener("click", loadTeamRuleConfig);
+byId("team-rule-type").addEventListener("change", () => renderTeamRuleTargets());
+byId("team-rule-cancel").addEventListener("click", resetTeamRuleEditor);
+byId("team-rule-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  if (!form.reportValidity()) return;
+  await mutateTeamRule(
+    "team-rules/save",
+    {
+      rule_id: Number(byId("team-rule-id").value) || 0,
+      rule_type: byId("team-rule-type").value,
+      target_value: byId("team-rule-target").value,
+      min_count: Number(byId("team-rule-min").value),
+      max_count: Number(byId("team-rule-max").value),
+    },
+    editing.teamRuleId ? "限制规则已修改" : "限制规则已添加",
+  );
+});
+byId("team-rule-reset").addEventListener("click", async (event) => {
+  const config = state.team_rule_config;
+  if (!config?.team_id) return;
+  if (!confirmRestoreInPage(
+    event.currentTarget,
+    `再次点击“恢复继承默认”，确认删除团队 #${config.team_id} 的专属规则`,
+  )) return;
+  await mutateTeamRule("team-rules/reset", {}, "团队已恢复继承默认规则");
+});
+
+byId("team-create-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const sessionId = byId("team-create-session").value;
+  const saved = await runTeamAction(
+    "teams/create",
+    {
+      session_id: sessionId,
+      name: byId("team-create-name").value,
+      capacity: Number(byId("team-create-capacity").value),
+      announcement: byId("team-create-announcement").value,
+    },
+    "团队已创建，当前默认关闭报名",
+  );
+  if (saved) {
+    event.currentTarget.reset();
+    byId("team-create-session").value = sessionId;
+  }
+});
+
+byId("team-delete-all").addEventListener("click", async (event) => {
+  const sessionId = byId("team-session-filter").value.trim();
+  if (!sessionId) {
+    showToast("请先在筛选框中输入要结束全部团队的完整会话 ID", true);
+    byId("team-session-filter").focus();
+    return;
+  }
+  if (!confirmRestoreInPage(
+    event.currentTarget,
+    `再次点击“结束该会话全部团队”，确认删除会话 ${sessionId} 的全部团队及报名`,
+  )) return;
+  await runTeamAction(
+    "teams/delete-all",
+    { session_id: sessionId },
+    `会话 ${sessionId} 的全部团队已结束`,
+  );
+});
+
 byId("restore-aliases").addEventListener("click", async (event) => {
   await restoreDefaults(
     event.currentTarget,
@@ -1024,8 +1697,8 @@ byId("restore-kungfu").addEventListener("click", async (event) => {
   await restoreDefaults(
     event.currentTarget,
     "kungfu/restore",
-    "再次点击按钮，确认使用内置 JSON 覆盖当前全部心法及别名",
-    "心法别名已恢复默认",
+    "再次点击按钮，确认恢复全部心法职责和内置别名",
+    "心法职责与别名已恢复默认",
     () => { editing.kungfuPzid = null; },
   );
 });

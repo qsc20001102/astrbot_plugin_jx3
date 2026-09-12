@@ -17,6 +17,7 @@ from .cache import CacheService
 from .event_push import EventPushService
 from .jx3api_data import JX3APIService
 from .jx3box_data import JX3BOXService
+from .team_manager import TeamManager
 
 
 class MessageBuilder:
@@ -48,19 +49,23 @@ class MessageBuilder:
         1.3: "high",
         1.8: "ultra",
     }
-    def __init__(self, 
-                 jx3api: JX3APIService, 
-                 jx3box: JX3BOXService,  
-                 bilei: BiLeidata, 
-                 event_push: EventPushService,
-                 icons: dict[str, dict[str, str]],
-                 render_config: dict[str, Any] | None = None,
-                 cache: CacheService | None = None,
-            ):
+
+    def __init__(
+        self,
+        jx3api: JX3APIService,
+        jx3box: JX3BOXService,
+        bilei: BiLeidata,
+        event_push: EventPushService,
+        team_manager: TeamManager,
+        icons: dict[str, dict[str, str]],
+        render_config: dict[str, Any] | None = None,
+        cache: CacheService | None = None,
+    ):
         self.jx3api = jx3api
         self.jx3box = jx3box
         self.bilei = bilei
         self.event_push = event_push
+        self.team_manager = team_manager
         self.icons = icons
         self.render_config = render_config if isinstance(render_config, dict) else {}
         self.cache = cache
@@ -182,9 +187,10 @@ class MessageBuilder:
         cache_lock_held: bool = False,
         message_text: str = "",
         data_time: str = "",
+        disable_cache: bool = False,
     ) -> str:
         """命中时返回持久化图片，未命中时渲染一次并写入缓存。"""
-        effective_cache_name = cache_name or (
+        effective_cache_name = "" if disable_cache else cache_name or (
             self.cache.current_command() if self.cache else ""
         )
         options = self._build_render_options(render_options)
@@ -286,15 +292,19 @@ class MessageBuilder:
         render_options: dict | None = None,
         cache_name: str = "",
         cache_variant: str = "",
+        disable_cache: bool = False,
     ):
         """最终将数据渲染成图片发送"""
         try:
-            effective_cache_name, request_key = self._image_request_identity(
-                event,
-                cache_name,
-                render_options,
-                cache_variant,
-            )
+            if disable_cache:
+                effective_cache_name, request_key = "", ""
+            else:
+                effective_cache_name, request_key = self._image_request_identity(
+                    event,
+                    cache_name,
+                    render_options,
+                    cache_variant,
+                )
             data = None
             image_path = ""
 
@@ -316,6 +326,7 @@ class MessageBuilder:
                     cache_key_override=request_key,
                     cache_lock_held=cache_lock_held,
                     data_time=self._format_data_time(data),
+                    disable_cache=disable_cache,
                 )
 
             if self.cache and request_key:
@@ -352,6 +363,38 @@ class MessageBuilder:
             await event.send(event.plain_result("猪脑过载，请稍后再试"))
         except Exception as e:
             logger.error(f"功能函数执行错误: {e}")
+            await event.send(event.plain_result("猪脑过载，请稍后再试"))
+
+
+    async def adaptive_msg(self, event: AstrMessageEvent, action):
+        """Send a standard result as text or as a freshly rendered image."""
+        try:
+            data = await action()
+            if data["code"] != 200:
+                await event.send(event.plain_result(data["msg"]))
+                return
+            if not data.get("temp"):
+                await event.send(event.plain_result(data["data"]))
+                return
+            image_path = await self._render_image_file(
+                data["temp"],
+                data["data"],
+                include_icons=True,
+                data_time=self._format_data_time(data),
+                disable_cache=True,
+            )
+            await event.send(event.image_result(image_path))
+        except ActionFailed as exc:
+            if exc.retcode == 1200:
+                logger.warning(
+                    "图片消息发送回执超时，消息可能已经成功送达，"
+                    "不再发送错误提示。"
+                )
+                return
+            logger.error(f"功能函数执行错误: {exc}")
+            await event.send(event.plain_result("猪脑过载，请稍后再试"))
+        except Exception as exc:
+            logger.error(f"功能函数执行错误: {exc}")
             await event.send(event.plain_result("猪脑过载，请稍后再试"))
 
 
@@ -995,6 +1038,245 @@ class MessageBuilder:
         return await self.plain_msg(
             event,
             lambda: self.bilei.delete(event.unified_msg_origin, id),
+        )
+
+    async def team_create(
+        self,
+        event: AstrMessageEvent,
+        team_name: str = "",
+        capacity: str = "",
+        *announcement_parts: str,
+    ):
+        """开团 团名 人数 [公告]"""
+        return await self.plain_msg(
+            event,
+            lambda: self.team_manager.create(
+                event,
+                team_name,
+                capacity,
+                *announcement_parts,
+            ),
+        )
+
+    async def team_open_registration(
+        self,
+        event: AstrMessageEvent,
+        team_id: int = 0,
+    ):
+        """打开报名 团编号"""
+        return await self.plain_msg(
+            event,
+            lambda: self.team_manager.open_registration(event, team_id),
+        )
+
+    async def team_close_registration(
+        self,
+        event: AstrMessageEvent,
+        team_id: int = 0,
+    ):
+        """关闭报名 团编号"""
+        return await self.plain_msg(
+            event,
+            lambda: self.team_manager.close_registration(event, team_id),
+        )
+
+    async def team_end(self, event: AstrMessageEvent, team_id: int = 0):
+        """结束团队 团编号"""
+        return await self.plain_msg(
+            event,
+            lambda: self.team_manager.end(event, team_id),
+        )
+
+    async def team_end_all(self, event: AstrMessageEvent):
+        """结束全部团队"""
+        return await self.plain_msg(
+            event,
+            lambda: self.team_manager.end_all(event),
+        )
+
+    async def team_clear_members(
+        self,
+        event: AstrMessageEvent,
+        team_id: int = 0,
+    ):
+        """清空报名 团编号"""
+        return await self.plain_msg(
+            event,
+            lambda: self.team_manager.clear_members(event, team_id),
+        )
+
+    async def team_signup(
+        self,
+        event: AstrMessageEvent,
+        team_id: int = 0,
+        kungfu: str = "",
+        role_name: str = "",
+        boss_mark: str = "",
+    ):
+        """报名 团编号 心法 角色名 [老板]"""
+        return await self.plain_msg(
+            event,
+            lambda: self.team_manager.signup(
+                event,
+                team_id,
+                kungfu,
+                role_name,
+                boss_mark,
+            ),
+        )
+
+    async def team_cancel_signup(
+        self,
+        event: AstrMessageEvent,
+        team_id: int = 0,
+        role_name: str = "",
+    ):
+        """取消报名 团编号 角色名"""
+        return await self.plain_msg(
+            event,
+            lambda: self.team_manager.cancel_signup(event, team_id, role_name),
+        )
+
+    async def team_view(
+        self,
+        event: AstrMessageEvent,
+        team_id: int = 0,
+    ):
+        """查看团队 [团编号]"""
+        return await self.adaptive_msg(
+            event,
+            lambda: self.team_manager.view(event, team_id),
+        )
+
+    async def team_blacklist(
+        self,
+        event: AstrMessageEvent,
+        team_id: int = 0,
+    ):
+        """团队黑本 团编号"""
+        return await self.plain_msg(
+            event,
+            lambda: self.team_manager.blacklist(event, team_id),
+        )
+
+    async def team_update_member(
+        self,
+        event: AstrMessageEvent,
+        team_id: int = 0,
+        role_name: str = "",
+        new_role_name: str = "",
+        kungfu: str = "",
+        boss_mark: str = "",
+    ):
+        """修改报名 团编号 原角色名 新角色名 心法 [老板]"""
+        return await self.plain_msg(
+            event,
+            lambda: self.team_manager.update_member(
+                event,
+                team_id,
+                role_name,
+                new_role_name,
+                kungfu,
+                boss_mark,
+            ),
+        )
+
+    async def team_swap_slots(
+        self,
+        event: AstrMessageEvent,
+        team_id: int = 0,
+        first_slot: int = 0,
+        second_slot: int = 0,
+    ):
+        """交换位置 团编号 位置1 位置2"""
+        return await self.plain_msg(
+            event,
+            lambda: self.team_manager.swap_slots(
+                event,
+                team_id,
+                first_slot,
+                second_slot,
+            ),
+        )
+
+    async def team_view_rules(
+        self,
+        event: AstrMessageEvent,
+        scope: str = "",
+    ):
+        """查看限制 默认10|默认25|团编号"""
+        return await self.plain_msg(
+            event,
+            lambda: self.team_manager.view_rules(event, scope),
+        )
+
+    async def team_add_rule(
+        self,
+        event: AstrMessageEvent,
+        scope: str = "",
+        rule_type: str = "",
+        target: str = "",
+        min_count: int = -1,
+        max_count: int = -1,
+    ):
+        """添加限制 范围 职责|心法 目标 最小数量 最大数量"""
+        return await self.plain_msg(
+            event,
+            lambda: self.team_manager.save_rule(
+                event,
+                scope,
+                rule_type,
+                target,
+                min_count,
+                max_count,
+            ),
+        )
+
+    async def team_update_rule(
+        self,
+        event: AstrMessageEvent,
+        scope: str = "",
+        rule_id: int = 0,
+        rule_type: str = "",
+        target: str = "",
+        min_count: int = -1,
+        max_count: int = -1,
+    ):
+        """修改限制 范围 规则编号 职责|心法 目标 最小数量 最大数量"""
+        return await self.plain_msg(
+            event,
+            lambda: self.team_manager.save_rule(
+                event,
+                scope,
+                rule_type,
+                target,
+                min_count,
+                max_count,
+                rule_id,
+            ),
+        )
+
+    async def team_delete_rule(
+        self,
+        event: AstrMessageEvent,
+        scope: str = "",
+        rule_id: int = 0,
+    ):
+        """删除限制 范围 规则编号"""
+        return await self.plain_msg(
+            event,
+            lambda: self.team_manager.delete_rule(event, scope, rule_id),
+        )
+
+    async def team_reset_rules(
+        self,
+        event: AstrMessageEvent,
+        scope: str = "",
+    ):
+        """恢复默认限制 团编号"""
+        return await self.plain_msg(
+            event,
+            lambda: self.team_manager.reset_rules(event, scope),
         )
 
 

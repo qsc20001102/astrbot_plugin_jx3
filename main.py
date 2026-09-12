@@ -3,31 +3,36 @@ from pathlib import Path
 from sys import maxsize
 from typing import cast
 
-from astrbot.api.event import filter, AstrMessageEvent
-from astrbot.api.star import Context, Star, register, StarTools
-from astrbot.api import logger
-from astrbot.api import AstrBotConfig
-from .core.sqlite import AsyncSQLiteDB
+from astrbot.api import AstrBotConfig, logger
+from astrbot.api.event import AstrMessageEvent, filter
+from astrbot.api.star import Context, Star, StarTools, register
+
+from .core.bilei_data import BiLeidata
+from .core.cache import CacheService
+from .core.event_push import EventPushService
+from .core.fun_basic import load_as_base64
 from .core.jx3api_data import JX3APIService
 from .core.jx3box_data import JX3BOXService
-from .core.event_push import EventPushService
-from .core.bilei_data import BiLeidata
 from .core.kungfu_alias import KungfuAliasService
+from .core.message import MessageBuilder
 from .core.server_binding import ServerBindingService
 from .core.session_control import SessionControlService
+from .core.sqlite import AsyncSQLiteDB
+from .core.team import TeamService
+from .core.team_blacklist import TeamBlacklistService
+from .core.team_manager import TeamManager
+from .core.team_rules import TeamRuleService
 from .core.webui import WebUIService
-from .core.message import MessageBuilder
-from .core.fun_basic import load_as_base64
-from .core.cache import CacheService
-
 
 PLUGIN_NAME = "astrbot_plugin_jx3"
 
-@register("astrbot_plugin_jx3", 
-          "fxdyz", 
-          "聚合剑网三游戏数据，提供查询、图片渲染、本地避雷和实时事件推送。",
-          "3.4.8",
-          "https://github.com/qsc20001102/astrbot_plugin_jx3"
+
+@register(
+    "astrbot_plugin_jx3",
+    "fxdyz",
+    "聚合剑网三游戏数据，提供查询、团队管理、图片渲染、本地避雷和实时事件推送。",
+    "3.4.9",
+    "https://github.com/qsc20001102/astrbot_plugin_jx3",
 )
 class Jx3ApiPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
@@ -36,14 +41,14 @@ class Jx3ApiPlugin(Star):
         self.conf = config
 
         # 指令前缀
-        self.prefix = self.conf.get("prefix",{})
+        self.prefix = self.conf.get("prefix", {})
         prefix_text = str(self.prefix.get("text") or "").strip()
         if self.prefix.get("enable") and prefix_text:
             logger.info(f"已启用指令前缀功能，前缀为：{prefix_text}")
         elif self.prefix.get("enable"):
             logger.warning("指令前缀已开启但内容为空，将按未开启前缀处理")
         else:
-            logger.info(f"未启用指令前缀功能。")
+            logger.info("未启用指令前缀功能。")
 
         # 获取数据文件路径
         self.get_data_path()
@@ -54,15 +59,13 @@ class Jx3ApiPlugin(Star):
         # 注册插件管理页接口
         self.webui.register(context, PLUGIN_NAME)
 
-
         # 声明指令集
         self.command_map = {}
 
         logger.info("jx3api插件初始化完成")
 
-
     async def initialize(self):
-        """可选择实现异步的插件初始化方法，当实例化该插件类之后会自动调用该方法。"""     
+        """可选择实现异步的插件初始化方法，当实例化该插件类之后会自动调用该方法。"""
         try:
             # 数据库初始化
             await self.local_sql_db.connect()
@@ -72,6 +75,8 @@ class Jx3ApiPlugin(Star):
             await self.kungfu_alias.initialize()
             await self.server_binding.initialize()
             await self.session_control.initialize()
+            await self.team.initialize()
+            await self.team_rules.initialize()
 
             # 获取区服目录，用于识别完整参数与区服别名。
             await self.server_binding.update_server_catalog(
@@ -81,7 +86,7 @@ class Jx3ApiPlugin(Star):
             # 开启实时事件通道
             await self.event_push.initialize()
 
-        except Exception as e:
+        except Exception:
             if self.event_push is not None:
                 await self.event_push.stop()
             await self.cache.stop()
@@ -93,10 +98,9 @@ class Jx3ApiPlugin(Star):
 
         logger.info("jx3api 异步插件初始化完成")
 
-
     async def terminate(self):
         """可选择实现异步的插件销毁方法，当插件被卸载/停用时会调用。"""
-        
+
         if self.cache:
             await self.cache.stop()
 
@@ -111,9 +115,8 @@ class Jx3ApiPlugin(Star):
 
         if self.local_sql_db:
             await self.local_sql_db.close()
-            
-        logger.info("jx3api插件已卸载/停用")
 
+        logger.info("jx3api插件已卸载/停用")
 
     def get_data_path(self):
         """获取数据文件路径"""
@@ -121,7 +124,7 @@ class Jx3ApiPlugin(Star):
         self.local_data_dir = StarTools.get_data_dir("astrbot_plugin_jx3")
         # 插件数据存储路径
         self.plugin_data_dir = Path(__file__).parent / "data"
-        self.plugin_temp_dir = Path(__file__).parent /"templates"
+        self.plugin_temp_dir = Path(__file__).parent / "templates"
 
         # SQLite本地路径
         self.local_data_path = self.local_data_dir / "local_data.db"
@@ -144,21 +147,19 @@ class Jx3ApiPlugin(Star):
         logger.debug(f"图片文件路径: {self.plugin_temp_sect}")
         logger.debug(f"图片文件路径: {self.plugin_temp_serendipity}")
 
-
     def load_local_base64(self):
         """加载图片文件的base64编码"""
         img = load_as_base64(str(self.plugin_temp_img))
         sand = load_as_base64(str(self.plugin_temp_sand))
         sect = load_as_base64(str(self.plugin_temp_sect))
         serendipity = load_as_base64(str(self.plugin_temp_serendipity))
-        self.icons =  {
+        self.icons = {
             "img": img,
             "sand": sand,
             "sect": sect,
-            "serendipity": serendipity
-        }        
-        logger.debug(f"图片base64编码加载完成")
-
+            "serendipity": serendipity,
+        }
+        logger.debug("图片base64编码加载完成")
 
     def create_all(self):
         """构造所有类"""
@@ -182,6 +183,23 @@ class Jx3ApiPlugin(Star):
             self.server_alias_seed_path,
         )
         self.session_control = SessionControlService(self.local_sql_db)
+        self.team_rules = TeamRuleService(self.local_sql_db, self.kungfu_alias)
+        self.team = TeamService(
+            self.local_sql_db,
+            self.kungfu_alias,
+            self.team_rules,
+        )
+        team_config = self.conf.get("team_management", {})
+        self.team_blacklist = TeamBlacklistService(
+            cast(Context, self.context),
+            team_config,
+        )
+        self.team_manager = TeamManager(
+            self.team,
+            self.team_rules,
+            self.team_blacklist,
+            team_config,
+        )
         self.event_push = EventPushService(
             cast(Context, self.context),
             self.conf,
@@ -197,17 +215,20 @@ class Jx3ApiPlugin(Star):
             self.session_control,
             self.bilei,
             self.cache,
+            self.team,
+            self.team_rules,
+            self.icons["sect"],
         )
         self.jx3cmd = MessageBuilder(
             self.jx3api,
             self.jx3box,
             self.bilei,
             self.event_push,
+            self.team_manager,
             self.icons,
             self.conf.get("image_render_quality", {}),
             self.cache,
         )
-
 
     async def init_trade_item_cache_data(self):
         """初始化交易行物品缓存，并清理已停用的资历缓存表。"""
@@ -236,118 +257,130 @@ class Jx3ApiPlugin(Star):
             )
             await self.local_sql_db.execute("DROP TABLE achievement_cache")
 
-
     def ini_command_map(self):
         """初始化指令集"""
         self.command_map = {
-            "功能": self. jx3cmd.helps,
-            "日常": self. jx3cmd.richang,
-            "日常预测": self. jx3cmd.richangyuche,
-            "穹野卫": self. jx3cmd.qiongyewei,
-            "披风会": self. jx3cmd.pifenghui,
-            "云从社": self. jx3cmd.yunchongshe,
-            "楚天社": self. jx3cmd.chutianshe,
-            "关隘": self. jx3cmd.guanaishouling,
-            "赤兔": self. jx3cmd.benrichitu,
-            "本周赤兔": self. jx3cmd.benzhouchitu,
-            "阵营奉献": self. jx3cmd.zhenyingevent,
-            "烟花": self. jx3cmd.yanhuachaxun,
-            "刷马": self. jx3cmd.shuma,
-            "马场": self. jx3cmd.machang,
-            "战绩": self. jx3cmd.zhanji,
-            "名剑排行": self. jx3cmd.mingjianpaihang,
-            "名剑统计": self. jx3cmd.mingjiantongji,
+            "功能": self.jx3cmd.helps,
+            "日常": self.jx3cmd.richang,
+            "日常预测": self.jx3cmd.richangyuche,
+            "穹野卫": self.jx3cmd.qiongyewei,
+            "披风会": self.jx3cmd.pifenghui,
+            "云从社": self.jx3cmd.yunchongshe,
+            "楚天社": self.jx3cmd.chutianshe,
+            "关隘": self.jx3cmd.guanaishouling,
+            "赤兔": self.jx3cmd.benrichitu,
+            "本周赤兔": self.jx3cmd.benzhouchitu,
+            "阵营奉献": self.jx3cmd.zhenyingevent,
+            "烟花": self.jx3cmd.yanhuachaxun,
+            "刷马": self.jx3cmd.shuma,
+            "马场": self.jx3cmd.machang,
+            "战绩": self.jx3cmd.zhanji,
+            "名剑排行": self.jx3cmd.mingjianpaihang,
+            "名剑统计": self.jx3cmd.mingjiantongji,
             "跨服名剑": self.jx3cmd.kuafumingjian,
             "武林争霸": self.jx3cmd.wulinzhengba,
             "捕快荣誉": self.jx3cmd.bukairongyu,
             "江湖浪客": self.jx3cmd.jianghulangke,
             "决斗挑战": self.jx3cmd.juedoutiaozhan,
-            "帮会排行": self. jx3cmd.banghuipaihang,
-            "阵营排行": self. jx3cmd.zhenyingpaihang,
-            "其他排行": self. jx3cmd.qitapaihang,
-            "试炼排行": self. jx3cmd.shilianpaixing,
-            "资历": self. jx3cmd.zili,
-            "阵营拍卖": self. jx3cmd.zhengyingpaimai,
-            "的卢": self. jx3cmd.dilujilu,
-            "金价": self. jx3cmd.jinjia,
-            "物价": self. jx3cmd.wujia,
-            "成本": self. jx3cmd.chengbeng,
-            "看号": self. jx3cmd.kanhao,
-            "帮战": self. jx3cmd.bangzhanjilu,
-            "沙盘": self. jx3cmd.shapan,
-            "诛恶": self. jx3cmd.zhueevent,
-            "名片": self. jx3cmd.jueshemingpian,
-            "全名片": self. jx3cmd.shuoyoumingpian,
-            "随机秀": self. jx3cmd.shuijimingpian,
-            "奇遇": self. jx3cmd.juesheqiyu,
-            "查询": self. jx3cmd.juesheqiyu,
-            "未出": self. jx3cmd.weizuoqiyu,
-            "汇总": self. jx3cmd.qiyuhuizong,
-            "近期": self. jx3cmd.jinqiqiyu,
-            "统计": self. jx3cmd.qiyutongji,
-            "攻略": self. jx3cmd.qiyugonglue,
-            "精耐": self. jx3cmd.jingnai,
-            "百战": self. jx3cmd.baizhan,
-            "成就": self. jx3cmd.chengjiu,
-            "角色": self. jx3cmd.jueshe,
-            "阵眼": self. jx3cmd.zhenyan,
-            "配装": self. jx3cmd.peizhuang,
-            "资历排行": self. jx3cmd.zilipaixing,
-            "技能": self. jx3cmd.jineng,
-            "奇穴": self. jx3cmd.qixue,
-            "发言": self. jx3cmd.liaotian,
-            "统战": self. jx3cmd.tongzhanyy,
-            "小药": self. jx3cmd.xiaoyao,
-            "骗子": self. jx3cmd.pianzhi,
-            "花价": self. jx3cmd.huajia,
-            "装饰": self. jx3cmd.zhuangshi,
-            "器物": self. jx3cmd.qiwu,
-            "拜师": self. jx3cmd.baishi,
-            "收徒": self. jx3cmd.shoutu,
-            "维护": self. jx3cmd.weihu,
-            "新闻": self. jx3cmd.xinwen,
-            "招募": self. jx3cmd.tuanduizhaomu,
-            "团长": self. jx3cmd.tuanzhang,
-            "团牌": self. jx3cmd.tuanpai,
-            "答案之书": self. jx3cmd.daanzhishu,
-            "舔狗语录": self. jx3cmd.tiangou,
-            "疯狂星期四": self. jx3cmd.fkxq4,
-            "彩虹屁": self. jx3cmd.caihongpi,
-            "毒鸡汤": self. jx3cmd.dujitang,
-            "朋友圈": self. jx3cmd.pengyouquan,
-            "喝什么": self. jx3cmd.heshengme,
-            "吃什么": self. jx3cmd.chishengme,
-            "骚话": self. jx3cmd.shaohua,
-            "渣男语录": self. jx3cmd.zhananyulu,
-            "贴吧物价": self. jx3cmd.tiebawujia,
-            "818": self. jx3cmd.bagua,
-            "科举": self. jx3cmd.keju,
-            "区服": self. jx3cmd.zhuangtai,
-            "开服": self. jx3cmd.kaifu,
-            "技改": self. jx3cmd.jigai,
-            "解密": self. jx3cmd.jiemi,
-            "掉落": self. jx3cmd.diaoluo,
-
-            "宏": self. jx3cmd.hong,
-            "交易行": self. jx3cmd.jiaoyihang,
-
+            "帮会排行": self.jx3cmd.banghuipaihang,
+            "阵营排行": self.jx3cmd.zhenyingpaihang,
+            "其他排行": self.jx3cmd.qitapaihang,
+            "试炼排行": self.jx3cmd.shilianpaixing,
+            "资历": self.jx3cmd.zili,
+            "阵营拍卖": self.jx3cmd.zhengyingpaimai,
+            "的卢": self.jx3cmd.dilujilu,
+            "金价": self.jx3cmd.jinjia,
+            "物价": self.jx3cmd.wujia,
+            "成本": self.jx3cmd.chengbeng,
+            "看号": self.jx3cmd.kanhao,
+            "帮战": self.jx3cmd.bangzhanjilu,
+            "沙盘": self.jx3cmd.shapan,
+            "诛恶": self.jx3cmd.zhueevent,
+            "名片": self.jx3cmd.jueshemingpian,
+            "全名片": self.jx3cmd.shuoyoumingpian,
+            "随机秀": self.jx3cmd.shuijimingpian,
+            "奇遇": self.jx3cmd.juesheqiyu,
+            "查询": self.jx3cmd.juesheqiyu,
+            "未出": self.jx3cmd.weizuoqiyu,
+            "汇总": self.jx3cmd.qiyuhuizong,
+            "近期": self.jx3cmd.jinqiqiyu,
+            "统计": self.jx3cmd.qiyutongji,
+            "攻略": self.jx3cmd.qiyugonglue,
+            "精耐": self.jx3cmd.jingnai,
+            "百战": self.jx3cmd.baizhan,
+            "成就": self.jx3cmd.chengjiu,
+            "角色": self.jx3cmd.jueshe,
+            "阵眼": self.jx3cmd.zhenyan,
+            "配装": self.jx3cmd.peizhuang,
+            "资历排行": self.jx3cmd.zilipaixing,
+            "技能": self.jx3cmd.jineng,
+            "奇穴": self.jx3cmd.qixue,
+            "发言": self.jx3cmd.liaotian,
+            "统战": self.jx3cmd.tongzhanyy,
+            "小药": self.jx3cmd.xiaoyao,
+            "骗子": self.jx3cmd.pianzhi,
+            "花价": self.jx3cmd.huajia,
+            "装饰": self.jx3cmd.zhuangshi,
+            "器物": self.jx3cmd.qiwu,
+            "拜师": self.jx3cmd.baishi,
+            "收徒": self.jx3cmd.shoutu,
+            "维护": self.jx3cmd.weihu,
+            "新闻": self.jx3cmd.xinwen,
+            "招募": self.jx3cmd.tuanduizhaomu,
+            "团长": self.jx3cmd.tuanzhang,
+            "团牌": self.jx3cmd.tuanpai,
+            "答案之书": self.jx3cmd.daanzhishu,
+            "舔狗语录": self.jx3cmd.tiangou,
+            "疯狂星期四": self.jx3cmd.fkxq4,
+            "彩虹屁": self.jx3cmd.caihongpi,
+            "毒鸡汤": self.jx3cmd.dujitang,
+            "朋友圈": self.jx3cmd.pengyouquan,
+            "喝什么": self.jx3cmd.heshengme,
+            "吃什么": self.jx3cmd.chishengme,
+            "骚话": self.jx3cmd.shaohua,
+            "渣男语录": self.jx3cmd.zhananyulu,
+            "贴吧物价": self.jx3cmd.tiebawujia,
+            "818": self.jx3cmd.bagua,
+            "科举": self.jx3cmd.keju,
+            "区服": self.jx3cmd.zhuangtai,
+            "开服": self.jx3cmd.kaifu,
+            "技改": self.jx3cmd.jigai,
+            "解密": self.jx3cmd.jiemi,
+            "掉落": self.jx3cmd.diaoluo,
+            "宏": self.jx3cmd.hong,
+            "交易行": self.jx3cmd.jiaoyihang,
             "绑定区服": self.bind_server,
             "解绑区服": self.unbind_server,
-            
             "事件推送": self.jx3cmd.shijian_tuisong,
-
             "避雷添加": self.jx3cmd.bilei_add,
             "避雷查看": self.jx3cmd.bilei_all,
             "避雷查询": self.jx3cmd.bilei_select,
             "避雷修改": self.jx3cmd.bilei_update,
             "避雷删除": self.jx3cmd.bilei_delete,
+            "开团": self.jx3cmd.team_create,
+            "打开报名": self.jx3cmd.team_open_registration,
+            "关闭报名": self.jx3cmd.team_close_registration,
+            "关闭报警": self.jx3cmd.team_close_registration,
+            "结束团队": self.jx3cmd.team_end,
+            "结束全部团队": self.jx3cmd.team_end_all,
+            "清空报名": self.jx3cmd.team_clear_members,
+            "报名": self.jx3cmd.team_signup,
+            "取消报名": self.jx3cmd.team_cancel_signup,
+            "查看团队": self.jx3cmd.team_view,
+            "团队黑本": self.jx3cmd.team_blacklist,
+            "修改报名": self.jx3cmd.team_update_member,
+            "交换位置": self.jx3cmd.team_swap_slots,
+            "查看限制": self.jx3cmd.team_view_rules,
+            "添加限制": self.jx3cmd.team_add_rule,
+            "修改限制": self.jx3cmd.team_update_rule,
+            "删除限制": self.jx3cmd.team_delete_rule,
+            "恢复默认限制": self.jx3cmd.team_reset_rules,
         }
         self.cache.register_image_names(
             command_name
             for command_name, handler in self.command_map.items()
             if handler.__name__ in MessageBuilder.IMAGE_RENDER_HANDLERS
         )
-
 
     def parse_message(self, text: str) -> list[str] | None:
         """消息解析"""
@@ -359,7 +392,7 @@ class Jx3ApiPlugin(Star):
         if self.prefix.get("enable"):
             prefix = str(self.prefix.get("text") or "").strip()
             if prefix and text.startswith(prefix):
-                text = text[len(prefix):].strip()
+                text = text[len(prefix) :].strip()
             elif prefix:
                 # 非前缀消息，直接忽略
                 return None
@@ -405,27 +438,24 @@ class Jx3ApiPlugin(Star):
             if parameter.name not in {"self", "event"}
         ]
         server_index = next(
-            (index for index, parameter in enumerate(params) if parameter.name == "server"),
+            (
+                index
+                for index, parameter in enumerate(params)
+                if parameter.name == "server"
+            ),
             None,
         )
         if server_index is None:
             return args
 
         prepared = list(args)
-        bound_server = await self.server_binding.get_binding(
-            event.unified_msg_origin
-        )
+        bound_server = await self.server_binding.get_binding(event.unified_msg_origin)
         has_server_arg = server_index < len(prepared)
 
         if bound_server:
-            explicit_server = (
-                has_server_arg
-                and (
-                    self.server_binding.is_all_servers_query(
-                        prepared[server_index]
-                    )
-                    or self.server_binding.is_known_server(prepared[server_index])
-                )
+            explicit_server = has_server_arg and (
+                self.server_binding.is_all_servers_query(prepared[server_index])
+                or self.server_binding.is_known_server(prepared[server_index])
             )
             if explicit_server:
                 prepared[server_index] = self.server_binding.resolve_query_server(
@@ -456,7 +486,11 @@ class Jx3ApiPlugin(Star):
             if parameter.name not in {"self", "event"}
         ]
         kungfu_index = next(
-            (index for index, parameter in enumerate(params) if parameter.name == "kungfu"),
+            (
+                index
+                for index, parameter in enumerate(params)
+                if parameter.name == "kungfu"
+            ),
             None,
         )
         if kungfu_index is None or kungfu_index >= len(args):
@@ -468,8 +502,9 @@ class Jx3ApiPlugin(Star):
         )
         return prepared
 
-
-    async def _call_with_auto_args(self, handler, event: AstrMessageEvent, args: list[str]):
+    async def _call_with_auto_args(
+        self, handler, event: AstrMessageEvent, args: list[str]
+    ):
         """指令执行函数"""
         sig = inspect.signature(handler)
         params = list(sig.parameters.values())
@@ -483,6 +518,11 @@ class Jx3ApiPlugin(Star):
 
             if p.name == "event":
                 call_args.append(event)
+                continue
+
+            if p.kind is inspect.Parameter.VAR_POSITIONAL:
+                call_args.extend(args[arg_index:])
+                arg_index = len(args)
                 continue
 
             if arg_index < len(args):
@@ -506,7 +546,6 @@ class Jx3ApiPlugin(Star):
         # 只允许 coroutine
         return await handler(*call_args)
 
-
     @filter.event_message_type(
         filter.EventMessageType.ALL,
         priority=maxsize - 10,
@@ -516,7 +555,7 @@ class Jx3ApiPlugin(Star):
         if not self.command_map:
             logger.debug("插件尚未初始化完成，忽略消息")
             return
-        
+
         command = self.resolve_command(event)
         if not command:
             logger.debug("未触发指令，忽略消息")

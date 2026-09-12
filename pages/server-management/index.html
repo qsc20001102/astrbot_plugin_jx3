@@ -12,7 +12,7 @@
       <header class="page-header">
         <div>
           <h1>剑网三插件管理</h1>
-          <p>管理会话访问范围、查询缓存、避雷迁移、事件推送、区服绑定及别名。</p>
+          <p>管理团队、报名限制、心法职责、会话访问范围、查询缓存、避雷迁移、事件推送及别名。</p>
         </div>
         <button class="button button--secondary" id="refresh" type="button">刷新数据</button>
       </header>
@@ -41,7 +41,8 @@
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="subscriptions">事件推送</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="bindings">区服绑定</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="aliases">区服别名</button>
-        <button class="tab" type="button" role="tab" aria-selected="false" data-tab="kungfu">心法别名</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-tab="kungfu">心法配置</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-tab="teams">团队管理</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="cache">缓存管理</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="bilei-migration">避雷迁移</button>
       </nav>
@@ -100,6 +101,98 @@
             <tbody id="control-entries-body"></tbody>
           </table>
         </div>
+      </section>
+
+      <section class="panel" id="teams-panel" role="tabpanel" hidden>
+        <div class="section-intro section-intro--actions">
+          <div>
+            <h2>团队管理</h2>
+            <p>团队按会话严格隔离；可创建 10 人或 25 人团队，详情中每列固定 5 个位置，可编辑成员并拖拽换位。新团队默认关闭报名，团队编号由数据库自动生成。</p>
+          </div>
+          <div class="team-session-actions">
+            <input id="team-session-filter" list="session-options" maxlength="512" placeholder="筛选会话 ID（留空显示全部）" aria-label="筛选团队会话" />
+            <button class="button button--danger" id="team-delete-all" type="button">结束该会话全部团队</button>
+          </div>
+        </div>
+
+        <form class="team-create-form" id="team-create-form">
+          <label>
+            <span>会话 ID</span>
+            <input id="team-create-session" list="session-options" maxlength="512" placeholder="选择已有会话或直接输入" required />
+          </label>
+          <label>
+            <span>团名</span>
+            <input id="team-create-name" maxlength="80" placeholder="例如：周六英雄冷龙峰" required />
+          </label>
+          <label>
+            <span>人数</span>
+            <select id="team-create-capacity" required>
+              <option value="10">10 人</option>
+              <option value="25" selected>25 人</option>
+            </select>
+          </label>
+          <label>
+            <span>公告（可选）</span>
+            <input id="team-create-announcement" maxlength="500" placeholder="集合时间、装备要求等" />
+          </label>
+          <button class="button button--primary" type="submit">开团</button>
+        </form>
+
+        <section class="team-rule-config" aria-labelledby="team-rule-heading">
+          <div class="section-intro section-intro--actions">
+            <div>
+              <h2 id="team-rule-heading">报名限制规则</h2>
+              <p>每个会话分别配置 10 人、25 人默认规则；团队可复制默认规则后独立修改。职责支持 T、奶、DPS、老板，最小数量会提前预留报名位置。</p>
+            </div>
+            <button class="button button--secondary" id="team-rule-reset" type="button" hidden>恢复继承默认</button>
+          </div>
+          <div class="team-rule-toolbar">
+            <label>
+              <span>会话 ID</span>
+              <input id="team-rule-session" list="session-options" maxlength="512" placeholder="选择或输入会话 ID" />
+            </label>
+            <label>
+              <span>规则范围</span>
+              <select id="team-rule-scope"></select>
+            </label>
+            <button class="button button--secondary" id="team-rule-load" type="button">读取规则</button>
+          </div>
+          <p class="team-rule-status" id="team-rule-status">请先选择会话和规则范围。</p>
+          <form class="team-rule-form" id="team-rule-form">
+            <fieldset id="team-rule-fields" disabled>
+              <input id="team-rule-id" type="hidden" />
+              <label>
+                <span>限制类型</span>
+                <select id="team-rule-type" required>
+                  <option value="role">职责</option>
+                  <option value="kungfu">心法</option>
+                </select>
+              </label>
+              <label>
+                <span>限制目标</span>
+                <select id="team-rule-target" required></select>
+              </label>
+              <label>
+                <span>最小数量</span>
+                <input id="team-rule-min" type="number" min="0" max="25" step="1" value="0" required />
+              </label>
+              <label>
+                <span>最大数量</span>
+                <input id="team-rule-max" type="number" min="0" max="25" step="1" value="25" required />
+              </label>
+              <button class="button button--primary" type="submit">新增规则</button>
+              <button class="button button--secondary" id="team-rule-cancel" type="button" hidden>取消编辑</button>
+            </fieldset>
+          </form>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>类型</th><th>目标</th><th>最小数量</th><th>最大数量</th><th class="actions">操作</th></tr></thead>
+              <tbody id="team-rule-body"><tr><td class="empty" colspan="5">尚未读取规则</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="team-list" id="team-list"></div>
       </section>
 
       <section class="panel" id="cache-panel" role="tabpanel" hidden>
@@ -271,16 +364,17 @@
 
       <section class="panel" id="kungfu-panel" role="tabpanel" hidden>
         <div class="section-intro section-intro--actions">
-          <div><h2>心法别名</h2><p>标准心法名称为只读；点击对应行的“编辑”可修改最多 5 个别名，恢复默认会使用内置 JSON 覆盖当前配置。</p></div>
+          <div><h2>心法配置</h2><p>全局配置每个标准心法所属的 T、奶或 DPS 职责，也可维护最多 5 个别名；恢复默认会同时重置职责与别名。</p></div>
           <button class="button button--secondary" id="restore-kungfu" type="button">恢复默认</button>
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>标准心法名</th><th>别名</th><th class="actions">操作</th></tr></thead>
+            <thead><tr><th>标准心法名</th><th>职责</th><th>别名</th><th class="actions">操作</th></tr></thead>
             <tbody id="kungfu-body"></tbody>
           </table>
         </div>
       </section>
+      <datalist id="kungfu-options"></datalist>
     </main>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
