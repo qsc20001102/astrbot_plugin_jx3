@@ -4,7 +4,8 @@ __pycache__/
 *$py.class
 
 # 测试与覆盖率产物
-tests/
+tests/*
+!tests/test_safety.py
 .pytest_cache/
 .coverage
 .coverage.*

@@ -72,7 +72,7 @@ pip install -r data/plugins/astrbot_plugin_jx3/requirements.txt
 | `aiohttp` | 异步 HTTP 请求与连接复用 |
 | `aiofiles` | 异步读取 HTML 模板 |
 | `aiosqlite` | 异步访问本地 SQLite 数据库 |
-| `matplotlib` | 当前依赖清单保留的绘图依赖；v3.4.9 业务代码未直接导入 |
+| `matplotlib` | 当前依赖清单保留的绘图依赖；v3.5.0 业务代码未直接导入 |
 
 ## 插件配置
 
@@ -599,11 +599,11 @@ python -m compileall -q .
 git diff --check
 ```
 
-项目级 `.gitignore` 会忽略整个 `tests/`，本地自行维护的测试不会随插件分发。语法检查和差异检查仍不能替代带真实数据的 AstrBot 消息、HTML 渲染、实时事件和外部接口联调；发布前应在具备有效凭据的实际环境中覆盖成功、空数据、断线重连及上游异常路径。
+项目级 `.gitignore` 保留 `tests/test_safety.py` 安全回归测试，其余本地测试默认忽略。安装测试所需的 `jinja2` 及插件依赖后，可执行 `python -m unittest discover -s tests -p test_safety.py -v`。自动化测试、语法检查和差异检查仍不能替代带真实数据的 AstrBot 消息、HTML 渲染、实时事件和外部接口联调；发布前应在具备有效凭据的实际环境中覆盖成功、空数据、断线重连及上游异常路径。
 
 ## 当前版本状态
 
-以下内容是对 v3.4.9 当前源码的静态核对结果，部署和二次开发前应注意：
+以下内容是对 v3.5.0 当前源码的静态核对结果，部署和二次开发前应注意：
 
 1. 查询图片使用浅色高对比主题和放大的内容区域；渲染清晰度、JPEG/PNG 格式及 JPEG 质量由 `image_render_quality` 配置组控制，提高清晰度或使用 PNG 会增加图片体积与渲染耗时。
 2. 所有 HTML 渲染图片底部都会显示数据时间；最终图片缓存命中后保留原时间并跳过接口请求和重新渲染。要让下一次查询同时获取最新上游数据并重新生成图片，需要一并清除或关闭对应接口缓存和图片缓存。
@@ -617,7 +617,9 @@ git diff --check
 10. 带区服参数的指令在入口层统一进行会话绑定补齐和别名解析；新增此类指令时参数名应继续使用 `server`。
 11. 资历分布使用固定的“数字序号 → 大类名称”首轮菜单，通用会话裁剪出单项字典后交给 JX3API `/tuilan/achievement` 次轮查询；模板兼容总览与指定 `subclass` 的不同 `data.total` 层级，并直接使用接口角色字段、`pieces`、`seniority` 和 `score/totalScore` 渲染，JX3BOX 不再参与资历查询。
 12. 外部 HTTPS 与 WSS 连接默认验证 TLS 证书；只有在插件配置中显式关闭 `tls_verify` 才会跳过验证。生产环境应保持开启。
-13. debug 日志会记录请求 Query、Body 和完整响应，其中可能包含 Token、Ticket 或其他敏感字段；不要公开原始调试日志。
+13. 请求层不再记录完整 URL、Query、Body、响应正文或原始异常文本；单次响应体默认限制为 32 MiB，超过限制按请求失败处理。
+14. 图片模板显式开启 HTML 自动转义；物价查询的六个行情区域统一为时间、服务器、价格、状态四列。
+15. 共享 SQLite 连接的读写统一通过数据库层串行协调；多步写入使用 `AsyncSQLiteDB.transaction()` 或 `execute_transaction()`，避免直接操作底层连接。事务支持嵌套保存点和任务取消回滚。
 
 ## 注意事项
 

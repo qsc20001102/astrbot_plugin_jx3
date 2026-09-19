@@ -734,7 +734,7 @@ class CacheService:
         """生成可在请求接口前计算的最终图片缓存键。"""
         source = "|".join(
             (
-                "image-request:v2",
+                "image-request:v3",
                 cache_name,
                 variant_signature,
                 scope_signature,

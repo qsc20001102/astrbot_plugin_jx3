@@ -19,6 +19,11 @@ _COMPONENT_STYLE_PATTERN = re.compile(
 )
 
 
+def secure_render_template(template: str) -> str:
+    """显式转义外部数据，不依赖远端截图服务的 Jinja 默认配置。"""
+    return "{% autoescape true %}" + template + "{% endautoescape %}"
+
+
 class TemplateRepository:
     """将公共布局、设计系统和页面片段组装为完整 Jinja 模板。"""
 

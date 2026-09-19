@@ -26,10 +26,18 @@ class APIClient:
     3. 支持异步上下文管理器 (Async Context Manager)。
     """
 
-    def __init__(self, base_timeout: int = 10, ssl_verify: bool = True):
+    def __init__(
+        self,
+        base_timeout: int = 10,
+        ssl_verify: bool = True,
+        max_response_bytes: int = 32 * 1024 * 1024,
+    ):
         self.base_timeout = base_timeout
         self.ssl_verify = ssl_verify
         self._session: Optional[ClientSession] = None
+        if max_response_bytes <= 0:
+            raise ValueError("响应大小限制必须大于零")
+        self.max_response_bytes = max_response_bytes
 
     async def get_session(self) -> ClientSession:
         """获取或创建单例 Session"""
@@ -59,9 +67,8 @@ class APIClient:
         method = method.upper()
         
         # 记录日志
-        logger.debug(f"发起 {method} 请求: {url}")
-        if params: logger.debug(f"Query参数: {params}")
-        if json_data: logger.debug(f"Body数据: {json_data}")
+        # URL、请求正文和异常文本都可能包含 token/ticket，禁止原样写日志。
+        logger.debug(f"发起 {method} 请求")
 
         try:
             # aiohttp 会自动处理 json=json_data 时的 Content-Type
@@ -75,10 +82,10 @@ class APIClient:
                 return await self._handle_response(response)
                 
         except aiohttp.ClientError as e:
-            logger.error(f"网络请求出错 ({method} {url}): {e}")
+            logger.error(f"网络请求出错 ({method}): {type(e).__name__}")
             return None
         except Exception as e:
-            logger.error(f"未知错误 ({method} {url}): {e}")
+            logger.error(f"请求失败 ({method}): {type(e).__name__}")
             return None
 
     async def _handle_response(self, response: aiohttp.ClientResponse) -> Any:
@@ -88,26 +95,26 @@ class APIClient:
             response.raise_for_status()
 
             content_type = response.headers.get('Content-Type', '').lower()
+            body = bytearray()
+            async for chunk in response.content.iter_chunked(64 * 1024):
+                if len(body) + len(chunk) > self.max_response_bytes:
+                    logger.error("接口响应超过大小限制")
+                    return None
+                body.extend(chunk)
 
             if 'image' in content_type or 'octet-stream' in content_type:
-                return await response.read()
+                return bytes(body)
 
             try:
-                data = await response.json()
-            except Exception:
-                text = await response.text()
-                try:
-                    loop = asyncio.get_running_loop()
-                    data = await loop.run_in_executor(None, json.loads, text)
-                except json.JSONDecodeError:
-                    logger.error(f"无法解析响应为 JSON。原始内容: {text[:100]}...")
-                    return None
+                data = await asyncio.to_thread(json.loads, body)
+            except (ValueError, UnicodeError, RecursionError):
+                logger.error("无法解析接口响应为 JSON")
+                return None
 
-            logger.debug(f"响应数据: {data}")
             return self._validate_api_payload(data)
 
         except aiohttp.ClientError as e:
-            logger.error(f"HTTP响应错误: {e}")
+            logger.error(f"HTTP响应错误: {type(e).__name__}")
             return None
 
     def _validate_api_payload(self, data: Any) -> Any:
@@ -181,9 +188,7 @@ class APIClient:
             if code not in allowed_codes:
                 raw_message = data.get('msg') or data.get('message') or ""
                 message = str(raw_message).strip()
-                logger.error(
-                    f"API业务报错: code={code}, msg={message or '未知错误'}"
-                )
+                logger.error("API返回业务错误")
                 if return_error:
                     return APIErrorResponse(code=code, message=message)
                 return None

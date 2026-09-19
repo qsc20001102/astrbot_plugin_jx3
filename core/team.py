@@ -259,9 +259,9 @@ class TeamService:
         normalized_announcement = self._text(announcement, "公告", 500, False)
         normalized_creator = self._text(created_by, "创建人 ID", 128, False)
         normalized_creator_name = self._text(created_by_name, "创建人名称", 100, False)
-        async with self._write_lock:
+        async with self._write_lock, self.sql.transaction():
             await self.team_rules.ensure_session_defaults(normalized_session)
-            cursor = await self.sql.conn.execute(
+            team_id = await self.sql.execute_insert(
                 """
                 INSERT INTO raid_teams (
                     session_id, name, capacity, announcement, created_by,
@@ -277,9 +277,6 @@ class TeamService:
                     normalized_creator_name,
                 ),
             )
-            await self.sql.conn.commit()
-            team_id = cursor.lastrowid
-            await cursor.close()
         team = await self.get_team(normalized_session, team_id)
         if not team:
             raise RuntimeError("团队创建后无法读取")
@@ -303,7 +300,7 @@ class TeamService:
         """
         normalized_session = self._session_id(session_id)
         normalized_team_id = self._team_id(team_id)
-        async with self._write_lock:
+        async with self._write_lock, self.sql.transaction():
             affected = await self.sql.execute_affected(
                 """
                 UPDATE raid_teams
@@ -328,7 +325,7 @@ class TeamService:
         """
         normalized_session = self._session_id(session_id)
         normalized_team_id = self._team_id(team_id)
-        async with self._write_lock:
+        async with self._write_lock, self.sql.transaction():
             team = await self.sql.fetch_one(
                 "SELECT id FROM raid_teams WHERE id=? AND session_id=?",
                 (normalized_team_id, normalized_session),
@@ -376,7 +373,7 @@ class TeamService:
             Number of deleted teams.
         """
         normalized_session = self._session_id(session_id)
-        async with self._write_lock:
+        async with self._write_lock, self.sql.transaction():
             row = await self.sql.fetch_one(
                 "SELECT COUNT(*) AS count FROM raid_teams WHERE session_id=?",
                 (normalized_session,),
@@ -431,20 +428,17 @@ class TeamService:
         """
         normalized_session = self._session_id(session_id)
         normalized_team_id = self._team_id(team_id)
-        async with self._write_lock:
+        async with self._write_lock, self.sql.transaction():
             team = await self.sql.fetch_one(
                 "SELECT id FROM raid_teams WHERE id=? AND session_id=?",
                 (normalized_team_id, normalized_session),
             )
             if not team:
                 return None
-            cursor = await self.sql.conn.execute(
+            affected = await self.sql.execute_affected(
                 "DELETE FROM raid_team_members WHERE team_id=?",
                 (normalized_team_id,),
             )
-            await self.sql.conn.commit()
-            affected = cursor.rowcount
-            await cursor.close()
         return affected
 
     async def signup(
@@ -470,8 +464,7 @@ class TeamService:
         normalized_user = self._text(user_id, "报名人 ID", 128, False)
         normalized_user_name = self._text(user_name, "报名人名称", 100, False)
 
-        async with self._write_lock:
-            await self.sql.conn.execute("BEGIN IMMEDIATE")
+        async with self._write_lock, self.sql.transaction():
             try:
                 team = await self.sql.fetch_one(
                     """
@@ -521,7 +514,7 @@ class TeamService:
                 if slot_number is None:
                     raise ValueError(f"该团队已满 {capacity} 人")
                 squad_number = ((slot_number - 1) // self.SQUAD_SIZE) + 1
-                cursor = await self.sql.conn.execute(
+                member_id = await self.sql.execute_insert(
                     """
                     INSERT INTO raid_team_members (
                         team_id, slot_number, squad_number, kungfu, role_name,
@@ -539,15 +532,8 @@ class TeamService:
                         normalized_user_name,
                     ),
                 )
-                member_id = cursor.lastrowid
-                await cursor.close()
-                await self.sql.conn.commit()
             except sqlite3.IntegrityError as exc:
-                await self.sql.conn.rollback()
                 raise ValueError("角色名或团队位置发生冲突，请重试") from exc
-            except Exception:
-                await self.sql.conn.rollback()
-                raise
         member = await self.sql.fetch_one(
             """
             SELECT id, slot_number, squad_number, kungfu, role_name, is_boss,
@@ -578,8 +564,7 @@ class TeamService:
         normalized_new_role = self._text(new_role_name, "新角色名", 80)
         requested_kungfu = self._text(kungfu, "心法", 50)
 
-        async with self._write_lock:
-            await self.sql.conn.execute("BEGIN IMMEDIATE")
+        async with self._write_lock, self.sql.transaction():
             try:
                 team = await self.sql.fetch_one(
                     """
@@ -619,7 +604,7 @@ class TeamService:
                     canonical_kungfu,
                     bool(is_boss),
                 )
-                await self.sql.conn.execute(
+                await self.sql.execute(
                     """
                     UPDATE raid_team_members
                     SET role_name=?, kungfu=?, is_boss=?
@@ -632,13 +617,8 @@ class TeamService:
                         int(member["id"]),
                     ),
                 )
-                await self.sql.conn.commit()
             except sqlite3.IntegrityError as exc:
-                await self.sql.conn.rollback()
                 raise ValueError("新角色名已在该团队中") from exc
-            except Exception:
-                await self.sql.conn.rollback()
-                raise
 
         updated = await self.sql.fetch_one(
             """
@@ -670,95 +650,88 @@ class TeamService:
         except (TypeError, ValueError) as exc:
             raise ValueError("位置必须是正整数") from exc
 
-        async with self._write_lock:
-            await self.sql.conn.execute("BEGIN IMMEDIATE")
-            try:
-                team = await self.sql.fetch_one(
-                    """
-                    SELECT capacity FROM raid_teams
-                    WHERE id=? AND session_id=?
-                    """,
-                    (normalized_team_id, normalized_session),
-                )
-                if not team:
+        async with self._write_lock, self.sql.transaction():
+            team = await self.sql.fetch_one(
+                """
+                SELECT capacity FROM raid_teams
+                WHERE id=? AND session_id=?
+                """,
+                (normalized_team_id, normalized_session),
+            )
+            if not team:
+                raise TeamNotFoundError("团队不存在")
+            capacity = int(team["capacity"])
+            if not 1 <= normalized_first <= capacity:
+                raise ValueError(f"位置必须在 1 到 {capacity} 之间")
+            if not 1 <= normalized_second <= capacity:
+                raise ValueError(f"位置必须在 1 到 {capacity} 之间")
+            if normalized_first == normalized_second:
+                current = await self.get_team(normalized_session, normalized_team_id)
+                if not current:
                     raise TeamNotFoundError("团队不存在")
-                capacity = int(team["capacity"])
-                if not 1 <= normalized_first <= capacity:
-                    raise ValueError(f"位置必须在 1 到 {capacity} 之间")
-                if not 1 <= normalized_second <= capacity:
-                    raise ValueError(f"位置必须在 1 到 {capacity} 之间")
-                if normalized_first == normalized_second:
-                    await self.sql.conn.rollback()
-                    current = await self.get_team(normalized_session, normalized_team_id)
-                    if not current:
-                        raise TeamNotFoundError("团队不存在")
-                    return current
+                return current
 
-                members = await self.sql.fetch_all(
-                    """
-                    SELECT id, team_id, slot_number, squad_number, kungfu,
-                           role_name, is_boss, user_id, user_name, created_at
-                    FROM raid_team_members
-                    WHERE team_id=? AND slot_number IN (?, ?)
-                    ORDER BY slot_number
-                    """,
-                    (normalized_team_id, normalized_first, normalized_second),
+            members = await self.sql.fetch_all(
+                """
+                SELECT id, team_id, slot_number, squad_number, kungfu,
+                       role_name, is_boss, user_id, user_name, created_at
+                FROM raid_team_members
+                WHERE team_id=? AND slot_number IN (?, ?)
+                ORDER BY slot_number
+                """,
+                (normalized_team_id, normalized_first, normalized_second),
+            )
+            if not members:
+                raise ValueError("两个位置都是空位，无需交换")
+            by_slot = {int(item["slot_number"]): item for item in members}
+            first_member = by_slot.get(normalized_first)
+            second_member = by_slot.get(normalized_second)
+            if first_member and second_member:
+                await self.sql.execute(
+                    "DELETE FROM raid_team_members WHERE id IN (?, ?)",
+                    (int(first_member["id"]), int(second_member["id"])),
                 )
-                if not members:
-                    raise ValueError("两个位置都是空位，无需交换")
-                by_slot = {int(item["slot_number"]): item for item in members}
-                first_member = by_slot.get(normalized_first)
-                second_member = by_slot.get(normalized_second)
-                if first_member and second_member:
-                    await self.sql.conn.execute(
-                        "DELETE FROM raid_team_members WHERE id IN (?, ?)",
-                        (int(first_member["id"]), int(second_member["id"])),
-                    )
-                    for item, target_slot in (
-                        (first_member, normalized_second),
-                        (second_member, normalized_first),
-                    ):
-                        await self.sql.conn.execute(
-                            """
-                            INSERT INTO raid_team_members (
-                                id, team_id, slot_number, squad_number, kungfu,
-                                role_name, is_boss, user_id, user_name, created_at
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            """,
-                            (
-                                int(item["id"]),
-                                normalized_team_id,
-                                target_slot,
-                                ((target_slot - 1) // self.SQUAD_SIZE) + 1,
-                                item["kungfu"],
-                                item["role_name"],
-                                int(item["is_boss"]),
-                                item["user_id"],
-                                item["user_name"],
-                                item["created_at"],
-                            ),
-                        )
-                else:
-                    item = first_member or second_member
-                    target_slot = (
-                        normalized_second if first_member else normalized_first
-                    )
-                    await self.sql.conn.execute(
+                for item, target_slot in (
+                    (first_member, normalized_second),
+                    (second_member, normalized_first),
+                ):
+                    await self.sql.execute(
                         """
-                        UPDATE raid_team_members
-                        SET slot_number=?, squad_number=?
-                        WHERE id=?
+                        INSERT INTO raid_team_members (
+                            id, team_id, slot_number, squad_number, kungfu,
+                            role_name, is_boss, user_id, user_name, created_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
+                            int(item["id"]),
+                            normalized_team_id,
                             target_slot,
                             ((target_slot - 1) // self.SQUAD_SIZE) + 1,
-                            int(item["id"]),
+                            item["kungfu"],
+                            item["role_name"],
+                            int(item["is_boss"]),
+                            item["user_id"],
+                            item["user_name"],
+                            item["created_at"],
                         ),
                     )
-                await self.sql.conn.commit()
-            except Exception:
-                await self.sql.conn.rollback()
-                raise
+            else:
+                item = first_member or second_member
+                target_slot = (
+                    normalized_second if first_member else normalized_first
+                )
+                await self.sql.execute(
+                    """
+                    UPDATE raid_team_members
+                    SET slot_number=?, squad_number=?
+                    WHERE id=?
+                    """,
+                    (
+                        target_slot,
+                        ((target_slot - 1) // self.SQUAD_SIZE) + 1,
+                        int(item["id"]),
+                    ),
+                )
 
         updated_team = await self.get_team(normalized_session, normalized_team_id)
         if not updated_team:
@@ -782,21 +755,18 @@ class TeamService:
         normalized_session = self._session_id(session_id)
         normalized_team_id = self._team_id(team_id)
         normalized_role = self._text(role_name, "角色名", 80)
-        async with self._write_lock:
+        async with self._write_lock, self.sql.transaction():
             team = await self.sql.fetch_one(
                 "SELECT id FROM raid_teams WHERE id=? AND session_id=?",
                 (normalized_team_id, normalized_session),
             )
             if not team:
                 raise TeamNotFoundError("团队不存在")
-            cursor = await self.sql.conn.execute(
+            affected = await self.sql.execute_affected(
                 """
                 DELETE FROM raid_team_members
                 WHERE team_id=? AND role_name=? COLLATE NOCASE
                 """,
                 (normalized_team_id, normalized_role),
             )
-            await self.sql.conn.commit()
-            affected = cursor.rowcount
-            await cursor.close()
         return bool(affected)

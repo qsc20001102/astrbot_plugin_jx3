@@ -18,6 +18,7 @@ from .event_push import EventPushService
 from .jx3api_data import JX3APIService
 from .jx3box_data import JX3BOXService
 from .team_manager import TeamManager
+from .template import secure_render_template
 
 
 class MessageBuilder:
@@ -120,7 +121,7 @@ class MessageBuilder:
     ) -> str:
         """渲染 HTML"""
         return await html_renderer.render_custom_template(
-            tmpl,
+            secure_render_template(tmpl),
             data,
             return_url=return_url,
             options=self._build_render_options(options),
