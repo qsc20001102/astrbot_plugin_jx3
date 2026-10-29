@@ -31,7 +31,7 @@ PLUGIN_NAME = "astrbot_plugin_jx3"
     "astrbot_plugin_jx3",
     "fxdyz",
     "聚合剑网三游戏数据，提供查询、团队管理、图片渲染、本地避雷和实时事件推送。",
-    "3.5.3",
+    "3.5.4",
     "https://github.com/qsc20001102/astrbot_plugin_jx3",
 )
 class Jx3ApiPlugin(Star):
