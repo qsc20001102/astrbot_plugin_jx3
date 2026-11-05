@@ -1450,6 +1450,25 @@ function featureCatalog() {
   return state.feature_catalog || [];
 }
 
+const FEATURE_COLLAPSED_KEY = "jx3.feature-sections-collapsed.v1";
+
+function readCollapsedFeatureSections() {
+  try {
+    const value = JSON.parse(localStorage.getItem(FEATURE_COLLAPSED_KEY) || "[]");
+    return new Set(Array.isArray(value) ? value.filter((key) => typeof key === "string") : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveCollapsedFeatureSections(sections) {
+  try {
+    localStorage.setItem(FEATURE_COLLAPSED_KEY, JSON.stringify([...sections]));
+  } catch {
+    // 页面仍可正常收起；浏览器禁用存储时只是不跨刷新记忆。
+  }
+}
+
 function commandInputs(groupKey) {
   return [...document.querySelectorAll(`#feature-grid input[data-group="${groupKey}"]`)];
 }
@@ -1592,6 +1611,7 @@ function renderFeatureGrid(containerId) {
   }
 
   const sections = new Map();
+  const collapsedSections = readCollapsedFeatureSections();
   catalog.forEach((group) => {
     if (!sections.has(group.section)) {
       sections.set(group.section, {
@@ -1636,14 +1656,41 @@ function renderFeatureGrid(containerId) {
     count.dataset.sectionCount = section.key;
     count.textContent = `${enabled} / ${total}`;
     masterLabel.append(master, document.createTextNode(" 全选"), count);
-    header.append(heading, masterLabel);
 
     const grid = document.createElement("div");
     grid.className = "feature-card-grid";
     grid.classList.toggle("is-single", section.groups.length === 1);
+    grid.id = `feature-section-${section.key}`;
+    const collapsed = collapsedSections.has(section.key);
+    grid.hidden = collapsed;
     grid.append(...section.groups.map(createFeatureCard));
+
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "feature-section__toggle";
+    toggle.dataset.sectionToggle = section.key;
+    toggle.setAttribute("aria-controls", grid.id);
+    toggle.setAttribute("aria-expanded", String(!collapsed));
+    toggle.textContent = collapsed ? "展开" : "收起";
+    toggle.addEventListener("click", () => {
+      const nextCollapsed = !sectionNode.classList.contains("is-collapsed");
+      sectionNode.classList.toggle("is-collapsed", nextCollapsed);
+      grid.hidden = nextCollapsed;
+      toggle.textContent = nextCollapsed ? "展开" : "收起";
+      toggle.setAttribute("aria-expanded", String(!nextCollapsed));
+      const current = readCollapsedFeatureSections();
+      if (nextCollapsed) current.add(section.key);
+      else current.delete(section.key);
+      saveCollapsedFeatureSections(current);
+    });
+
+    const actions = document.createElement("div");
+    actions.className = "feature-section__actions";
+    actions.append(masterLabel, toggle);
+    header.append(heading, actions);
     sectionNode.append(header, grid);
     sectionNode.classList.toggle("is-on", enabled === total && total > 0);
+    sectionNode.classList.toggle("is-collapsed", collapsed);
     container.append(sectionNode);
   });
 }

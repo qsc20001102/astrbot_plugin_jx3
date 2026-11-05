@@ -41,7 +41,7 @@ button, input, select { font: inherit; }
 h1 { margin: 0; font-size: clamp(26px, 3vw, 36px); line-height: 1.2; letter-spacing: -0.025em; }
 .page-header p, .section-intro p { margin: 7px 0 0; color: var(--muted); }
 .button { min-height: 42px; padding: 9px 18px; border: 1px solid transparent; border-radius: 9px; cursor: pointer; font-weight: 650; transition: 160ms ease; white-space: nowrap; }
-.button:focus-visible, .tab:focus-visible, input:focus-visible, select:focus-visible, .link-button:focus-visible { outline: 3px solid color-mix(in srgb, var(--focus) 45%, transparent); outline-offset: 2px; }
+.button:focus-visible, .tab:focus-visible, input:focus-visible, select:focus-visible, .link-button:focus-visible, .feature-section__toggle:focus-visible { outline: 3px solid color-mix(in srgb, var(--focus) 45%, transparent); outline-offset: 2px; }
 .button:disabled { cursor: wait; opacity: .65; }
 .button--primary { color: #fff; background: var(--accent); box-shadow: 0 5px 14px color-mix(in srgb, var(--accent) 20%, transparent); }
 .button--primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
@@ -210,14 +210,21 @@ tbody tr.is-editing { background: color-mix(in srgb, var(--accent-soft) 62%, tra
 .feature-section { overflow: hidden; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-subtle); }
 .feature-section.is-on > .feature-section__header { box-shadow: inset 4px 0 0 var(--accent); }
 .feature-section__header { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 18px; border-bottom: 1px solid var(--border); }
+.feature-section.is-collapsed .feature-section__header { border-bottom: 0; }
 .feature-section__heading { display: grid; gap: 2px; min-width: 0; }
 .feature-section__eyebrow { color: var(--accent); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .feature-section__heading strong { font-size: 19px; line-height: 1.3; }
 .feature-section__heading p { margin: 1px 0 0; color: var(--muted); font-size: 13px; }
+.feature-section__actions { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; }
 .feature-section__master { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 8px; padding: 8px 11px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); cursor: pointer; color: var(--text); font-size: 13px; font-weight: 700; }
 .feature-section__master input { width: 17px; height: 17px; margin: 0; accent-color: var(--accent); }
 .feature-section__master span { color: var(--muted); font-variant-numeric: tabular-nums; }
+.feature-section__toggle { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 7px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--muted); cursor: pointer; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.feature-section__toggle:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); color: var(--text); }
+.feature-section__toggle::after { width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; content: ""; transform: translateY(-2px) rotate(-135deg); transition: transform 150ms ease; }
+.feature-section.is-collapsed .feature-section__toggle::after { transform: translateY(2px) rotate(45deg); }
 .feature-card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; padding: 16px; align-items: start; }
+.feature-card-grid[hidden] { display: none; }
 .feature-card-grid.is-single { grid-template-columns: minmax(300px, 620px); }
 .feature-card { padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); transition: 150ms ease; }
 .feature-card:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
@@ -241,6 +248,7 @@ tbody tr.is-editing { background: color-mix(in srgb, var(--accent-soft) 62%, tra
 @media (max-width: 760px) {
   .feature-sections { padding: 16px; }
   .feature-section__header { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .feature-section__actions { align-self: stretch; }
   .feature-section__master { align-self: stretch; justify-content: center; }
   .feature-card-grid { grid-template-columns: 1fr; padding: 12px; }
   .feature-card-grid.is-single { grid-template-columns: 1fr; }
