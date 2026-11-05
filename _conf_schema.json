@@ -53,6 +53,67 @@
     "default": true,
     "hint": "验证 JX3API、JX3BOX 和事件推送连接的 TLS 证书。建议保持开启；仅在受信任的调试环境中临时关闭。"
   },
+  "features": {
+    "description": "功能开关",
+    "type": "object",
+    "hint": "关闭某个分组后，该分组下的指令不再注册：机器人不会响应，也不会消耗 JX3API 次数。可在插件管理页「功能开关」标签页可视化调整。",
+    "items": {
+      "basic": {
+        "description": "基础查询",
+        "type": "bool",
+        "default": true,
+        "hint": "角色名片、属性装备、奇遇、成就、物价、沙盘、资讯等核心查询。消耗 JX3API 次数。"
+      },
+      "peizhuang": {
+        "description": "配装查询",
+        "type": "bool",
+        "default": true,
+        "hint": "从 JX3BOX 配装站查询心法推荐配装，不消耗 JX3API 次数。"
+      },
+      "fun": {
+        "description": "趣味互动",
+        "type": "bool",
+        "default": true,
+        "hint": "答案之书、毒鸡汤、疯狂星期四、骚话等本地娱乐指令，不消耗 JX3API 次数。"
+      },
+      "daily": {
+        "description": "日常与活动",
+        "type": "bool",
+        "default": true,
+        "hint": "日常任务、赤兔、关隘、阵营奉献、烟花、科举等周期性活动查询。消耗 JX3API 次数。"
+      },
+      "rank": {
+        "description": "排行榜",
+        "type": "bool",
+        "default": true,
+        "hint": "名剑、帮会、阵营、试炼、资历等各类排行榜。消耗 JX3API 次数。"
+      },
+      "misc": {
+        "description": "其它查询",
+        "type": "bool",
+        "default": true,
+        "hint": "招募、骗子、掉落、宏、统战、拜师收徒等零散查询，部分消耗 JX3API 次数。"
+      },
+      "team": {
+        "description": "团队管理",
+        "type": "bool",
+        "default": true,
+        "hint": "开团、报名、黑本、报名限制等按会话隔离的团队功能，不消耗 JX3API 次数。"
+      },
+      "bilei": {
+        "description": "避雷记录",
+        "type": "bool",
+        "default": true,
+        "hint": "按会话隔离的避雷名单增删改查，不消耗 JX3API 次数。"
+      },
+      "event_push": {
+        "description": "实时事件推送",
+        "type": "bool",
+        "default": true,
+        "hint": "通过事件通道推送奇遇、马驹、沙盘等实时事件，需在插件配置里填写事件推送令牌。"
+      }
+    }
+  },
   "team_management": {
     "description": "团队管理",
     "type": "object",

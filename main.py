@@ -10,6 +10,7 @@ from astrbot.api.star import Context, Star, StarTools, register
 from .core.bilei_data import BiLeidata
 from .core.cache import CacheService
 from .core.event_push import EventPushService
+from .core import features
 from .core.fun_basic import load_as_base64
 from .core.jx3api_data import JX3APIService
 from .core.jx3box_data import JX3BOXService
@@ -218,6 +219,7 @@ class Jx3ApiPlugin(Star):
             self.team,
             self.team_rules,
             self.icons["sect"],
+            plugin=self,
         )
         self.jx3cmd = MessageBuilder(
             self.jx3api,
@@ -378,11 +380,25 @@ class Jx3ApiPlugin(Star):
             "删除限制": self.jx3cmd.team_delete_rule,
             "恢复默认限制": self.jx3cmd.team_reset_rules,
         }
+        enabled = features.resolve_enabled(self.conf.get("features"))
+        self.command_map = {
+            name: handler
+            for name, handler in self.command_map.items()
+            if features.command_enabled(name, enabled)
+        }
         self.cache.register_image_names(
             command_name
             for command_name, handler in self.command_map.items()
             if handler.__name__ in MessageBuilder.IMAGE_RENDER_HANDLERS
         )
+
+    def enabled_features(self) -> dict[str, bool]:
+        """返回当前生效的功能开关状态。"""
+        return features.resolve_enabled(self.conf.get("features"))
+
+    def apply_feature_settings(self) -> None:
+        """功能开关变更后重新注册指令，无需重启插件。"""
+        self.ini_command_map()
 
     def parse_message(self, text: str) -> list[str] | None:
         """消息解析"""

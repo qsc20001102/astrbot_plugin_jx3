@@ -9,6 +9,8 @@ const state = {
   free_event_actions: [],
   session_control: { mode: "all", entries: [] },
   legacy_bilei: [],
+  features: {},
+  feature_catalog: [],
   teams: [],
   team_kungfu_icons: {},
   team_rule_sessions: [],
@@ -1434,11 +1436,145 @@ function render() {
   renderSubscriptions();
   renderAliases();
   renderKungfu();
+  renderFeatures();
   renderCache();
   renderTeamRuleScopeOptions();
   renderTeamRuleTargets(byId("team-rule-target").value);
   renderTeamRuleConfig();
   renderTeams();
+}
+
+/* ----- 功能开关 ----- */
+
+function featureCatalog() {
+  return state.feature_catalog || [];
+}
+
+function featureEnabled(key) {
+  const value = state.features?.[key];
+  return value === undefined ? true : Boolean(value);
+}
+
+function updateFeatureSummary() {
+  const summary = byId("feature-summary");
+  if (!summary) return;
+  const inputs = document.querySelectorAll("#feature-grid input[data-feature]");
+  const on = [...inputs].filter((input) => input.checked).length;
+  summary.textContent = `已启用 ${on} / ${inputs.length} 个功能`;
+}
+
+function syncFeatureInputs(key, checked) {
+  document.querySelectorAll(`input[data-feature="${key}"]`).forEach((input) => {
+    input.checked = checked;
+    const card = input.closest(".feature-card");
+    if (card) card.classList.toggle("is-on", checked);
+  });
+}
+
+function renderFeatureGrid(containerId) {
+  const container = byId(containerId);
+  if (!container) return;
+  const catalog = featureCatalog();
+  container.replaceChildren();
+  if (!catalog.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty";
+    empty.textContent = "功能开关数据加载中…";
+    container.append(empty);
+    return;
+  }
+  catalog.forEach((item) => {
+    const checked = featureEnabled(item.key);
+    const card = document.createElement("label");
+    card.className = "feature-card";
+    card.classList.toggle("is-on", checked);
+
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.dataset.feature = item.key;
+    input.checked = checked;
+    input.addEventListener("change", () => {
+      syncFeatureInputs(item.key, input.checked);
+      updateFeatureSummary();
+    });
+
+    const body = document.createElement("div");
+    body.className = "feature-card__body";
+
+    const head = document.createElement("div");
+    head.className = "feature-card__head";
+    const title = document.createElement("strong");
+    title.textContent = item.name;
+    head.append(title);
+    if (item.cost) {
+      const cost = document.createElement("span");
+      cost.className = "feature-card__cost";
+      cost.textContent = item.cost;
+      head.append(cost);
+    }
+
+    const desc = document.createElement("p");
+    desc.className = "feature-card__desc";
+    desc.textContent = item.description || "";
+    body.append(head, desc);
+
+    if (item.commands?.length) {
+      const details = document.createElement("details");
+      details.className = "feature-card__commands";
+      const summary = document.createElement("summary");
+      summary.textContent = `包含 ${item.commands.length} 条指令`;
+      const list = document.createElement("p");
+      list.textContent = item.commands.join("、");
+      details.append(summary, list);
+      body.append(details);
+    }
+
+    card.append(input, body);
+    container.append(card);
+  });
+}
+
+function renderFeatures() {
+  renderFeatureGrid("feature-grid");
+  updateFeatureSummary();
+}
+
+function collectFeatureSelection() {
+  const selected = {};
+  document.querySelectorAll("#feature-grid input[data-feature]").forEach((input) => {
+    selected[input.dataset.feature] = input.checked;
+  });
+  return selected;
+}
+
+function applyFeaturePreset(checked) {
+  document.querySelectorAll("input[data-feature]").forEach((input) => {
+    input.checked = checked;
+    const card = input.closest(".feature-card");
+    if (card) card.classList.toggle("is-on", checked);
+  });
+  updateFeatureSummary();
+}
+
+async function loadFeatures() {
+  const data = await bridge.apiGet("features/status");
+  state.features = data.features || {};
+  state.feature_catalog = data.feature_catalog || [];
+  renderFeatures();
+}
+
+async function saveFeatures() {
+  const button = byId("feature-save");
+  if (button) button.disabled = true;
+  try {
+    await bridge.apiPost("features/save", { features: collectFeatureSelection() });
+    await loadFeatures();
+    showToast("功能开关已保存并生效");
+  } catch (error) {
+    showToast(error?.message || "保存失败", true);
+  } finally {
+    if (button) button.disabled = false;
+  }
 }
 
 async function loadData() {
@@ -1783,9 +1919,14 @@ byId("refresh").addEventListener("click", async (event) => {
   }
 });
 
+byId("feature-select-all").addEventListener("click", () => applyFeaturePreset(true));
+byId("feature-clear-all").addEventListener("click", () => applyFeaturePreset(false));
+byId("feature-save").addEventListener("click", saveFeatures);
+
 await bridge.ready();
 try {
   await loadData();
 } catch (error) {
   showToast(error?.message || "管理数据加载失败", true);
 }
+loadFeatures().catch((error) => showToast(error?.message || "功能开关加载失败", true));

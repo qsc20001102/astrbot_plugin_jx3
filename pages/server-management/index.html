@@ -45,6 +45,7 @@
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="teams">团队管理</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="cache">缓存管理</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="bilei-migration">避雷迁移</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-tab="features">功能开关</button>
       </nav>
 
       <section class="panel is-active" id="session-control-panel" role="tabpanel">
@@ -375,6 +376,24 @@
         </div>
       </section>
       <datalist id="kungfu-options"></datalist>
+
+      <section class="panel" id="features-panel" role="tabpanel" hidden>
+        <div class="section-intro section-intro--actions">
+          <div>
+            <h2>功能开关</h2>
+            <p>按分组启用或停用指令。关闭的分组不会注册指令：机器人不响应，也不消耗 JX3API 次数。保存后立即生效。</p>
+          </div>
+          <div class="feature-actions">
+            <button class="button button--secondary" id="feature-select-all" type="button">全部启用</button>
+            <button class="button button--secondary" id="feature-clear-all" type="button">全部停用</button>
+          </div>
+        </div>
+        <div class="feature-grid" id="feature-grid"></div>
+        <div class="feature-save-bar">
+          <button class="button button--primary" id="feature-save" type="button">保存功能开关</button>
+          <span id="feature-summary" aria-live="polite">已启用 0 / 0 个功能</span>
+        </div>
+      </section>
     </main>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
