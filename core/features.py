@@ -46,7 +46,7 @@ FEATURE_INFO: dict[str, dict[str, Any]] = {
     },
     "peizhuang": {
         "name": "配装查询",
-        "description": "从 JX3BOX 配装站查询心法推荐配装与关键词搜索。",
+        "description": "从 JX3BOX 配装站查询心法推荐配装。",
         "cost": "不消耗 JX3API 次数",
         "default": True,
     },
