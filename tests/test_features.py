@@ -78,6 +78,35 @@ class FeatureCatalogTest(unittest.TestCase):
                     f"分组 {key} 里的「{command}」并没有在 main.py 注册",
                 )
 
+    def test_groups_are_balanced(self):
+        for key in features.FEATURE_ORDER:
+            count = len(features.FEATURE_COMMANDS[key])
+            self.assertGreaterEqual(
+                count,
+                2,
+                f"分组 {key} 只有 {count} 条指令，卡片会显得过于零碎",
+            )
+            self.assertLessEqual(
+                count,
+                12,
+                f"分组 {key} 有 {count} 条指令，卡片会过高；请按官方子类拆分",
+            )
+
+    def test_sections_cover_every_group(self):
+        self.assertEqual(
+            set(features.FEATURE_SECTIONS),
+            set(features.FEATURE_SECTION_ORDER),
+        )
+        for key in features.FEATURE_ORDER:
+            self.assertIn(features.FEATURE_INFO[key]["section"], features.FEATURE_SECTIONS)
+        self.assertEqual(
+            {
+                features.FEATURE_INFO[key]["section"]
+                for key in features.FEATURE_ORDER
+            },
+            set(features.FEATURE_SECTION_ORDER),
+        )
+
     def test_schema_features_match_catalog(self):
         schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
         features_schema = schema["features"]
@@ -114,7 +143,10 @@ class FeatureCatalogTest(unittest.TestCase):
 
     def test_command_enabled_respects_toggles(self):
         enabled = features.resolve_enabled(
-            {"basic": {"奇遇": False}, "team": {"开团": False}}
+            {
+                "role_event": {"奇遇": False},
+                "local_team_signup": {"开团": False},
+            }
         )
         self.assertTrue(features.command_enabled("资历", enabled))
         self.assertTrue(features.command_enabled("绑定区服", enabled))
@@ -122,11 +154,19 @@ class FeatureCatalogTest(unittest.TestCase):
         self.assertFalse(features.command_enabled("开团", enabled))
 
     def test_describe_has_per_command_state(self):
-        resolved = features.resolve_enabled({"fun": {"818": False}})
-        fun = next(item for item in features.describe(resolved) if item["key"] == "fun")
-        self.assertEqual(fun["total_count"], len(features.FEATURE_COMMANDS["fun"]))
-        self.assertEqual(fun["enabled_count"], fun["total_count"] - 1)
-        eight = next(cmd for cmd in fun["commands"] if cmd["name"] == "818")
+        resolved = features.resolve_enabled({"community_tieba": {"818": False}})
+        tieba = next(
+            item
+            for item in features.describe(resolved)
+            if item["key"] == "community_tieba"
+        )
+        self.assertEqual(
+            tieba["total_count"],
+            len(features.FEATURE_COMMANDS["community_tieba"]),
+        )
+        self.assertEqual(tieba["enabled_count"], tieba["total_count"] - 1)
+        self.assertEqual(tieba["section_name"], "游戏社区")
+        eight = next(cmd for cmd in tieba["commands"] if cmd["name"] == "818")
         self.assertFalse(eight["enabled"])
 
 

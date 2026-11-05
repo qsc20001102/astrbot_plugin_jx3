@@ -381,14 +381,14 @@
         <div class="section-intro section-intro--actions">
           <div>
             <h2>功能开关</h2>
-            <p>按分组管理每条指令的开关。关掉的指令不会注册：机器人不响应，也不消耗 JX3API 次数；每组顶部可一键全选或全不选。保存后立即生效。</p>
+            <p>按 <a href="https://www.jx3api.com/" target="_blank" rel="noopener noreferrer">JX3API 官方接口目录</a> 的一级分类组织，并把过大的分类拆成多张卡片。大类、分组均可全选，每条指令仍可独立开关；关掉的指令不会注册，也不消耗 JX3API 次数。</p>
           </div>
           <div class="feature-actions">
             <button class="button button--secondary" id="feature-select-all" type="button">全部启用</button>
             <button class="button button--secondary" id="feature-clear-all" type="button">全部停用</button>
           </div>
         </div>
-        <div class="feature-grid" id="feature-grid"></div>
+        <div class="feature-sections" id="feature-grid"></div>
         <div class="feature-save-bar">
           <button class="button button--primary" id="feature-save" type="button">保存功能开关</button>
           <span id="feature-summary" aria-live="polite">已启用 0 / 0 条指令</span>

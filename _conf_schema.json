@@ -1,5 +1,5 @@
 {
-"prefix": {
+  "prefix": {
     "description": "指令前缀",
     "type": "object",
     "items": {
@@ -56,58 +56,157 @@
   "features": {
     "description": "功能开关",
     "type": "object",
-    "hint": "关闭某条指令后，该指令不再注册：机器人不会响应，也不会消耗 JX3API 次数。可在插件管理页「功能开关」标签页里按分组逐条开关。",
+    "hint": "按 JX3API 官方一级分类组织。关闭某条指令后，该指令不再注册：机器人不会响应，也不会消耗 JX3API 次数。可在插件管理页「功能开关」标签页里按官方大类、分组或逐条指令开关。",
     "items": {
-      "basic": {
-        "description": "基础查询",
+      "activity_calendar": {
+        "description": "活动情报 · 日历与首领",
         "type": "object",
-        "hint": "角色名片、属性装备、奇遇、成就、物价、沙盘、资讯等核心查询。",
+        "hint": "活动日历、地图活动、世界首领与阵营事件。 消耗 JX3API 次数。",
+        "items": {
+          "云从社": {
+            "type": "bool",
+            "default": true
+          },
+          "关隘": {
+            "type": "bool",
+            "default": true
+          },
+          "披风会": {
+            "type": "bool",
+            "default": true
+          },
+          "日常": {
+            "type": "bool",
+            "default": true
+          },
+          "日常预测": {
+            "type": "bool",
+            "default": true
+          },
+          "楚天社": {
+            "type": "bool",
+            "default": true
+          },
+          "穹野卫": {
+            "type": "bool",
+            "default": true
+          },
+          "阵营奉献": {
+            "type": "bool",
+            "default": true
+          }
+        }
+      },
+      "activity_field": {
+        "description": "活动情报 · 赤兔与马场",
+        "type": "object",
+        "hint": "赤兔记录、烟花事件与马场动态。 消耗 JX3API 次数。",
+        "items": {
+          "刷马": {
+            "type": "bool",
+            "default": true
+          },
+          "本周赤兔": {
+            "type": "bool",
+            "default": true
+          },
+          "烟花": {
+            "type": "bool",
+            "default": true
+          },
+          "赤兔": {
+            "type": "bool",
+            "default": true
+          },
+          "马场": {
+            "type": "bool",
+            "default": true
+          }
+        }
+      },
+      "ranking_arena": {
+        "description": "排行榜单 · 名剑相关",
+        "type": "object",
+        "hint": "名剑战绩、排行、统计与跨服榜单。 消耗 JX3API 次数。",
+        "items": {
+          "名剑排行": {
+            "type": "bool",
+            "default": true
+          },
+          "名剑统计": {
+            "type": "bool",
+            "default": true
+          },
+          "战绩": {
+            "type": "bool",
+            "default": true
+          },
+          "跨服名剑": {
+            "type": "bool",
+            "default": true
+          }
+        }
+      },
+      "ranking_general": {
+        "description": "排行榜单 · 综合榜单",
+        "type": "object",
+        "hint": "武林争霸、捕快、江湖浪客、决斗与帮会阵营榜单。 消耗 JX3API 次数。",
+        "items": {
+          "其他排行": {
+            "type": "bool",
+            "default": true
+          },
+          "决斗挑战": {
+            "type": "bool",
+            "default": true
+          },
+          "帮会排行": {
+            "type": "bool",
+            "default": true
+          },
+          "捕快荣誉": {
+            "type": "bool",
+            "default": true
+          },
+          "武林争霸": {
+            "type": "bool",
+            "default": true
+          },
+          "江湖浪客": {
+            "type": "bool",
+            "default": true
+          },
+          "阵营排行": {
+            "type": "bool",
+            "default": true
+          }
+        }
+      },
+      "ranking_history": {
+        "description": "排行榜单 · 试炼与资历",
+        "type": "object",
+        "hint": "试炼排行、资历分布与资历排行。 消耗 JX3API 次数。",
+        "items": {
+          "试炼排行": {
+            "type": "bool",
+            "default": true
+          },
+          "资历": {
+            "type": "bool",
+            "default": true
+          },
+          "资历排行": {
+            "type": "bool",
+            "default": true
+          }
+        }
+      },
+      "trade": {
+        "description": "物价交易 · 拍卖与行情",
+        "type": "object",
+        "hint": "阵营竞拍、的卢、金币、物品物价、成本与交易行。 含 JX3BOX 行情查询。",
         "items": {
           "交易行": {
-            "type": "bool",
-            "default": true
-          },
-          "全名片": {
-            "type": "bool",
-            "default": true
-          },
-          "区服": {
-            "type": "bool",
-            "default": true
-          },
-          "名片": {
-            "type": "bool",
-            "default": true
-          },
-          "器物": {
-            "type": "bool",
-            "default": true
-          },
-          "奇穴": {
-            "type": "bool",
-            "default": true
-          },
-          "奇遇": {
-            "type": "bool",
-            "default": true
-          },
-          "小药": {
-            "type": "bool",
-            "default": true
-          },
-          "属性": {
-            "type": "bool",
-            "default": true
-          },
-          "帮战": {
-            "type": "bool",
-            "default": true
-          },
-          "开服": {
-            "type": "bool",
-            "default": true
-          },
-          "成就": {
             "type": "bool",
             "default": true
           },
@@ -115,19 +214,99 @@
             "type": "bool",
             "default": true
           },
-          "技改": {
+          "物价": {
             "type": "bool",
             "default": true
           },
-          "技能": {
+          "的卢": {
+            "type": "bool",
+            "default": true
+          },
+          "看号": {
+            "type": "bool",
+            "default": true
+          },
+          "金价": {
+            "type": "bool",
+            "default": true
+          },
+          "阵营拍卖": {
+            "type": "bool",
+            "default": true
+          }
+        }
+      },
+      "battle": {
+        "description": "阵营战场 · 阵营战场",
+        "type": "object",
+        "hint": "帮战记录、阵营沙盘与诛恶事件。 消耗 JX3API 次数。",
+        "items": {
+          "帮战": {
+            "type": "bool",
+            "default": true
+          },
+          "沙盘": {
+            "type": "bool",
+            "default": true
+          },
+          "诛恶": {
+            "type": "bool",
+            "default": true
+          }
+        }
+      },
+      "role_profile": {
+        "description": "角色查询 · 角色资料",
+        "type": "object",
+        "hint": "角色详情、成就、属性面板与装备记录。 消耗 JX3API 次数。",
+        "items": {
+          "属性": {
+            "type": "bool",
+            "default": true
+          },
+          "成就": {
+            "type": "bool",
+            "default": true
+          },
+          "装备": {
+            "type": "bool",
+            "default": true
+          },
+          "角色": {
+            "type": "bool",
+            "default": true
+          }
+        }
+      },
+      "role_card": {
+        "description": "角色查询 · 角色名片",
+        "type": "object",
+        "hint": "当前名片、全部名片与随机名片。 消耗 JX3API 次数。",
+        "items": {
+          "全名片": {
+            "type": "bool",
+            "default": true
+          },
+          "名片": {
+            "type": "bool",
+            "default": true
+          },
+          "随机秀": {
+            "type": "bool",
+            "default": true
+          }
+        }
+      },
+      "role_event": {
+        "description": "角色查询 · 奇遇相关",
+        "type": "object",
+        "hint": "角色奇遇、未触发、汇总、近期、统计与攻略。 含 JX3BOX 攻略。",
+        "items": {
+          "奇遇": {
             "type": "bool",
             "default": true
           },
           "攻略": {
-            "type": "bool",
-            "default": true
-          },
-          "新闻": {
             "type": "bool",
             "default": true
           },
@@ -143,31 +322,95 @@
             "type": "bool",
             "default": true
           },
-          "沙盘": {
+          "统计": {
             "type": "bool",
             "default": true
           },
-          "物价": {
+          "近期": {
             "type": "bool",
             "default": true
-          },
+          }
+        }
+      },
+      "role_baizhan": {
+        "description": "角色查询 · 百战记录",
+        "type": "object",
+        "hint": "角色百战精耐与每周百战首领。 消耗 JX3API 次数。",
+        "items": {
           "百战": {
-            "type": "bool",
-            "default": true
-          },
-          "看号": {
             "type": "bool",
             "default": true
           },
           "精耐": {
             "type": "bool",
             "default": true
-          },
-          "统计": {
+          }
+        }
+      },
+      "role_kungfu": {
+        "description": "角色查询 · 心法配装",
+        "type": "object",
+        "hint": "阵眼、配装、技能、奇穴与宏。 含 JX3BOX 配装与宏。",
+        "items": {
+          "奇穴": {
             "type": "bool",
             "default": true
           },
-          "维护": {
+          "宏": {
+            "type": "bool",
+            "default": true
+          },
+          "技能": {
+            "type": "bool",
+            "default": true
+          },
+          "配装": {
+            "type": "bool",
+            "default": true
+          },
+          "阵眼": {
+            "type": "bool",
+            "default": true
+          }
+        }
+      },
+      "community_interaction": {
+        "description": "游戏社区 · 互动与防骗",
+        "type": "object",
+        "hint": "聊天记录、多玩语音、小吃小药与骗子查询。 消耗 JX3API 次数。",
+        "items": {
+          "发言": {
+            "type": "bool",
+            "default": true
+          },
+          "小药": {
+            "type": "bool",
+            "default": true
+          },
+          "统战": {
+            "type": "bool",
+            "default": true
+          },
+          "骗子": {
+            "type": "bool",
+            "default": true
+          }
+        }
+      },
+      "community_home": {
+        "description": "游戏社区 · 家园与师徒",
+        "type": "object",
+        "hint": "家园鲜花、装饰、器物，以及拜师和收徒。 消耗 JX3API 次数。",
+        "items": {
+          "器物": {
+            "type": "bool",
+            "default": true
+          },
+          "拜师": {
+            "type": "bool",
+            "default": true
+          },
+          "收徒": {
             "type": "bool",
             "default": true
           },
@@ -175,68 +418,44 @@
             "type": "bool",
             "default": true
           },
-          "装备": {
-            "type": "bool",
-            "default": true
-          },
           "装饰": {
             "type": "bool",
             "default": true
-          },
-          "角色": {
+          }
+        }
+      },
+      "community_news": {
+        "description": "游戏社区 · 资讯与招募",
+        "type": "object",
+        "hint": "维护、新闻，以及团队招募、团长和团牌。 消耗 JX3API 次数。",
+        "items": {
+          "团牌": {
             "type": "bool",
             "default": true
           },
-          "贴吧物价": {
+          "团长": {
             "type": "bool",
             "default": true
           },
-          "资历": {
+          "招募": {
             "type": "bool",
             "default": true
           },
-          "近期": {
+          "新闻": {
             "type": "bool",
             "default": true
           },
-          "金价": {
-            "type": "bool",
-            "default": true
-          },
-          "阵眼": {
-            "type": "bool",
-            "default": true
-          },
-          "阵营拍卖": {
-            "type": "bool",
-            "default": true
-          },
-          "随机秀": {
+          "维护": {
             "type": "bool",
             "default": true
           }
         }
       },
-      "peizhuang": {
-        "description": "配装查询",
+      "community_saohua": {
+        "description": "游戏社区 · 骚话语录",
         "type": "object",
-        "hint": "从 JX3BOX 配装站查询心法推荐配装。",
+        "hint": "答案之书、语录、吃喝选择与随机骚话。 消耗 JX3API 次数。",
         "items": {
-          "配装": {
-            "type": "bool",
-            "default": true
-          }
-        }
-      },
-      "fun": {
-        "description": "趣味互动",
-        "type": "object",
-        "hint": "答案之书、毒鸡汤、疯狂星期四、骚话等本地娱乐指令。",
-        "items": {
-          "818": {
-            "type": "bool",
-            "default": true
-          },
           "吃什么": {
             "type": "bool",
             "default": true
@@ -279,201 +498,69 @@
           }
         }
       },
-      "daily": {
-        "description": "日常与活动",
+      "community_tieba": {
+        "description": "游戏社区 · 百度贴吧",
         "type": "object",
-        "hint": "日常任务、赤兔、关隘、阵营奉献、烟花、科举等周期性活动查询。",
+        "hint": "贴吧物价与 818 随机内容。 消耗 JX3API 次数。",
         "items": {
-          "云从社": {
+          "818": {
             "type": "bool",
             "default": true
           },
-          "关隘": {
+          "贴吧物价": {
+            "type": "bool",
+            "default": true
+          }
+        }
+      },
+      "tools": {
+        "description": "系统工具 · 系统工具",
+        "type": "object",
+        "hint": "科举答案、大区状态、开服状态与技改记录。 消耗 JX3API 次数。",
+        "items": {
+          "区服": {
             "type": "bool",
             "default": true
           },
-          "刷马": {
+          "开服": {
             "type": "bool",
             "default": true
           },
-          "披风会": {
-            "type": "bool",
-            "default": true
-          },
-          "日常": {
-            "type": "bool",
-            "default": true
-          },
-          "日常预测": {
-            "type": "bool",
-            "default": true
-          },
-          "本周赤兔": {
-            "type": "bool",
-            "default": true
-          },
-          "楚天社": {
-            "type": "bool",
-            "default": true
-          },
-          "烟花": {
-            "type": "bool",
-            "default": true
-          },
-          "的卢": {
+          "技改": {
             "type": "bool",
             "default": true
           },
           "科举": {
             "type": "bool",
             "default": true
-          },
-          "穹野卫": {
-            "type": "bool",
-            "default": true
-          },
-          "诛恶": {
-            "type": "bool",
-            "default": true
-          },
-          "赤兔": {
-            "type": "bool",
-            "default": true
-          },
-          "阵营奉献": {
-            "type": "bool",
-            "default": true
-          },
-          "马场": {
-            "type": "bool",
-            "default": true
           }
         }
       },
-      "rank": {
-        "description": "排行榜",
+      "dungeon": {
+        "description": "副本秘境 · 副本秘境",
         "type": "object",
-        "hint": "名剑、帮会、阵营、试炼、资历等各类排行榜。",
+        "hint": "秘境方位解密与物品掉落统计。 消耗 JX3API 次数。",
         "items": {
-          "其他排行": {
-            "type": "bool",
-            "default": true
-          },
-          "决斗挑战": {
-            "type": "bool",
-            "default": true
-          },
-          "名剑排行": {
-            "type": "bool",
-            "default": true
-          },
-          "名剑统计": {
-            "type": "bool",
-            "default": true
-          },
-          "帮会排行": {
-            "type": "bool",
-            "default": true
-          },
-          "战绩": {
-            "type": "bool",
-            "default": true
-          },
-          "捕快荣誉": {
-            "type": "bool",
-            "default": true
-          },
-          "武林争霸": {
-            "type": "bool",
-            "default": true
-          },
-          "江湖浪客": {
-            "type": "bool",
-            "default": true
-          },
-          "试炼排行": {
-            "type": "bool",
-            "default": true
-          },
-          "资历排行": {
-            "type": "bool",
-            "default": true
-          },
-          "跨服名剑": {
-            "type": "bool",
-            "default": true
-          },
-          "阵营排行": {
-            "type": "bool",
-            "default": true
-          }
-        }
-      },
-      "misc": {
-        "description": "其它查询",
-        "type": "object",
-        "hint": "招募、骗子、掉落、宏、统战、拜师收徒等零散查询。",
-        "items": {
-          "发言": {
-            "type": "bool",
-            "default": true
-          },
-          "团牌": {
-            "type": "bool",
-            "default": true
-          },
-          "团长": {
-            "type": "bool",
-            "default": true
-          },
-          "宏": {
-            "type": "bool",
-            "default": true
-          },
-          "招募": {
-            "type": "bool",
-            "default": true
-          },
-          "拜师": {
-            "type": "bool",
-            "default": true
-          },
           "掉落": {
-            "type": "bool",
-            "default": true
-          },
-          "收徒": {
-            "type": "bool",
-            "default": true
-          },
-          "统战": {
             "type": "bool",
             "default": true
           },
           "解密": {
             "type": "bool",
             "default": true
-          },
-          "骗子": {
-            "type": "bool",
-            "default": true
           }
         }
       },
-      "team": {
-        "description": "团队管理",
+      "local_team_signup": {
+        "description": "本地增强 · 团队报名",
         "type": "object",
-        "hint": "开团、报名、黑本、报名限制等按会话隔离的团队功能。",
+        "hint": "开团、报名、成员调整与团队黑本。 不消耗 JX3API 次数。",
         "items": {
           "交换位置": {
             "type": "bool",
             "default": true
           },
           "修改报名": {
-            "type": "bool",
-            "default": true
-          },
-          "修改限制": {
             "type": "bool",
             "default": true
           },
@@ -485,23 +572,11 @@
             "type": "bool",
             "default": true
           },
-          "删除限制": {
-            "type": "bool",
-            "default": true
-          },
           "取消报名": {
             "type": "bool",
             "default": true
           },
-          "团队黑本": {
-            "type": "bool",
-            "default": true
-          },
           "开团": {
-            "type": "bool",
-            "default": true
-          },
-          "恢复默认限制": {
             "type": "bool",
             "default": true
           },
@@ -514,6 +589,29 @@
             "default": true
           },
           "查看团队": {
+            "type": "bool",
+            "default": true
+          }
+        }
+      },
+      "local_team_rules": {
+        "description": "本地增强 · 团队规则",
+        "type": "object",
+        "hint": "团队收尾、团队黑本、清空报名以及报名限制规则。 不消耗 JX3API 次数。",
+        "items": {
+          "修改限制": {
+            "type": "bool",
+            "default": true
+          },
+          "删除限制": {
+            "type": "bool",
+            "default": true
+          },
+          "团队黑本": {
+            "type": "bool",
+            "default": true
+          },
+          "恢复默认限制": {
             "type": "bool",
             "default": true
           },
@@ -539,11 +637,15 @@
           }
         }
       },
-      "bilei": {
-        "description": "避雷记录",
+      "local_assist": {
+        "description": "本地增强 · 避雷与推送",
         "type": "object",
-        "hint": "按会话隔离的避雷名单增删改查。",
+        "hint": "按会话隔离的避雷名单，以及实时事件推送配置。 避雷本地运行；推送需令牌。",
         "items": {
+          "事件推送": {
+            "type": "bool",
+            "default": true
+          },
           "避雷修改": {
             "type": "bool",
             "default": true
@@ -561,17 +663,6 @@
             "default": true
           },
           "避雷添加": {
-            "type": "bool",
-            "default": true
-          }
-        }
-      },
-      "event_push": {
-        "description": "实时事件推送",
-        "type": "object",
-        "hint": "通过事件通道推送奇遇、马驹、沙盘等实时事件。",
-        "items": {
-          "事件推送": {
             "type": "bool",
             "default": true
           }
