@@ -1,8 +1,8 @@
-"""功能开关目录：定义可启用的功能分组，以及每个指令的归属。
+"""功能开关目录：定义可启用的功能分组、每个指令的归属，以及逐条指令开关。
 
 这份目录同时服务三处：
 
-1. ``main.py`` 的 ``ini_command_map``：按开关决定注册哪些指令；
+1. ``main.py`` 的 ``ini_command_map``：按逐条指令开关决定注册哪些指令；
 2. ``core/webui.py``：把目录与当前开关状态提供给管理页的「功能开关」页；
 3. ``tests/test_features.py``：校验每个指令都有归属、分组之间不重叠。
 
@@ -241,22 +241,31 @@ FEATURE_COMMANDS: dict[str, frozenset[str]] = {
 }
 
 
-def feature_defaults() -> dict[str, bool]:
-    """返回每个分组的默认开关状态。"""
-    return {key: bool(FEATURE_INFO[key]["default"]) for key in FEATURE_ORDER}
+def command_defaults() -> dict[str, bool]:
+    """返回每条指令的默认开关状态（全部开启）。"""
+    return {
+        command: True
+        for key in FEATURE_ORDER
+        for command in FEATURE_COMMANDS[key]
+    }
 
 
 def resolve_enabled(config: Mapping[str, Any] | None) -> dict[str, bool]:
-    """把用户配置归一成完整的分组开关状态。
+    """把用户配置归一成「指令名 -> 是否启用」的完整状态。
 
-    缺失或非布尔的分组回退到默认值，保证升级旧配置后行为稳定。
+    配置格式为 ``{分组: {指令名: bool}}``；缺失或非布尔的分组 / 指令
+    回退到默认开启，保证升级旧配置后行为稳定。
     """
-    resolved = feature_defaults()
+    resolved = command_defaults()
     if isinstance(config, Mapping):
         for key in FEATURE_ORDER:
-            value = config.get(key)
-            if isinstance(value, bool):
-                resolved[key] = value
+            group = config.get(key)
+            if not isinstance(group, Mapping):
+                continue
+            for command in FEATURE_COMMANDS[key]:
+                value = group.get(command)
+                if isinstance(value, bool):
+                    resolved[command] = value
     return resolved
 
 
@@ -272,21 +281,28 @@ def command_enabled(command: str, enabled: Mapping[str, bool]) -> bool:
     """判断某条指令在当前开关下是否应注册。"""
     if command in ALWAYS_ON_COMMANDS:
         return True
-    key = command_feature(command)
-    if key is None:
+    if command_feature(command) is None:
         # 未归类的指令按始终启用处理，避免误伤；test_features 会提醒补录。
         return True
-    return bool(enabled.get(key, FEATURE_INFO[key]["default"]))
+    return bool(enabled.get(command, True))
 
 
 def describe(enabled: Mapping[str, bool] | None = None) -> list[dict[str, Any]]:
-    """输出供管理页渲染的分组列表（含指令明细）。"""
-    resolved = feature_defaults()
+    """输出供管理页渲染的分组列表（含每条指令的开关状态）。"""
+    resolved = command_defaults()
     if isinstance(enabled, Mapping):
-        resolved.update({key: bool(enabled.get(key, resolved[key])) for key in FEATURE_ORDER})
+        for command in resolved:
+            value = enabled.get(command)
+            if isinstance(value, bool):
+                resolved[command] = value
     items: list[dict[str, Any]] = []
     for key in FEATURE_ORDER:
         info = FEATURE_INFO[key]
+        commands = [
+            {"name": command, "enabled": bool(resolved.get(command, True))}
+            for command in sorted(FEATURE_COMMANDS[key])
+        ]
+        enabled_count = sum(1 for item in commands if item["enabled"])
         items.append(
             {
                 "key": key,
@@ -294,8 +310,9 @@ def describe(enabled: Mapping[str, bool] | None = None) -> list[dict[str, Any]]:
                 "description": info["description"],
                 "cost": info["cost"],
                 "default": bool(info["default"]),
-                "enabled": bool(resolved[key]),
-                "commands": sorted(FEATURE_COMMANDS[key]),
+                "commands": commands,
+                "enabled_count": enabled_count,
+                "total_count": len(commands),
             }
         )
     return items

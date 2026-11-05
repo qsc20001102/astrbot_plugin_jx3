@@ -87,27 +87,47 @@ class FeatureCatalogTest(unittest.TestCase):
             set(features.FEATURE_ORDER),
             "schema 的 features 分组与 core/features.py 不一致",
         )
-        for key, item in features_schema["items"].items():
-            self.assertEqual(item["type"], "bool")
+        for key, group in features_schema["items"].items():
+            self.assertEqual(group["type"], "object")
             self.assertEqual(
-                bool(item["default"]),
-                bool(features.FEATURE_INFO[key]["default"]),
-                f"分组 {key} 的默认值与目录不一致",
+                set(group["items"]),
+                set(features.FEATURE_COMMANDS[key]),
+                f"分组 {key} 的指令与 core/features.py 不一致",
             )
+            for command, item in group["items"].items():
+                self.assertEqual(item["type"], "bool")
+                self.assertTrue(
+                    bool(item["default"]),
+                    f"分组 {key} 的「{command}」默认值应为开启",
+                )
 
     def test_resolve_enabled_falls_back_to_defaults(self):
         resolved = features.resolve_enabled(None)
-        self.assertEqual(resolved, features.feature_defaults())
-        partial = features.resolve_enabled({"team": True, "basic": "bad"})
-        self.assertTrue(partial["team"])
-        # 非法类型回退默认值（basic 默认开启）。
-        self.assertTrue(partial["basic"])
+        self.assertEqual(resolved, features.command_defaults())
+        partial = features.resolve_enabled(
+            {"team": {"开团": False, "报名": "bad"}, "basic": "bad"}
+        )
+        self.assertFalse(partial["开团"])
+        # 非法类型回退默认开启（报名 / basic 里的指令默认开启）。
+        self.assertTrue(partial["报名"])
+        self.assertTrue(partial["资历"])
 
     def test_command_enabled_respects_toggles(self):
-        enabled = features.resolve_enabled({"team": False, "basic": True})
-        self.assertTrue(features.command_enabled("信息", enabled))
+        enabled = features.resolve_enabled(
+            {"basic": {"奇遇": False}, "team": {"开团": False}}
+        )
+        self.assertTrue(features.command_enabled("资历", enabled))
         self.assertTrue(features.command_enabled("绑定区服", enabled))
+        self.assertFalse(features.command_enabled("奇遇", enabled))
         self.assertFalse(features.command_enabled("开团", enabled))
+
+    def test_describe_has_per_command_state(self):
+        resolved = features.resolve_enabled({"fun": {"818": False}})
+        fun = next(item for item in features.describe(resolved) if item["key"] == "fun")
+        self.assertEqual(fun["total_count"], len(features.FEATURE_COMMANDS["fun"]))
+        self.assertEqual(fun["enabled_count"], fun["total_count"] - 1)
+        eight = next(cmd for cmd in fun["commands"] if cmd["name"] == "818")
+        self.assertFalse(eight["enabled"])
 
 
 if __name__ == "__main__":

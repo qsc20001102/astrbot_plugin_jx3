@@ -1450,25 +1450,36 @@ function featureCatalog() {
   return state.feature_catalog || [];
 }
 
-function featureEnabled(key) {
-  const value = state.features?.[key];
-  return value === undefined ? true : Boolean(value);
+function commandInputs(groupKey) {
+  return [...document.querySelectorAll(`#feature-grid input[data-group="${groupKey}"]`)];
+}
+
+function updateGroupMaster(groupKey) {
+  const inputs = commandInputs(groupKey);
+  const on = inputs.filter((input) => input.checked).length;
+  const master = document.querySelector(`#feature-grid input[data-master="${groupKey}"]`);
+  if (master) {
+    master.checked = on === inputs.length && inputs.length > 0;
+    master.indeterminate = on > 0 && on < inputs.length;
+  }
+  const count = document.querySelector(`#feature-grid [data-count="${groupKey}"]`);
+  if (count) count.textContent = `${on} / ${inputs.length}`;
+  const card = document.querySelector(`#feature-grid .feature-card[data-group="${groupKey}"]`);
+  if (card) card.classList.toggle("is-on", on === inputs.length && inputs.length > 0);
 }
 
 function updateFeatureSummary() {
   const summary = byId("feature-summary");
   if (!summary) return;
-  const inputs = document.querySelectorAll("#feature-grid input[data-feature]");
+  const inputs = document.querySelectorAll("#feature-grid input[data-group]");
   const on = [...inputs].filter((input) => input.checked).length;
-  summary.textContent = `已启用 ${on} / ${inputs.length} 个功能`;
+  summary.textContent = `已启用 ${on} / ${inputs.length} 条指令`;
 }
 
-function syncFeatureInputs(key, checked) {
-  document.querySelectorAll(`input[data-feature="${key}"]`).forEach((input) => {
-    input.checked = checked;
-    const card = input.closest(".feature-card");
-    if (card) card.classList.toggle("is-on", checked);
-  });
+function syncGroup(groupKey, checked) {
+  commandInputs(groupKey).forEach((input) => { input.checked = checked; });
+  updateGroupMaster(groupKey);
+  updateFeatureSummary();
 }
 
 function renderFeatureGrid(containerId) {
@@ -1483,53 +1494,69 @@ function renderFeatureGrid(containerId) {
     container.append(empty);
     return;
   }
-  catalog.forEach((item) => {
-    const checked = featureEnabled(item.key);
-    const card = document.createElement("label");
+
+  catalog.forEach((group) => {
+    const card = document.createElement("div");
     card.className = "feature-card";
-    card.classList.toggle("is-on", checked);
+    card.dataset.group = group.key;
 
-    const input = document.createElement("input");
-    input.type = "checkbox";
-    input.dataset.feature = item.key;
-    input.checked = checked;
-    input.addEventListener("change", () => {
-      syncFeatureInputs(item.key, input.checked);
-      updateFeatureSummary();
-    });
-
-    const body = document.createElement("div");
-    body.className = "feature-card__body";
+    const masterLabel = document.createElement("label");
+    masterLabel.className = "feature-card__master";
+    const master = document.createElement("input");
+    master.type = "checkbox";
+    master.dataset.master = group.key;
+    master.checked = group.enabled_count === group.total_count;
+    master.indeterminate = group.enabled_count > 0 && group.enabled_count < group.total_count;
+    master.addEventListener("change", () => syncGroup(group.key, master.checked));
+    masterLabel.append(master, document.createTextNode(" 全选"));
 
     const head = document.createElement("div");
     head.className = "feature-card__head";
     const title = document.createElement("strong");
-    title.textContent = item.name;
+    title.textContent = group.name;
     head.append(title);
-    if (item.cost) {
+    if (group.cost) {
       const cost = document.createElement("span");
       cost.className = "feature-card__cost";
-      cost.textContent = item.cost;
+      cost.textContent = group.cost;
       head.append(cost);
     }
+    const count = document.createElement("span");
+    count.className = "feature-card__count";
+    count.dataset.count = group.key;
+    count.textContent = `${group.enabled_count} / ${group.total_count}`;
+    head.append(count);
 
     const desc = document.createElement("p");
     desc.className = "feature-card__desc";
-    desc.textContent = item.description || "";
-    body.append(head, desc);
+    desc.textContent = group.description || "";
 
-    if (item.commands?.length) {
-      const details = document.createElement("details");
-      details.className = "feature-card__commands";
-      const summary = document.createElement("summary");
-      summary.textContent = `包含 ${item.commands.length} 条指令`;
-      const list = document.createElement("p");
-      list.textContent = item.commands.join("、");
-      details.append(summary, list);
-      body.append(details);
-    }
+    const commands = document.createElement("div");
+    commands.className = "feature-card__commands";
+    group.commands.forEach((command) => {
+      const row = document.createElement("label");
+      row.className = "feature-command";
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.dataset.group = group.key;
+      input.dataset.command = command.name;
+      input.checked = command.enabled;
+      input.addEventListener("change", () => {
+        updateGroupMaster(group.key);
+        updateFeatureSummary();
+      });
+      const name = document.createElement("span");
+      name.textContent = command.name;
+      row.append(input, name);
+      commands.append(row);
+    });
 
-    card.append(input, body);
+    const body = document.createElement("div");
+    body.className = "feature-card__body";
+    body.append(head, desc, commands);
+
+    card.append(masterLabel, body);
+    card.classList.toggle("is-on", group.enabled_count === group.total_count && group.total_count > 0);
     container.append(card);
   });
 }
@@ -1541,16 +1568,26 @@ function renderFeatures() {
 
 function collectFeatureSelection() {
   const selected = {};
-  document.querySelectorAll("#feature-grid input[data-feature]").forEach((input) => {
-    selected[input.dataset.feature] = input.checked;
+  document.querySelectorAll("#feature-grid input[data-group]").forEach((input) => {
+    const group = input.dataset.group;
+    if (!selected[group]) selected[group] = {};
+    selected[group][input.dataset.command] = input.checked;
   });
   return selected;
 }
 
 function applyFeaturePreset(checked) {
-  document.querySelectorAll("input[data-feature]").forEach((input) => {
+  document.querySelectorAll("#feature-grid input[data-group]").forEach((input) => {
     input.checked = checked;
-    const card = input.closest(".feature-card");
+  });
+  document.querySelectorAll("#feature-grid input[data-master]").forEach((master) => {
+    master.checked = checked;
+    master.indeterminate = false;
+  });
+  featureCatalog().forEach((group) => {
+    const count = document.querySelector(`#feature-grid [data-count="${group.key}"]`);
+    if (count) count.textContent = checked ? `${group.total_count} / ${group.total_count}` : `0 / ${group.total_count}`;
+    const card = document.querySelector(`#feature-grid .feature-card[data-group="${group.key}"]`);
     if (card) card.classList.toggle("is-on", checked);
   });
   updateFeatureSummary();

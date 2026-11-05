@@ -244,9 +244,15 @@ class WebUIService:
         if isinstance(raw_features, dict):
             current = dict(conf.get("features") or {})
             for key in features.FEATURE_ORDER:
-                value = raw_features.get(key)
-                if isinstance(value, bool):
-                    current[key] = value
+                group = raw_features.get(key)
+                if not isinstance(group, dict):
+                    continue
+                group_current = dict(current.get(key) or {})
+                for command in features.FEATURE_COMMANDS[key]:
+                    value = group.get(command)
+                    if isinstance(value, bool):
+                        group_current[command] = value
+                current[key] = group_current
             conf["features"] = current
 
         await conf.save_config_async()
