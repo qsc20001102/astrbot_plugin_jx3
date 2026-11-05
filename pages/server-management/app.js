@@ -1631,14 +1631,16 @@ function renderFeatureGrid(containerId) {
 
     const header = document.createElement("div");
     header.className = "feature-section__header";
-    const heading = document.createElement("div");
+    const heading = document.createElement("button");
+    heading.type = "button";
     heading.className = "feature-section__heading";
     const eyebrow = document.createElement("span");
     eyebrow.className = "feature-section__eyebrow";
     eyebrow.textContent = section.key === "local" ? "插件增强" : "JX3API 分类";
     const title = document.createElement("strong");
     title.textContent = section.name;
-    const desc = document.createElement("p");
+    const desc = document.createElement("span");
+    desc.className = "feature-section__desc";
     desc.textContent = section.description || "";
     heading.append(eyebrow, title, desc);
 
@@ -1665,29 +1667,28 @@ function renderFeatureGrid(containerId) {
     grid.hidden = collapsed;
     grid.append(...section.groups.map(createFeatureCard));
 
-    const toggle = document.createElement("button");
-    toggle.type = "button";
-    toggle.className = "feature-section__toggle";
-    toggle.dataset.sectionToggle = section.key;
-    toggle.setAttribute("aria-controls", grid.id);
-    toggle.setAttribute("aria-expanded", String(!collapsed));
-    toggle.textContent = collapsed ? "展开" : "收起";
-    toggle.addEventListener("click", () => {
+    heading.dataset.sectionToggle = section.key;
+    heading.setAttribute("aria-controls", grid.id);
+    heading.setAttribute("aria-expanded", String(!collapsed));
+    heading.setAttribute("aria-label", `${collapsed ? "展开" : "收起"}${section.name}`);
+    heading.title = collapsed ? "点击展开" : "点击收起";
+    heading.addEventListener("click", () => {
       const nextCollapsed = !sectionNode.classList.contains("is-collapsed");
       sectionNode.classList.toggle("is-collapsed", nextCollapsed);
       grid.hidden = nextCollapsed;
-      toggle.textContent = nextCollapsed ? "展开" : "收起";
-      toggle.setAttribute("aria-expanded", String(!nextCollapsed));
+      heading.setAttribute("aria-expanded", String(!nextCollapsed));
+      heading.setAttribute("aria-label", `${nextCollapsed ? "展开" : "收起"}${section.name}`);
+      heading.title = nextCollapsed ? "点击展开" : "点击收起";
       const current = readCollapsedFeatureSections();
       if (nextCollapsed) current.add(section.key);
       else current.delete(section.key);
       saveCollapsedFeatureSections(current);
     });
-
-    const actions = document.createElement("div");
-    actions.className = "feature-section__actions";
-    actions.append(masterLabel, toggle);
-    header.append(heading, actions);
+    header.addEventListener("click", (event) => {
+      if (event.target.closest("label, input, button, a")) return;
+      heading.click();
+    });
+    header.append(heading, masterLabel);
     sectionNode.append(header, grid);
     sectionNode.classList.toggle("is-on", enabled === total && total > 0);
     sectionNode.classList.toggle("is-collapsed", collapsed);
