@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from astrbot.api.star import Context
 from astrbot.api.web import error_response, json_response, request
 
+from . import features
 from .event_push import EVENT_NAMES, FREE_EVENT_ACTIONS
 from .team import TeamNotFoundError
 
@@ -37,6 +38,7 @@ class WebUIService:
         team: TeamService,
         team_rules: TeamRuleService,
         team_kungfu_icons: dict[str, str],
+        plugin: Any = None,
     ):
         self.jx3api = jx3api
         self.event_push = event_push
@@ -48,10 +50,13 @@ class WebUIService:
         self.team = team
         self.team_rules = team_rules
         self.team_kungfu_icons = team_kungfu_icons
+        self.plugin = plugin
 
     def register(self, context: Context, plugin_name: str):
         routes = (
             ("dashboard", self.dashboard, ["GET"], "读取会话管理数据"),
+            ("features/status", self.get_feature_status, ["GET"], "读取功能开关状态"),
+            ("features/save", self.save_features, ["POST"], "保存功能开关"),
             (
                 "subscriptions/save",
                 self.save_subscription,
@@ -207,6 +212,53 @@ class WebUIService:
                 "team_rule_sessions": team_rule_sessions,
             }
         )
+
+    def _plugin_conf(self):
+        if self.plugin is None or not hasattr(self.plugin, "conf"):
+            raise ValueError("插件尚未初始化完成，请稍后重试")
+        return self.plugin.conf
+
+    async def get_feature_status(self):
+        """返回功能开关的目录与当前生效状态。"""
+        try:
+            conf = self._plugin_conf()
+        except ValueError as exc:
+            return error_response(str(exc), status_code=503)
+        enabled = features.resolve_enabled(conf.get("features"))
+        return json_response(
+            {
+                "features": enabled,
+                "feature_catalog": features.describe(enabled),
+            }
+        )
+
+    async def save_features(self):
+        """保存功能开关并立即生效。"""
+        try:
+            payload = await self._json_payload()
+            conf = self._plugin_conf()
+        except ValueError as exc:
+            return error_response(str(exc), status_code=400)
+
+        raw_features = payload.get("features")
+        if isinstance(raw_features, dict):
+            current = dict(conf.get("features") or {})
+            for key in features.FEATURE_ORDER:
+                group = raw_features.get(key)
+                if not isinstance(group, dict):
+                    continue
+                group_current = dict(current.get(key) or {})
+                for command in features.FEATURE_COMMANDS[key]:
+                    value = group.get(command)
+                    if isinstance(value, bool):
+                        group_current[command] = value
+                current[key] = group_current
+            conf["features"] = current
+
+        await conf.save_config_async()
+        self.plugin.apply_feature_settings()
+        enabled = features.resolve_enabled(conf.get("features"))
+        return json_response({"saved": True, "features": enabled})
 
     async def save_subscription(self):
         try:

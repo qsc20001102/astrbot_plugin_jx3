@@ -11,6 +11,7 @@ tests/*
 !tests/test_attribute.py
 !tests/test_chitu.py
 !tests/test_equipment.py
+!tests/test_features.py
 .pytest_cache/
 .coverage
 .coverage.*

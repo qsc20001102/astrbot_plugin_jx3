@@ -38,6 +38,7 @@
 
       <nav class="tabs" aria-label="管理分类" role="tablist">
         <button class="tab is-active" type="button" role="tab" aria-selected="true" data-tab="session-control">会话控制</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-tab="features">功能开关</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="subscriptions">事件推送</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="bindings">区服绑定</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="aliases">区服别名</button>
@@ -375,6 +376,24 @@
         </div>
       </section>
       <datalist id="kungfu-options"></datalist>
+
+      <section class="panel" id="features-panel" role="tabpanel" hidden>
+        <div class="section-intro section-intro--actions">
+          <div>
+            <h2>功能开关</h2>
+            <p>按 <a href="https://www.jx3api.com/" target="_blank" rel="noopener noreferrer">JX3API 官方接口目录</a> 的一级分类组织，并把过大的分类拆成多张卡片。点击大类卡片即可收起或展开，大类、分组均可全选，每条指令仍可独立开关；关掉的指令不会注册，也不消耗 JX3API 次数。</p>
+          </div>
+          <div class="feature-actions">
+            <button class="button button--secondary" id="feature-select-all" type="button">全部启用</button>
+            <button class="button button--secondary" id="feature-clear-all" type="button">全部停用</button>
+          </div>
+        </div>
+        <div class="feature-sections" id="feature-grid"></div>
+        <div class="feature-save-bar">
+          <button class="button button--primary" id="feature-save" type="button">保存功能开关</button>
+          <span id="feature-summary" aria-live="polite">已启用 0 / 0 条指令</span>
+        </div>
+      </section>
     </main>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>

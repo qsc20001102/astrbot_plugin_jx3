@@ -9,6 +9,8 @@ const state = {
   free_event_actions: [],
   session_control: { mode: "all", entries: [] },
   legacy_bilei: [],
+  features: {},
+  feature_catalog: [],
   teams: [],
   team_kungfu_icons: {},
   team_rule_sessions: [],
@@ -1434,11 +1436,311 @@ function render() {
   renderSubscriptions();
   renderAliases();
   renderKungfu();
+  renderFeatures();
   renderCache();
   renderTeamRuleScopeOptions();
   renderTeamRuleTargets(byId("team-rule-target").value);
   renderTeamRuleConfig();
   renderTeams();
+}
+
+/* ----- 功能开关 ----- */
+
+function featureCatalog() {
+  return state.feature_catalog || [];
+}
+
+const FEATURE_COLLAPSED_KEY = "jx3.feature-sections-collapsed.v1";
+
+function readCollapsedFeatureSections() {
+  try {
+    const value = JSON.parse(localStorage.getItem(FEATURE_COLLAPSED_KEY) || "[]");
+    return new Set(Array.isArray(value) ? value.filter((key) => typeof key === "string") : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveCollapsedFeatureSections(sections) {
+  try {
+    localStorage.setItem(FEATURE_COLLAPSED_KEY, JSON.stringify([...sections]));
+  } catch {
+    // 页面仍可正常收起；浏览器禁用存储时只是不跨刷新记忆。
+  }
+}
+
+function commandInputs(groupKey) {
+  return [...document.querySelectorAll(`#feature-grid input[data-group="${groupKey}"]`)];
+}
+
+function sectionInputs(sectionKey) {
+  return [...document.querySelectorAll(`#feature-grid input[data-section="${sectionKey}"]`)];
+}
+
+function updateGroupMaster(groupKey) {
+  const inputs = commandInputs(groupKey);
+  const on = inputs.filter((input) => input.checked).length;
+  const master = document.querySelector(`#feature-grid input[data-master="${groupKey}"]`);
+  if (master) {
+    master.checked = on === inputs.length && inputs.length > 0;
+    master.indeterminate = on > 0 && on < inputs.length;
+  }
+  const count = document.querySelector(`#feature-grid [data-count="${groupKey}"]`);
+  if (count) count.textContent = `${on} / ${inputs.length}`;
+  const card = document.querySelector(`#feature-grid .feature-card[data-group="${groupKey}"]`);
+  if (card) card.classList.toggle("is-on", on === inputs.length && inputs.length > 0);
+}
+
+function updateSectionMaster(sectionKey) {
+  const inputs = sectionInputs(sectionKey);
+  const on = inputs.filter((input) => input.checked).length;
+  const master = document.querySelector(`#feature-grid input[data-section-master="${sectionKey}"]`);
+  if (master) {
+    master.checked = on === inputs.length && inputs.length > 0;
+    master.indeterminate = on > 0 && on < inputs.length;
+  }
+  const count = document.querySelector(`#feature-grid [data-section-count="${sectionKey}"]`);
+  if (count) count.textContent = `${on} / ${inputs.length}`;
+  const section = document.querySelector(`#feature-grid .feature-section[data-section="${sectionKey}"]`);
+  if (section) section.classList.toggle("is-on", on === inputs.length && inputs.length > 0);
+}
+
+function updateFeatureSummary() {
+  const summary = byId("feature-summary");
+  if (!summary) return;
+  const inputs = document.querySelectorAll("#feature-grid input[data-group]");
+  const on = [...inputs].filter((input) => input.checked).length;
+  summary.textContent = `已启用 ${on} / ${inputs.length} 条指令`;
+}
+
+function syncGroup(groupKey, checked) {
+  commandInputs(groupKey).forEach((input) => { input.checked = checked; });
+  const group = featureCatalog().find((item) => item.key === groupKey);
+  updateGroupMaster(groupKey);
+  if (group) updateSectionMaster(group.section);
+  updateFeatureSummary();
+}
+
+function syncSection(sectionKey, checked) {
+  sectionInputs(sectionKey).forEach((input) => { input.checked = checked; });
+  featureCatalog()
+    .filter((group) => group.section === sectionKey)
+    .forEach((group) => updateGroupMaster(group.key));
+  updateSectionMaster(sectionKey);
+  updateFeatureSummary();
+}
+
+function createFeatureCard(group) {
+  const card = document.createElement("div");
+  card.className = "feature-card";
+  card.dataset.group = group.key;
+
+  const masterLabel = document.createElement("label");
+  masterLabel.className = "feature-card__master";
+  const master = document.createElement("input");
+  master.type = "checkbox";
+  master.dataset.master = group.key;
+  master.checked = group.enabled_count === group.total_count;
+  master.indeterminate = group.enabled_count > 0 && group.enabled_count < group.total_count;
+  master.addEventListener("change", () => syncGroup(group.key, master.checked));
+  masterLabel.append(master, document.createTextNode(" 全选"));
+
+  const head = document.createElement("div");
+  head.className = "feature-card__head";
+  const title = document.createElement("strong");
+  title.textContent = group.name;
+  head.append(title);
+  if (group.cost) {
+    const cost = document.createElement("span");
+    cost.className = "feature-card__cost";
+    cost.textContent = group.cost;
+    head.append(cost);
+  }
+  const count = document.createElement("span");
+  count.className = "feature-card__count";
+  count.dataset.count = group.key;
+  count.textContent = `${group.enabled_count} / ${group.total_count}`;
+  head.append(count);
+
+  const desc = document.createElement("p");
+  desc.className = "feature-card__desc";
+  desc.textContent = group.description || "";
+
+  const commands = document.createElement("div");
+  commands.className = "feature-card__commands";
+  group.commands.forEach((command) => {
+    const row = document.createElement("label");
+    row.className = "feature-command";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.dataset.group = group.key;
+    input.dataset.section = group.section;
+    input.dataset.command = command.name;
+    input.checked = command.enabled;
+    input.addEventListener("change", () => {
+      updateGroupMaster(group.key);
+      updateSectionMaster(group.section);
+      updateFeatureSummary();
+    });
+    const name = document.createElement("span");
+    name.textContent = command.name;
+    row.append(input, name);
+    commands.append(row);
+  });
+
+  const body = document.createElement("div");
+  body.className = "feature-card__body";
+  body.append(head, desc, commands);
+
+  card.append(masterLabel, body);
+  card.classList.toggle("is-on", group.enabled_count === group.total_count && group.total_count > 0);
+  return card;
+}
+
+function renderFeatureGrid(containerId) {
+  const container = byId(containerId);
+  if (!container) return;
+  const catalog = featureCatalog();
+  container.replaceChildren();
+  if (!catalog.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty";
+    empty.textContent = "功能开关数据加载中…";
+    container.append(empty);
+    return;
+  }
+
+  const sections = new Map();
+  const collapsedSections = readCollapsedFeatureSections();
+  catalog.forEach((group) => {
+    if (!sections.has(group.section)) {
+      sections.set(group.section, {
+        key: group.section,
+        name: group.section_name,
+        description: group.section_description,
+        groups: [],
+      });
+    }
+    sections.get(group.section).groups.push(group);
+  });
+
+  sections.forEach((section) => {
+    const sectionNode = document.createElement("section");
+    sectionNode.className = "feature-section";
+    sectionNode.dataset.section = section.key;
+
+    const header = document.createElement("div");
+    header.className = "feature-section__header";
+    const heading = document.createElement("button");
+    heading.type = "button";
+    heading.className = "feature-section__heading";
+    const eyebrow = document.createElement("span");
+    eyebrow.className = "feature-section__eyebrow";
+    eyebrow.textContent = section.key === "local" ? "插件增强" : "JX3API 分类";
+    const title = document.createElement("strong");
+    title.textContent = section.name;
+    const desc = document.createElement("span");
+    desc.className = "feature-section__desc";
+    desc.textContent = section.description || "";
+    heading.append(eyebrow, title, desc);
+
+    const master = document.createElement("input");
+    master.type = "checkbox";
+    master.dataset.sectionMaster = section.key;
+    const total = section.groups.reduce((sum, group) => sum + group.total_count, 0);
+    const enabled = section.groups.reduce((sum, group) => sum + group.enabled_count, 0);
+    master.checked = enabled === total && total > 0;
+    master.indeterminate = enabled > 0 && enabled < total;
+    master.addEventListener("change", () => syncSection(section.key, master.checked));
+    const masterLabel = document.createElement("label");
+    masterLabel.className = "feature-section__master";
+    const count = document.createElement("span");
+    count.dataset.sectionCount = section.key;
+    count.textContent = `${enabled} / ${total}`;
+    masterLabel.append(master, document.createTextNode(" 全选"), count);
+
+    const grid = document.createElement("div");
+    grid.className = "feature-card-grid";
+    grid.classList.toggle("is-single", section.groups.length === 1);
+    grid.id = `feature-section-${section.key}`;
+    const collapsed = collapsedSections.has(section.key);
+    grid.hidden = collapsed;
+    grid.append(...section.groups.map(createFeatureCard));
+
+    heading.dataset.sectionToggle = section.key;
+    heading.setAttribute("aria-controls", grid.id);
+    heading.setAttribute("aria-expanded", String(!collapsed));
+    heading.setAttribute("aria-label", `${collapsed ? "展开" : "收起"}${section.name}`);
+    heading.title = collapsed ? "点击展开" : "点击收起";
+    heading.addEventListener("click", () => {
+      const nextCollapsed = !sectionNode.classList.contains("is-collapsed");
+      sectionNode.classList.toggle("is-collapsed", nextCollapsed);
+      grid.hidden = nextCollapsed;
+      heading.setAttribute("aria-expanded", String(!nextCollapsed));
+      heading.setAttribute("aria-label", `${nextCollapsed ? "展开" : "收起"}${section.name}`);
+      heading.title = nextCollapsed ? "点击展开" : "点击收起";
+      const current = readCollapsedFeatureSections();
+      if (nextCollapsed) current.add(section.key);
+      else current.delete(section.key);
+      saveCollapsedFeatureSections(current);
+    });
+    header.addEventListener("click", (event) => {
+      if (event.target.closest("label, input, button, a")) return;
+      heading.click();
+    });
+    header.append(heading, masterLabel);
+    sectionNode.append(header, grid);
+    sectionNode.classList.toggle("is-on", enabled === total && total > 0);
+    sectionNode.classList.toggle("is-collapsed", collapsed);
+    container.append(sectionNode);
+  });
+}
+
+function renderFeatures() {
+  renderFeatureGrid("feature-grid");
+  updateFeatureSummary();
+}
+
+function collectFeatureSelection() {
+  const selected = {};
+  document.querySelectorAll("#feature-grid input[data-group]").forEach((input) => {
+    const group = input.dataset.group;
+    if (!selected[group]) selected[group] = {};
+    selected[group][input.dataset.command] = input.checked;
+  });
+  return selected;
+}
+
+function applyFeaturePreset(checked) {
+  document.querySelectorAll("#feature-grid input[data-group]").forEach((input) => {
+    input.checked = checked;
+  });
+  const catalog = featureCatalog();
+  catalog.forEach((group) => updateGroupMaster(group.key));
+  [...new Set(catalog.map((group) => group.section))]
+    .forEach((sectionKey) => updateSectionMaster(sectionKey));
+  updateFeatureSummary();
+}
+
+async function loadFeatures() {
+  const data = await bridge.apiGet("features/status");
+  state.features = data.features || {};
+  state.feature_catalog = data.feature_catalog || [];
+  renderFeatures();
+}
+
+async function saveFeatures() {
+  const button = byId("feature-save");
+  if (button) button.disabled = true;
+  try {
+    await bridge.apiPost("features/save", { features: collectFeatureSelection() });
+    await loadFeatures();
+    showToast("功能开关已保存并生效");
+  } catch (error) {
+    showToast(error?.message || "保存失败", true);
+  } finally {
+    if (button) button.disabled = false;
+  }
 }
 
 async function loadData() {
@@ -1783,9 +2085,14 @@ byId("refresh").addEventListener("click", async (event) => {
   }
 });
 
+byId("feature-select-all").addEventListener("click", () => applyFeaturePreset(true));
+byId("feature-clear-all").addEventListener("click", () => applyFeaturePreset(false));
+byId("feature-save").addEventListener("click", saveFeatures);
+
 await bridge.ready();
 try {
   await loadData();
 } catch (error) {
   showToast(error?.message || "管理数据加载失败", true);
 }
+loadFeatures().catch((error) => showToast(error?.message || "功能开关加载失败", true));
