@@ -7,10 +7,10 @@ from astrbot.api import AstrBotConfig, logger
 from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.star import Context, Star, StarTools, register
 
+from .core import features
 from .core.bilei_data import BiLeidata
 from .core.cache import CacheService
 from .core.event_push import EventPushService
-from .core import features
 from .core.fun_basic import load_as_base64
 from .core.jx3api_data import JX3APIService
 from .core.jx3box_data import JX3BOXService
@@ -32,7 +32,7 @@ PLUGIN_NAME = "astrbot_plugin_jx3"
     "astrbot_plugin_jx3",
     "fxdyz",
     "聚合剑网三游戏数据，提供查询、团队管理、图片渲染、本地避雷和实时事件推送。",
-    "3.5.4",
+    "3.5.5",
     "https://github.com/qsc20001102/astrbot_plugin_jx3",
 )
 class Jx3ApiPlugin(Star):

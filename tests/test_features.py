@@ -1,17 +1,18 @@
 """功能开关目录与实际指令表的一致性测试。"""
 
 import ast
+import asyncio
 import json
-import sys
+import tempfile
+import threading
 import unittest
 from pathlib import Path
-
-PLUGIN_ROOT = Path(__file__).resolve().parents[1]
-if str(PLUGIN_ROOT) not in sys.path:
-    sys.path.insert(0, str(PLUGIN_ROOT))
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, Mock
 
 from core import features
 
+PLUGIN_ROOT = Path(__file__).resolve().parents[1]
 MAIN_PATH = PLUGIN_ROOT / "main.py"
 SCHEMA_PATH = PLUGIN_ROOT / "_conf_schema.json"
 
@@ -25,9 +26,7 @@ def command_map_commands() -> set[str]:
         if isinstance(node, ast.ClassDef) and node.name == "Jx3ApiPlugin"
     )
     ini = next(
-        node
-        for node in plugin.body
-        if getattr(node, "name", "") == "ini_command_map"
+        node for node in plugin.body if getattr(node, "name", "") == "ini_command_map"
     )
     commands: set[str] = set()
     for node in ast.walk(ini):
@@ -98,12 +97,11 @@ class FeatureCatalogTest(unittest.TestCase):
             set(features.FEATURE_SECTION_ORDER),
         )
         for key in features.FEATURE_ORDER:
-            self.assertIn(features.FEATURE_INFO[key]["section"], features.FEATURE_SECTIONS)
+            self.assertIn(
+                features.FEATURE_INFO[key]["section"], features.FEATURE_SECTIONS
+            )
         self.assertEqual(
-            {
-                features.FEATURE_INFO[key]["section"]
-                for key in features.FEATURE_ORDER
-            },
+            {features.FEATURE_INFO[key]["section"] for key in features.FEATURE_ORDER},
             set(features.FEATURE_SECTION_ORDER),
         )
 
@@ -168,6 +166,147 @@ class FeatureCatalogTest(unittest.TestCase):
         self.assertEqual(tieba["section_name"], "游戏社区")
         eight = next(cmd for cmd in tieba["commands"] if cmd["name"] == "818")
         self.assertFalse(eight["enabled"])
+
+
+def load_feature_webui():
+    """Load the production WebUI methods without starting the host.
+
+    Returns:
+        WebUI service class with isolated host response helpers.
+    """
+    path = PLUGIN_ROOT / "core" / "webui.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    service = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "WebUIService"
+    )
+    service.body = [
+        node
+        for node in service.body
+        if getattr(node, "name", "")
+        in {"__init__", "_plugin_conf", "get_feature_status", "save_features"}
+    ]
+    namespace = {
+        "asyncio": asyncio,
+        "features": features,
+        "logger": Mock(),
+        "json_response": lambda data: data,
+        "error_response": lambda message, status_code: {
+            "error": message,
+            "status_code": status_code,
+        },
+    }
+    module = ast.Module(body=[tree.body[0], service], type_ignores=[])
+    exec(compile(ast.fix_missing_locations(module), str(path), "exec"), namespace)
+    return namespace["WebUIService"]
+
+
+class LegacyConfig(dict):
+    """Expose the synchronous configuration API supported by older hosts."""
+
+    def __init__(self, path):
+        super().__init__(
+            prefix={"enable": False},
+            features={"activity_calendar": {"日常": True}},
+        )
+        self.path = path
+        self.saved_thread = None
+
+    def save_config(self):
+        """Persist the current configuration and record the calling thread."""
+        self.saved_thread = threading.get_ident()
+        self.path.write_text(json.dumps(self), encoding="utf-8")
+
+
+class FeatureSaveTest(unittest.IsolatedAsyncioTestCase):
+    service_class = load_feature_webui()
+
+    async def asyncSetUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.path = Path(self.temp_dir.name) / "config.json"
+        self.conf = LegacyConfig(self.path)
+        self.conf.save_config()
+        self.plugin = SimpleNamespace(
+            conf=self.conf,
+            apply_feature_settings=Mock(),
+        )
+        self.service = self.service_class(*([None] * 10), plugin=self.plugin)
+        self.service._json_payload = AsyncMock(
+            return_value={"features": {"activity_calendar": {"日常": False}}}
+        )
+
+    async def asyncTearDown(self):
+        self.temp_dir.cleanup()
+
+    async def test_save_works_with_sync_only_host_and_applies_after_persistence(self):
+        self.plugin.apply_feature_settings.side_effect = lambda: self.assertFalse(
+            json.loads(self.path.read_text(encoding="utf-8"))["features"][
+                "activity_calendar"
+            ]["日常"]
+        )
+        result = await self.service.save_features()
+        self.assertTrue(result["saved"])
+        self.assertFalse(result["features"]["日常"])
+        self.assertTrue(result["features"]["日常预测"])
+        self.assertEqual(self.conf["prefix"], {"enable": False})
+        self.assertNotEqual(self.conf.saved_thread, threading.get_ident())
+        self.plugin.apply_feature_settings.assert_called_once_with()
+
+    async def test_failed_save_restores_status_and_does_not_apply_settings(self):
+        for has_features in (True, False):
+            with self.subTest(has_features=has_features):
+                if not has_features:
+                    self.conf.pop("features")
+                    LegacyConfig.save_config(self.conf)
+                previous = dict(self.conf)
+                disk_before = self.path.read_bytes()
+                self.conf.save_config = Mock(side_effect=OSError("disk full"))
+                result = await self.service.save_features()
+                self.assertEqual(result["status_code"], 500)
+                self.assertEqual(self.conf, previous)
+                self.assertEqual(self.path.read_bytes(), disk_before)
+                self.plugin.apply_feature_settings.assert_not_called()
+                status = await self.service.get_feature_status()
+                self.assertTrue(status["features"]["日常"])
+
+    async def test_concurrent_saves_preserve_both_updates_and_hide_pending_status(self):
+        started, release = threading.Event(), threading.Event()
+        save_config = self.conf.save_config
+
+        def blocking_save():
+            if not started.is_set():
+                started.set()
+                if not release.wait(3):
+                    raise TimeoutError("Save was not released")
+            save_config()
+
+        self.conf.save_config = Mock(side_effect=blocking_save)
+        self.service._json_payload.side_effect = [
+            {"features": {"activity_calendar": {"日常": False}}},
+            {"features": {"local_team_signup": {"开团": False}}},
+        ]
+        first = asyncio.create_task(self.service.save_features())
+        pending = [first]
+        try:
+            self.assertTrue(await asyncio.to_thread(started.wait, 2))
+            second = asyncio.create_task(self.service.save_features())
+            status = asyncio.create_task(self.service.get_feature_status())
+            pending.extend((second, status))
+            await asyncio.sleep(0)
+            self.assertEqual(self.conf.save_config.call_count, 1)
+            self.assertFalse(status.done())
+        finally:
+            release.set()
+            results = await asyncio.gather(*pending)
+        self.assertTrue(results[0]["saved"])
+        self.assertTrue(results[1]["saved"])
+        self.assertFalse(results[2]["features"]["日常"])
+        self.assertFalse(results[2]["features"]["开团"])
+        self.assertEqual(self.plugin.apply_feature_settings.call_count, 2)
+        disk = json.loads(self.path.read_text(encoding="utf-8"))["features"]
+        self.assertFalse(disk["activity_calendar"]["日常"])
+        self.assertFalse(disk["local_team_signup"]["开团"])
 
 
 if __name__ == "__main__":

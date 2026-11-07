@@ -4,6 +4,7 @@ import asyncio
 import re
 from typing import TYPE_CHECKING, Any
 
+from astrbot.api import logger
 from astrbot.api.star import Context
 from astrbot.api.web import error_response, json_response, request
 
@@ -51,6 +52,7 @@ class WebUIService:
         self.team_rules = team_rules
         self.team_kungfu_icons = team_kungfu_icons
         self.plugin = plugin
+        self._feature_settings_lock = asyncio.Lock()
 
     def register(self, context: Context, plugin_name: str):
         routes = (
@@ -203,9 +205,7 @@ class WebUIService:
                 "team_kungfu_icons": {
                     kungfu: self.team_kungfu_icons[kungfu]
                     for kungfu in {
-                        member["kungfu"]
-                        for team in teams
-                        for member in team["members"]
+                        member["kungfu"] for team in teams for member in team["members"]
                     }
                     if kungfu in self.team_kungfu_icons
                 },
@@ -219,21 +219,30 @@ class WebUIService:
         return self.plugin.conf
 
     async def get_feature_status(self):
-        """返回功能开关的目录与当前生效状态。"""
+        """Read command switches after any pending save has finished.
+
+        Returns:
+            JSON response containing the feature catalog and switch state.
+        """
         try:
             conf = self._plugin_conf()
         except ValueError as exc:
             return error_response(str(exc), status_code=503)
-        enabled = features.resolve_enabled(conf.get("features"))
-        return json_response(
-            {
-                "features": enabled,
-                "feature_catalog": features.describe(enabled),
-            }
-        )
+        async with self._feature_settings_lock:
+            enabled = features.resolve_enabled(conf.get("features"))
+            return json_response(
+                {
+                    "features": enabled,
+                    "feature_catalog": features.describe(enabled),
+                }
+            )
 
     async def save_features(self):
-        """保存功能开关并立即生效。"""
+        """Persist command switches before rebuilding the active command map.
+
+        Returns:
+            JSON response with the saved switches, or a persistence error.
+        """
         try:
             payload = await self._json_payload()
             conf = self._plugin_conf()
@@ -241,24 +250,39 @@ class WebUIService:
             return error_response(str(exc), status_code=400)
 
         raw_features = payload.get("features")
-        if isinstance(raw_features, dict):
-            current = dict(conf.get("features") or {})
-            for key in features.FEATURE_ORDER:
-                group = raw_features.get(key)
-                if not isinstance(group, dict):
-                    continue
-                group_current = dict(current.get(key) or {})
-                for command in features.FEATURE_COMMANDS[key]:
-                    value = group.get(command)
-                    if isinstance(value, bool):
-                        group_current[command] = value
-                current[key] = group_current
-            conf["features"] = current
+        async with self._feature_settings_lock:
+            had_features = "features" in conf
+            previous = conf.get("features")
+            if isinstance(raw_features, dict):
+                current = dict(previous) if isinstance(previous, dict) else {}
+                for key in features.FEATURE_ORDER:
+                    group = raw_features.get(key)
+                    if not isinstance(group, dict):
+                        continue
+                    saved_group = current.get(key)
+                    group_current = (
+                        dict(saved_group) if isinstance(saved_group, dict) else {}
+                    )
+                    for command in features.FEATURE_COMMANDS[key]:
+                        value = group.get(command)
+                        if isinstance(value, bool):
+                            group_current[command] = value
+                    current[key] = group_current
+                conf["features"] = current
 
-        await conf.save_config_async()
-        self.plugin.apply_feature_settings()
-        enabled = features.resolve_enabled(conf.get("features"))
-        return json_response({"saved": True, "features": enabled})
+            try:
+                await asyncio.to_thread(conf.save_config)
+            except Exception:
+                if had_features:
+                    conf["features"] = previous
+                else:
+                    conf.pop("features", None)
+                logger.exception("保存功能开关失败")
+                return error_response("功能开关保存失败，请稍后重试", status_code=500)
+
+            self.plugin.apply_feature_settings()
+            enabled = features.resolve_enabled(conf.get("features"))
+            return json_response({"saved": True, "features": enabled})
 
     async def save_subscription(self):
         try:

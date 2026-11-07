@@ -12,6 +12,7 @@ tests/*
 !tests/test_chitu.py
 !tests/test_equipment.py
 !tests/test_features.py
+!tests/test_features_webui.js
 .pytest_cache/
 .coverage
 .coverage.*

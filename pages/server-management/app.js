@@ -1726,7 +1726,6 @@ async function loadFeatures() {
   const data = await bridge.apiGet("features/status");
   state.features = data.features || {};
   state.feature_catalog = data.feature_catalog || [];
-  renderFeatures();
 }
 
 async function saveFeatures() {
@@ -1735,6 +1734,7 @@ async function saveFeatures() {
   try {
     await bridge.apiPost("features/save", { features: collectFeatureSelection() });
     await loadFeatures();
+    renderFeatures();
     showToast("功能开关已保存并生效");
   } catch (error) {
     showToast(error?.message || "保存失败", true);
@@ -1744,7 +1744,10 @@ async function saveFeatures() {
 }
 
 async function loadData() {
-  const data = await bridge.apiGet("dashboard");
+  const [data] = await Promise.all([
+    bridge.apiGet("dashboard"),
+    loadFeatures(),
+  ]);
   Object.assign(state, data);
   render();
 }
@@ -2095,4 +2098,3 @@ try {
 } catch (error) {
   showToast(error?.message || "管理数据加载失败", true);
 }
-loadFeatures().catch((error) => showToast(error?.message || "功能开关加载失败", true));
