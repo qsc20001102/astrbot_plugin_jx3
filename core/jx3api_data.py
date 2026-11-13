@@ -157,7 +157,7 @@ class JX3APIService:
 
         async def requester():
             return await self._api.post(
-                "https://www.jx3api.com/token/stats",
+                "https://api.jx3api.com/token/stats",
                 data={"token": self.token},
                 out_key="data",
                 success_codes=(200, "200"),
@@ -222,7 +222,7 @@ class JX3APIService:
                 logger.error("API client is not initialized")
                 return None
 
-            base_url = "https://www.jx3api.com"
+            base_url = "https://api.jx3api.com"
             api_url = base_url + api_path
             data = await self._api.get(
                 api_url,
