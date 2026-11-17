@@ -13,9 +13,9 @@ from .event_push import EVENT_NAMES, FREE_EVENT_ACTIONS
 from .team import TeamNotFoundError
 
 if TYPE_CHECKING:
-    from .bilei_data import BiLeidata
     from .cache import CacheService
     from .event_push import EventPushService
+    from .feature_settings import FeatureSettingsService
     from .jx3api_data import JX3APIService
     from .kungfu_alias import KungfuAliasService
     from .server_binding import ServerBindingService
@@ -34,7 +34,7 @@ class WebUIService:
         server_binding: ServerBindingService,
         kungfu_alias: KungfuAliasService,
         session_control: SessionControlService,
-        bilei: BiLeidata,
+        feature_settings: FeatureSettingsService,
         cache: CacheService,
         team: TeamService,
         team_rules: TeamRuleService,
@@ -46,7 +46,7 @@ class WebUIService:
         self.server_binding = server_binding
         self.kungfu_alias = kungfu_alias
         self.session_control = session_control
-        self.bilei = bilei
+        self.feature_settings = feature_settings
         self.cache = cache
         self.team = team
         self.team_rules = team_rules
@@ -101,12 +101,6 @@ class WebUIService:
                 self.delete_session_control_entry,
                 ["POST"],
                 "删除会话控制名单",
-            ),
-            (
-                "bilei/legacy/migrate",
-                self.migrate_legacy_bilei,
-                ["POST"],
-                "迁移旧避雷记录到指定会话",
             ),
             ("cache/settings/save", self.save_cache_setting, ["POST"], "保存缓存时间"),
             ("cache/limits/save", self.save_cache_limits, ["POST"], "保存缓存容量限制"),
@@ -171,7 +165,6 @@ class WebUIService:
             aliases,
             kungfu,
             session_control,
-            legacy_bilei,
             token_stats,
             cache,
             teams,
@@ -182,7 +175,6 @@ class WebUIService:
             self.server_binding.list_aliases(),
             self.kungfu_alias.list_kungfu(),
             self.session_control.get_state(),
-            self.bilei.list_legacy_records(),
             self.jx3api.token_stats(),
             self.cache.dashboard(),
             self.team.dashboard(),
@@ -198,7 +190,6 @@ class WebUIService:
                 "events": {str(action): name for action, name in EVENT_NAMES.items()},
                 "free_event_actions": sorted(FREE_EVENT_ACTIONS),
                 "session_control": session_control,
-                "legacy_bilei": legacy_bilei,
                 "token_stats": token_stats,
                 "cache": cache,
                 "teams": teams,
@@ -213,76 +204,43 @@ class WebUIService:
             }
         )
 
-    def _plugin_conf(self):
-        if self.plugin is None or not hasattr(self.plugin, "conf"):
-            raise ValueError("插件尚未初始化完成，请稍后重试")
-        return self.plugin.conf
-
     async def get_feature_status(self):
-        """Read command switches after any pending save has finished.
+        """读取功能开关，返回前等待进行中的保存完成。
 
         Returns:
-            JSON response containing the feature catalog and switch state.
+            包含开关状态和功能目录的 JSON 响应。
         """
-        try:
-            conf = self._plugin_conf()
-        except ValueError as exc:
-            return error_response(str(exc), status_code=503)
         async with self._feature_settings_lock:
-            enabled = features.resolve_enabled(conf.get("features"))
-            return json_response(
-                {
-                    "features": enabled,
-                    "feature_catalog": features.describe(enabled),
-                }
-            )
+            enabled = await self.feature_settings.get_enabled()
+        return json_response(
+            {
+                "features": enabled,
+                "feature_catalog": features.describe(enabled),
+            }
+        )
 
     async def save_features(self):
-        """Persist command switches before rebuilding the active command map.
+        """保存功能开关并立即重建指令表。
 
         Returns:
-            JSON response with the saved switches, or a persistence error.
+            保存后的开关状态；数据无效或写入失败时返回错误响应。
         """
         try:
             payload = await self._json_payload()
-            conf = self._plugin_conf()
         except ValueError as exc:
             return error_response(str(exc), status_code=400)
 
-        raw_features = payload.get("features")
-        async with self._feature_settings_lock:
-            had_features = "features" in conf
-            previous = conf.get("features")
-            if isinstance(raw_features, dict):
-                current = dict(previous) if isinstance(previous, dict) else {}
-                for key in features.FEATURE_ORDER:
-                    group = raw_features.get(key)
-                    if not isinstance(group, dict):
-                        continue
-                    saved_group = current.get(key)
-                    group_current = (
-                        dict(saved_group) if isinstance(saved_group, dict) else {}
-                    )
-                    for command in features.FEATURE_COMMANDS[key]:
-                        value = group.get(command)
-                        if isinstance(value, bool):
-                            group_current[command] = value
-                    current[key] = group_current
-                conf["features"] = current
+        try:
+            async with self._feature_settings_lock:
+                enabled = await self.feature_settings.save(payload.get("features"))
+                self.plugin.apply_feature_settings()
+        except ValueError as exc:
+            return error_response(str(exc), status_code=400)
+        except Exception:
+            logger.exception("保存功能开关失败")
+            return error_response("功能开关保存失败，请稍后重试", status_code=500)
 
-            try:
-                await asyncio.to_thread(conf.save_config)
-            except Exception:
-                if had_features:
-                    conf["features"] = previous
-                else:
-                    conf.pop("features", None)
-                logger.exception("保存功能开关失败")
-                return error_response("功能开关保存失败，请稍后重试", status_code=500)
-
-            self.plugin.apply_feature_settings()
-            enabled = features.resolve_enabled(conf.get("features"))
-            return json_response({"saved": True, "features": enabled})
+        return json_response({"saved": True, "features": enabled})
 
     async def save_subscription(self):
         try:
@@ -418,17 +376,6 @@ class WebUIService:
         except ValueError as exc:
             return error_response(str(exc), status_code=400)
         return json_response({"deleted": True})
-
-    async def migrate_legacy_bilei(self):
-        try:
-            payload = await self._json_payload()
-            await self.bilei.migrate_legacy_record(
-                payload.get("id"),
-                payload.get("session_id"),
-            )
-        except ValueError as exc:
-            return error_response(str(exc), status_code=400)
-        return json_response({"migrated": True})
 
     async def save_cache_setting(self):
         try:

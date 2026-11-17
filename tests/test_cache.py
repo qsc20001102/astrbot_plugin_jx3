@@ -39,6 +39,111 @@ class CardCacheTest(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("/card/cached", endpoints)
         self.assertEqual(self.cache.get_ttl("api", "/card/random"), 0)
 
+    async def test_dashboard_lists_renamed_endpoints_only(self):
+        dashboard = await self.cache.dashboard()
+        endpoints = {item["name"] for item in dashboard["api"]}
+        renamed = {
+            "/voice/channels",
+            "/rank/ladder",
+            "/rank/contest",
+            "/rank/guild",
+            "/rank/jianghu",
+            "/rank/records",
+            "/choice/answer",
+            "/choice/drink",
+            "/choice/food",
+            "/role/achievement",
+        }
+        retired = {
+            "/duowan/statistics",
+            "/rank/arena",
+            "/rank/championship",
+            "/rank/statistics",
+            "/rank/constable",
+            "/rank/outlaw",
+            "/saohua/answer",
+            "/saohua/drink",
+            "/saohua/eat",
+            "/tuilan/achievement",
+        }
+        self.assertTrue(renamed <= endpoints)
+        self.assertFalse(retired & endpoints)
+        removed = {
+            "/castle/status",
+            "/event/missing",
+            "/fenxian/records",
+            "/home/furniture",
+            "/home/travel",
+        }
+        self.assertFalse(removed & endpoints)
+
+    async def test_renamed_endpoint_ttl_and_payload_migrate(self):
+        await self.cache.set_ttl("api", "/saohua/answer", 1234)
+        await self.cache._save_api_payload(
+            "old-choice", "/saohua/answer", {"answer": "old"}, 300
+        )
+        await self.cache.initialize()
+        await self.cache.stop()
+        self.assertEqual(self.cache.get_ttl("api", "/choice/answer"), 1234)
+        self.assertIsNone(
+            await self.db.fetch_one(
+                "SELECT * FROM cache_settings WHERE cache_name=?",
+                ("/saohua/answer",),
+            )
+        )
+        self.assertIsNone(
+            await self.db.fetch_one(
+                "SELECT * FROM api_response_cache WHERE endpoint=?",
+                ("/saohua/answer",),
+            )
+        )
+
+    async def test_rank_jianghu_endpoint_ttl_migrates(self):
+        for old_path in ("/rank/constable", "/rank/outlaw"):
+            with self.subTest(old_path=old_path):
+                await self.cache.set_ttl("api", old_path, 1234)
+                await self.cache.initialize()
+                await self.cache.stop()
+                self.assertEqual(self.cache.get_ttl("api", "/rank/jianghu"), 1234)
+                self.assertIsNone(
+                    await self.db.fetch_one(
+                        "SELECT * FROM cache_settings WHERE cache_name=?",
+                        (old_path,),
+                    )
+                )
+
+    async def test_achievement_endpoint_ttl_migrates(self):
+        await self.cache.set_ttl("api", "/tuilan/achievement", 1234)
+        await self.cache.initialize()
+        await self.cache.stop()
+        self.assertEqual(self.cache.get_ttl("api", "/role/achievement"), 1234)
+        self.assertIsNone(
+            await self.db.fetch_one(
+                "SELECT * FROM cache_settings WHERE cache_name=?",
+                ("/tuilan/achievement",),
+            )
+        )
+
+    async def test_removed_endpoint_settings_and_cache_are_cleaned(self):
+        await self.cache.set_ttl("api", "/castle/status", 1234)
+        await self.cache._save_api_payload(
+            "old-castle", "/castle/status", {"status": "old"}, 300
+        )
+        await self.cache.initialize()
+        await self.cache.stop()
+        self.assertIsNone(
+            await self.db.fetch_one(
+                "SELECT * FROM cache_settings WHERE cache_name=?",
+                ("/castle/status",),
+            )
+        )
+        self.assertIsNone(
+            await self.db.fetch_one(
+                "SELECT * FROM api_response_cache WHERE endpoint=?",
+                ("/castle/status",),
+            )
+        )
+
     async def test_legacy_ttl_migrates_and_old_payload_is_discarded(self):
         for ttl in (0, 1234):
             with self.subTest(ttl=ttl):
@@ -65,6 +170,20 @@ class CardCacheTest(unittest.IsolatedAsyncioTestCase):
                 await self.cache.initialize()
                 await self.cache.stop()
                 self.assertEqual(self.cache.get_ttl("api", "/card/record"), ttl)
+
+    async def test_empty_cached_payload_is_treated_as_miss(self):
+        params = {"mode": "day", "num": 0}
+        cache_key = self.cache.build_api_key("/active/calendar", params)
+        await self.cache._save_api_payload(
+            cache_key, "/active/calendar", {}, 300
+        )
+        fetcher = AsyncMock(return_value={"date": "2026-11-19"})
+        data, metadata = await self.cache.request_api(
+            "/active/calendar", params, fetcher, bool
+        )
+        self.assertEqual(data, {"date": "2026-11-19"})
+        self.assertFalse(metadata["hit"])
+        fetcher.assert_awaited_once()
 
     async def test_explicit_new_ttl_wins_and_other_settings_survive(self):
         await self.cache.set_ttl("api", "/card/cached", 100)

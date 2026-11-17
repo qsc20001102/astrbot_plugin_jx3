@@ -4,7 +4,7 @@
 
 <div class="container data-page">
     <h1>{{ name }}</h1>
-    <div class="data-page__meta">{{ server }} · {{ mode_name }}{% if update_time %} · 更新时间：{{ update_time }}{% endif %}</div>
+    <div class="data-page__meta">{{ server }}{% if zone %} · {{ zone }}{% endif %}{% if update_time %} · 更新时间：{{ update_time }}{% endif %}</div>
 
     <table class="data-table">
         <thead>

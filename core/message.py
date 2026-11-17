@@ -27,15 +27,16 @@ class MessageBuilder:
     IMAGE_RENDER_HANDLERS = frozenset(
         {
             "helps", "richangyuche", "qiongyewei", "pifenghui", "yunchongshe",
-            "chutianshe", "guanaishouling", "zhenyingevent", "yanhuachaxun",
+            "chutianshe", "yanhuachaxun",
             "zhanji", "mingjianpaihang", "mingjiantongji", "kuafumingjian",
             "wulinzhengba", "bukairongyu", "jianghulangke", "juedoutiaozhan",
-            "banghuipaihang", "zhenyingpaihang", "qitapaihang", "shilianpaixing",
+            "banghuipaihang", "zhenyingpaihang", "gerenpaihang", "shilianpaixing",
+            "judiangongxian", "juejingzhanchang",
             "zhengyingpaimai", "dilujilu", "jinjia", "wujia", "chengbeng",
-            "bangzhanjilu", "shapan", "zhueevent", "qiyuhuizong", "weizuoqiyu",
+            "bangzhanjilu", "shapan", "zhueevent", "qiyuhuizong",
             "jinqiqiyu", "juesheqiyu", "qiyutongji", "qiyugonglue", "jingnai",
-            "baizhan", "chengjiu", "zilipaixing", "jineng", "qixue", "liaotian",
-            "xiaoyao", "huajia", "zhuangshi", "qiwu", "baishi", "shoutu",
+            "baizhan", "zilipaixing", "jineng", "qixue", "liaotian",
+            "xiaoyao", "huajia", "baishi", "shoutu",
             "tuanduizhaomu", "tuanzhang", "tuanpai", "zhuangtai", "fubeng",
             "diaoluo", "hong", "zili", "jiaoyihang", "bilei_all", "bilei_select",
             "shuxing", "zhuangbei",
@@ -637,10 +638,6 @@ class MessageBuilder:
         """ 楚天社 """
         return await self.T2I_image_msg(event, lambda: self.jx3api.xingxiashijian("楚天社"))
 
-    async def  guanaishouling(self, event: AstrMessageEvent):
-        """ 关隘首领"""
-        return await self.T2I_image_msg(event, self.jx3api.guanaishouling)
-
     async def  benrichitu(self, event: AstrMessageEvent):
         """ 本日赤兔"""
         return await self.plain_msg(event, self.jx3api.benrichitu)
@@ -648,10 +645,6 @@ class MessageBuilder:
     async def  benzhouchitu(self, event: AstrMessageEvent):
         """ 本周赤兔"""
         return await self.plain_msg(event, self.jx3api.benzhouchitu)
-
-    async def  zhenyingevent(self, event: AstrMessageEvent, name:str = ""):
-        """ 阵营事件 阵营"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.zhenyingevent(name,50))
 
     async def yanhuachaxun(self, event: AstrMessageEvent, server: str, name: str = "", limit: int = 50):
         """ 烟花 服务器 角色 条数"""
@@ -734,12 +727,28 @@ class MessageBuilder:
             lambda selected: self.jx3api.rank_statistical_select(server,selected,),
         )
 
-    async def qitapaihang(self, event: AstrMessageEvent, server: str):
-        """其他排行 服务器。"""
+    async def gerenpaihang(self, event: AstrMessageEvent, server: str):
+        """个人排行 服务器。"""
         return await self.handler_plain_image_msg(
             event,
-            lambda: self.jx3api.qita_rank_menu(),
+            lambda: self.jx3api.geren_rank_menu(),
             lambda selected: self.jx3api.rank_statistical_select(server,selected,),
+        )
+
+    async def judiangongxian(self, event: AstrMessageEvent, server: str):
+        """据点贡献 服务器。"""
+        return await self.handler_plain_image_msg(
+            event,
+            lambda: self.jx3api.judiangongxian_menu(),
+            lambda selected: self.jx3api.judiangongxian_select(server, selected),
+        )
+
+    async def juejingzhanchang(self, event: AstrMessageEvent, server: str):
+        """绝境战场 服务器。"""
+        return await self.handler_plain_image_msg(
+            event,
+            lambda: self.jx3api.juejingzhanchang_menu(),
+            lambda selected: self.jx3api.juejingzhanchang_select(server, selected),
         )
 
     async def  shilianpaixing(self, event: AstrMessageEvent, server: str , kungfu: str):
@@ -828,10 +837,6 @@ class MessageBuilder:
         """ 汇总 服务器 天数 """
         return await self.T2I_image_msg(event, lambda: self.jx3api.qiyuhuizong(server, num))
 
-    async def  weizuoqiyu(self, event: AstrMessageEvent,server: str, name: str, ):
-        """ 未出 服务器 角色 """
-        return await self.T2I_image_msg(event, lambda: self.jx3api.weizuoqiyu(server,name))
-
     async def  jinqiqiyu(self, event: AstrMessageEvent,server: str, limit: int = 20):
         """ 近期 服务器 数量"""
         return await self.T2I_image_msg(event, lambda: self.jx3api.jinqiqiyu(server,limit))
@@ -855,10 +860,6 @@ class MessageBuilder:
     async def  baizhan(self, event: AstrMessageEvent):
         """ 百战"""
         return await self.T2I_image_msg(event, self.jx3api.baizhan)
-    
-    async def  chengjiu(self, event: AstrMessageEvent, server:str, role:str, name:str):
-        """ 成就 服务器 角色 成就"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.chengjiuchaxun(server,role,name))
 
     async def  jueshe(self, event: AstrMessageEvent,server: str, name: str):
         """ 角色 服务器 名称 """
@@ -878,11 +879,11 @@ class MessageBuilder:
 
     async def  jineng(self, event: AstrMessageEvent, kungfu: str):
         """ 技能 心法"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.jineng(kungfu,0))
+        return await self.T2I_image_msg(event, lambda: self.jx3api.jineng(kungfu))
 
     async def  qixue(self, event: AstrMessageEvent, kungfu: str):
         """ 奇穴 心法"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.qixue(kungfu,0))
+        return await self.T2I_image_msg(event, lambda: self.jx3api.qixue(kungfu))
 
     async def  liaotian(self, event: AstrMessageEvent, server:str, name: str, limit:int = 20, page:int = 1):
         """ 发言 服务器 角色 条数 页数"""
@@ -903,14 +904,6 @@ class MessageBuilder:
     async def  huajia(self, event: AstrMessageEvent,  server: str, name: str= "" , map: str= ""):
         """ 花价 服务器 名称 地图"""
         return await self.T2I_image_msg(event, lambda: self.jx3api.huajia(server,name,map))
-
-    async def  zhuangshi(self, event: AstrMessageEvent,  name: str):
-        """ 装饰 名称"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.zhuangshi(name))
-
-    async def  qiwu(self, event: AstrMessageEvent,  name: str):
-        """ 器物 地图名称"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.qiwu(name))
 
     async def  baishi(self, event: AstrMessageEvent, server: str, keyword: str = ""):
         """ 拜师 服务器 关键词 """

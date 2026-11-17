@@ -12,7 +12,7 @@
       <header class="page-header">
         <div>
           <h1>剑网三插件管理</h1>
-          <p>管理团队、报名限制、心法职责、会话访问范围、查询缓存、避雷迁移、事件推送及别名。</p>
+          <p>管理团队、报名限制、心法职责、会话访问范围、查询缓存、事件推送及别名。</p>
         </div>
         <button class="button button--secondary" id="refresh" type="button">刷新数据</button>
       </header>
@@ -45,7 +45,6 @@
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="kungfu">心法配置</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="teams">团队管理</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="cache">缓存管理</button>
-        <button class="tab" type="button" role="tab" aria-selected="false" data-tab="bilei-migration">避雷迁移</button>
       </nav>
 
       <section class="panel is-active" id="session-control-panel" role="tabpanel">
@@ -270,21 +269,6 @@
             </table>
           </div>
         </details>
-      </section>
-
-      <section class="panel" id="bilei-migration-panel" role="tabpanel" hidden>
-        <div class="section-intro">
-          <div>
-            <h2>迁移旧避雷数据</h2>
-            <p>旧版记录暂存在历史公共数据区。请为每条记录选择或输入目标会话，迁移后该记录仅能在目标会话中访问。剩余 <strong id="legacy-bilei-count">0</strong> 条。</p>
-          </div>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>ID</th><th>避雷名称</th><th>避雷备注</th><th>时间</th><th>记录人</th><th>目标会话</th><th class="actions">操作</th></tr></thead>
-            <tbody id="legacy-bilei-body"></tbody>
-          </table>
-        </div>
       </section>
 
       <section class="panel" id="bindings-panel" role="tabpanel" hidden>

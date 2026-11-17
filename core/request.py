@@ -173,25 +173,28 @@ class APIClient:
         success_codes: Optional[Collection[Any]] = None,
         return_error: bool = False,
     ) -> Any:
-        """辅助方法：从结果中提取指定字段"""
+        """辅助方法：校验 JX3API 的 ``{status, detail}`` 响应并返回数据。"""
         if data is None:
             return None
         if isinstance(data, bytes):
             return data
-        if isinstance(data, dict) and 'code' in data:
+        if isinstance(data, dict):
             allowed_codes = (
                 set(success_codes)
                 if success_codes is not None
-                else {200, "0", 0, 1}
+                else {200, "200"}
             )
-            code = data.get('code')
-            if code not in allowed_codes:
-                raw_message = data.get('msg') or data.get('message') or ""
-                message = str(raw_message).strip()
-                logger.error("API返回业务错误")
-                if return_error:
-                    return APIErrorResponse(code=code, message=message)
-                return None
+            if "status" in data:
+                status = data.get("status")
+                if status not in allowed_codes:
+                    detail = data.get("detail")
+                    message = detail if isinstance(detail, str) else ""
+                    logger.error("API返回业务错误")
+                    if return_error:
+                        return APIErrorResponse(code=status, message=message)
+                    return None
+                detail = data.get("detail")
+                return detail if detail is not None else {}
         if key and isinstance(data, dict):
             return data.get(key, {})
         return data

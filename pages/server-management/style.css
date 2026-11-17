@@ -181,8 +181,6 @@ tbody tr:last-child td { border-bottom: 0; }
 tbody tr:hover { background: color-mix(in srgb, var(--accent-soft) 42%, transparent); }
 tbody tr.is-editing { background: color-mix(in srgb, var(--accent-soft) 62%, transparent); }
 .alias-cell { min-width: 320px; }
-.legacy-note-cell { min-width: 260px; max-width: 420px; text-align: left; white-space: pre-wrap; overflow-wrap: anywhere; }
-.legacy-session-cell { min-width: 300px; }
 .inline-editor { min-width: 260px; }
 .inline-editor--compact { min-width: 130px; }
 .actions { white-space: nowrap; }
@@ -287,7 +285,7 @@ tbody tr.is-editing { background: color-mix(in srgb, var(--accent-soft) 62%, tra
   td { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 12px; padding: 8px 16px; border: 0; overflow-wrap: anywhere; }
   td::before { color: var(--muted); content: attr(data-label); font-size: 12px; font-weight: 700; }
   td.actions { grid-template-columns: max-content repeat(3, auto); align-items: center; width: 100%; white-space: normal; }
-  .alias-cell, .legacy-note-cell, .legacy-session-cell, .inline-editor { min-width: 0; max-width: none; }
+  .alias-cell, .inline-editor { min-width: 0; max-width: none; }
   .cache-name-cell { text-align: right; }
   td.empty { display: block; padding: 36px 16px; }
   td.empty::before { content: none; }

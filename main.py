@@ -11,6 +11,7 @@ from .core import features
 from .core.bilei_data import BiLeidata
 from .core.cache import CacheService
 from .core.event_push import EventPushService
+from .core.feature_settings import FeatureSettingsService
 from .core.fun_basic import load_as_base64
 from .core.jx3api_data import JX3APIService
 from .core.jx3box_data import JX3BOXService
@@ -32,7 +33,7 @@ PLUGIN_NAME = "astrbot_plugin_jx3"
     "astrbot_plugin_jx3",
     "fxdyz",
     "聚合剑网三游戏数据，提供查询、团队管理、图片渲染、本地避雷和实时事件推送。",
-    "3.5.6",
+    "3.5.7",
     "https://github.com/qsc20001102/astrbot_plugin_jx3",
 )
 class Jx3ApiPlugin(Star):
@@ -71,6 +72,7 @@ class Jx3ApiPlugin(Star):
             # 数据库初始化
             await self.local_sql_db.connect()
             await self.cache.initialize()
+            await self.feature_settings.initialize()
             await self.bilei.initialize()
             await self.init_trade_item_cache_data()
             await self.kungfu_alias.initialize()
@@ -171,6 +173,7 @@ class Jx3ApiPlugin(Star):
             self.cache_image_dir,
             (self.plugin_temp_dir,),
         )
+        self.feature_settings = FeatureSettingsService(self.local_sql_db)
         # 剑网三功能实例化
         self.bilei = BiLeidata(self.local_sql_db)
         self.jx3api = JX3APIService(self.conf, self.local_sql_db, self.cache)
@@ -214,7 +217,7 @@ class Jx3ApiPlugin(Star):
             self.server_binding,
             self.kungfu_alias,
             self.session_control,
-            self.bilei,
+            self.feature_settings,
             self.cache,
             self.team,
             self.team_rules,
@@ -269,10 +272,8 @@ class Jx3ApiPlugin(Star):
             "披风会": self.jx3cmd.pifenghui,
             "云从社": self.jx3cmd.yunchongshe,
             "楚天社": self.jx3cmd.chutianshe,
-            "关隘": self.jx3cmd.guanaishouling,
             "赤兔": self.jx3cmd.benrichitu,
             "本周赤兔": self.jx3cmd.benzhouchitu,
-            "阵营奉献": self.jx3cmd.zhenyingevent,
             "烟花": self.jx3cmd.yanhuachaxun,
             "刷马": self.jx3cmd.shuma,
             "马场": self.jx3cmd.machang,
@@ -286,7 +287,9 @@ class Jx3ApiPlugin(Star):
             "决斗挑战": self.jx3cmd.juedoutiaozhan,
             "帮会排行": self.jx3cmd.banghuipaihang,
             "阵营排行": self.jx3cmd.zhenyingpaihang,
-            "其他排行": self.jx3cmd.qitapaihang,
+            "个人排行": self.jx3cmd.gerenpaihang,
+            "据点贡献": self.jx3cmd.judiangongxian,
+            "绝境战场": self.jx3cmd.juejingzhanchang,
             "试炼排行": self.jx3cmd.shilianpaixing,
             "资历": self.jx3cmd.zili,
             "阵营拍卖": self.jx3cmd.zhengyingpaimai,
@@ -303,14 +306,12 @@ class Jx3ApiPlugin(Star):
             "随机秀": self.jx3cmd.shuijimingpian,
             "奇遇": self.jx3cmd.juesheqiyu,
             "查询": self.jx3cmd.juesheqiyu,
-            "未出": self.jx3cmd.weizuoqiyu,
             "汇总": self.jx3cmd.qiyuhuizong,
             "近期": self.jx3cmd.jinqiqiyu,
             "统计": self.jx3cmd.qiyutongji,
             "攻略": self.jx3cmd.qiyugonglue,
             "精耐": self.jx3cmd.jingnai,
             "百战": self.jx3cmd.baizhan,
-            "成就": self.jx3cmd.chengjiu,
             "角色": self.jx3cmd.jueshe,
             "属性": self.jx3cmd.shuxing,
             "装备": self.jx3cmd.zhuangbei,
@@ -324,8 +325,6 @@ class Jx3ApiPlugin(Star):
             "小药": self.jx3cmd.xiaoyao,
             "骗子": self.jx3cmd.pianzhi,
             "花价": self.jx3cmd.huajia,
-            "装饰": self.jx3cmd.zhuangshi,
-            "器物": self.jx3cmd.qiwu,
             "拜师": self.jx3cmd.baishi,
             "收徒": self.jx3cmd.shoutu,
             "维护": self.jx3cmd.weihu,
@@ -380,7 +379,7 @@ class Jx3ApiPlugin(Star):
             "删除限制": self.jx3cmd.team_delete_rule,
             "恢复默认限制": self.jx3cmd.team_reset_rules,
         }
-        enabled = features.resolve_enabled(self.conf.get("features"))
+        enabled = self.feature_settings.enabled()
         self.command_map = {
             name: handler
             for name, handler in self.command_map.items()
@@ -394,7 +393,7 @@ class Jx3ApiPlugin(Star):
 
     def enabled_features(self) -> dict[str, bool]:
         """返回当前生效的功能开关状态。"""
-        return features.resolve_enabled(self.conf.get("features"))
+        return self.feature_settings.enabled()
 
     def apply_feature_settings(self) -> None:
         """功能开关变更后重新注册指令，无需重启插件。"""

@@ -8,7 +8,6 @@ const state = {
   events: {},
   free_event_actions: [],
   session_control: { mode: "all", entries: [] },
-  legacy_bilei: [],
   features: {},
   feature_catalog: [],
   teams: [],
@@ -415,76 +414,6 @@ function renderBindings() {
       );
     }
     row.append(session, server, actions);
-    return row;
-  }));
-}
-
-function renderLegacyBilei() {
-  const records = state.legacy_bilei || [];
-  const body = byId("legacy-bilei-body");
-  byId("legacy-bilei-count").textContent = String(records.length);
-  if (!records.length) {
-    body.replaceChildren(emptyRow(7, "没有待迁移的旧避雷数据"));
-    return;
-  }
-
-  body.replaceChildren(...records.map((item) => {
-    const row = document.createElement("tr");
-    const id = document.createElement("td");
-    const name = document.createElement("td");
-    const note = document.createElement("td");
-    const time = document.createElement("td");
-    const user = document.createElement("td");
-    const target = document.createElement("td");
-    const actions = document.createElement("td");
-    id.dataset.label = "ID";
-    name.dataset.label = "避雷名称";
-    note.dataset.label = "避雷备注";
-    time.dataset.label = "时间";
-    user.dataset.label = "记录人";
-    target.dataset.label = "目标会话";
-    actions.dataset.label = "操作";
-    id.textContent = String(item.id);
-    name.textContent = item.name || "—";
-    note.textContent = item.text || "—";
-    note.className = "legacy-note-cell";
-    time.textContent = item.time || "—";
-    user.textContent = item.user || "—";
-    target.className = "legacy-session-cell";
-    actions.className = "actions";
-
-    const sessionInput = document.createElement("input");
-    sessionInput.className = "inline-editor";
-    sessionInput.maxLength = 512;
-    sessionInput.required = true;
-    sessionInput.setAttribute("list", "session-options");
-    sessionInput.setAttribute("aria-label", `避雷记录 ${item.id} 的目标会话`);
-    sessionInput.placeholder = "选择已有会话或直接输入";
-    target.append(sessionInput);
-
-    const migrateButton = button("迁移", "", async () => {
-      if (!sessionInput.reportValidity()) return;
-      sessionInput.disabled = true;
-      migrateButton.disabled = true;
-      const migrated = await mutate(
-        "bilei/legacy/migrate",
-        { id: item.id, session_id: sessionInput.value },
-        `避雷记录 ${item.id} 已迁移`,
-      );
-      if (!migrated) {
-        sessionInput.disabled = false;
-        migrateButton.disabled = false;
-        sessionInput.focus();
-      }
-    });
-    sessionInput.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        migrateButton.click();
-      }
-    });
-    actions.append(migrateButton);
-    row.append(id, name, note, time, user, target, actions);
     return row;
   }));
 }
@@ -1431,7 +1360,6 @@ function render() {
   renderServerOptions();
   renderSessionOptions();
   renderSessionControl();
-  renderLegacyBilei();
   renderBindings();
   renderSubscriptions();
   renderAliases();

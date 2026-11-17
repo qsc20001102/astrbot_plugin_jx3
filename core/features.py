@@ -6,13 +6,15 @@
 2. ``core/webui.py``：把目录与当前开关状态提供给管理页的「功能开关」页；
 3. ``tests/test_features.py``：校验每个指令都有归属、分组之间不重叠。
 
+开关状态只在插件管理页配置，由 ``core/feature_settings.py`` 保存到本地 SQLite。
 新增指令时，除了在 ``ini_command_map`` 注册，也要把它加进下面某个分组
 （或 ``ALWAYS_ON_COMMANDS``），否则 ``tests/test_features.py`` 会失败。
 """
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 # 始终注册的元指令与会话设置，不受功能开关影响。
 ALWAYS_ON_COMMANDS: frozenset[str] = frozenset(
@@ -43,7 +45,7 @@ FEATURE_SECTIONS: dict[str, dict[str, str]] = {
     },
     "ranking": {
         "name": "排行榜单",
-        "description": "名剑、综合榜单、试炼与资历。",
+        "description": "名剑、个人与帮会榜单、据点贡献、绝境战场、试炼与资历。",
     },
     "trade": {
         "name": "物价交易",
@@ -59,7 +61,7 @@ FEATURE_SECTIONS: dict[str, dict[str, str]] = {
     },
     "community": {
         "name": "游戏社区",
-        "description": "聊天、家园、师徒、资讯、招募、骚话与贴吧。",
+        "description": "聊天、家园、师徒、资讯、招募、骚话与随机帖子。",
     },
     "tools": {
         "name": "系统工具",
@@ -107,7 +109,7 @@ FEATURE_INFO: dict[str, dict[str, Any]] = {
     "activity_calendar": {
         "section": "activity",
         "name": "日历与首领",
-        "description": "活动日历、地图活动、世界首领与阵营事件。",
+        "description": "活动日历、地图活动与世界首领。",
         "cost": "消耗 JX3API 次数",
         "default": True,
     },
@@ -121,14 +123,14 @@ FEATURE_INFO: dict[str, dict[str, Any]] = {
     "ranking_arena": {
         "section": "ranking",
         "name": "名剑相关",
-        "description": "名剑战绩、排行、统计与跨服榜单。",
+        "description": "名剑战绩、排行与统计。",
         "cost": "消耗 JX3API 次数",
         "default": True,
     },
     "ranking_general": {
         "section": "ranking",
         "name": "综合榜单",
-        "description": "武林争霸、捕快、江湖浪客、决斗与帮会阵营榜单。",
+        "description": "跨服名剑、武林争霸、个人与帮会阵营榜单、据点贡献与绝境战场。",
         "cost": "消耗 JX3API 次数",
         "default": True,
     },
@@ -156,7 +158,7 @@ FEATURE_INFO: dict[str, dict[str, Any]] = {
     "role_profile": {
         "section": "role",
         "name": "角色资料",
-        "description": "角色详情、成就、属性面板与装备记录。",
+        "description": "角色详情、属性面板与装备记录。",
         "cost": "消耗 JX3API 次数",
         "default": True,
     },
@@ -170,7 +172,7 @@ FEATURE_INFO: dict[str, dict[str, Any]] = {
     "role_event": {
         "section": "role",
         "name": "奇遇相关",
-        "description": "角色奇遇、未触发、汇总、近期、统计与攻略。",
+        "description": "角色奇遇、汇总、近期、统计与攻略。",
         "cost": "含 JX3BOX 攻略",
         "default": True,
     },
@@ -198,7 +200,7 @@ FEATURE_INFO: dict[str, dict[str, Any]] = {
     "community_home": {
         "section": "community",
         "name": "家园与师徒",
-        "description": "家园鲜花、装饰、器物，以及拜师和收徒。",
+        "description": "家园鲜花，以及拜师和收徒。",
         "cost": "消耗 JX3API 次数",
         "default": True,
     },
@@ -218,8 +220,8 @@ FEATURE_INFO: dict[str, dict[str, Any]] = {
     },
     "community_tieba": {
         "section": "community",
-        "name": "百度贴吧",
-        "description": "贴吧物价与 818 随机内容。",
+        "name": "随机帖子",
+        "description": "贴吧物价与随机帖子内容。",
         "cost": "消耗 JX3API 次数",
         "default": True,
     },
@@ -270,8 +272,6 @@ FEATURE_COMMANDS: dict[str, frozenset[str]] = {
             "披风会",
             "云从社",
             "楚天社",
-            "关隘",
-            "阵营奉献",
         }
     ),
     "activity_field": frozenset(
@@ -288,18 +288,20 @@ FEATURE_COMMANDS: dict[str, frozenset[str]] = {
             "战绩",
             "名剑排行",
             "名剑统计",
-            "跨服名剑",
         }
     ),
     "ranking_general": frozenset(
         {
+            "跨服名剑",
             "武林争霸",
             "捕快荣誉",
             "江湖浪客",
             "决斗挑战",
             "帮会排行",
             "阵营排行",
-            "其他排行",
+            "个人排行",
+            "据点贡献",
+            "绝境战场",
         }
     ),
     "ranking_history": frozenset(
@@ -330,7 +332,6 @@ FEATURE_COMMANDS: dict[str, frozenset[str]] = {
     "role_profile": frozenset(
         {
             "角色",
-            "成就",
             "属性",
             "装备",
         }
@@ -346,7 +347,6 @@ FEATURE_COMMANDS: dict[str, frozenset[str]] = {
         {
             "奇遇",
             "查询",
-            "未出",
             "汇总",
             "近期",
             "统计",
@@ -379,8 +379,6 @@ FEATURE_COMMANDS: dict[str, frozenset[str]] = {
     "community_home": frozenset(
         {
             "花价",
-            "装饰",
-            "器物",
             "拜师",
             "收徒",
         }
@@ -477,30 +475,43 @@ def command_defaults() -> dict[str, bool]:
 
 
 def resolve_enabled(config: Mapping[str, Any] | None) -> dict[str, bool]:
-    """把用户配置归一成「指令名 -> 是否启用」的完整状态。
+    """把已保存的开关状态归一成「指令名 -> 是否启用」的完整状态。
 
-    配置格式为 ``{分组: {指令名: bool}}``；缺失或非布尔的分组 / 指令
-    回退到默认开启，保证升级旧配置后行为稳定。
+    配置格式为扁平的 ``{指令名: bool}``；缺失或非布尔的指令回退到默认
+    开启，保证新增指令或旧数据不会意外关闭功能。
     """
     resolved = command_defaults()
     if isinstance(config, Mapping):
-        # 兼容按旧分组保存的配置：先按指令名迁移，再让新分组值覆盖。
-        for key, group in config.items():
-            if key in FEATURE_ORDER or not isinstance(group, Mapping):
-                continue
-            for command in resolved:
-                value = group.get(command)
-                if isinstance(value, bool):
-                    resolved[command] = value
-        for key in FEATURE_ORDER:
-            group = config.get(key)
-            if not isinstance(group, Mapping):
-                continue
-            for command in FEATURE_COMMANDS[key]:
-                value = group.get(command)
-                if isinstance(value, bool):
-                    resolved[command] = value
+        for command in resolved:
+            value = config.get(command)
+            if isinstance(value, bool):
+                resolved[command] = value
     return resolved
+
+
+def normalize_selection(payload: Any) -> dict[str, bool]:
+    """从 WebUI 提交的数据中提取可识别的逐条指令开关。
+
+    Args:
+        payload: 可能为 ``{分组: {指令名: bool}}``、扁平 ``{指令名: bool}``
+            或两者的混合结构。
+
+    Returns:
+        仅包含目录内指令的 ``{指令名: bool}``，未知键和非布尔值都会被忽略。
+    """
+    commands = command_defaults()
+    selected: dict[str, bool] = {}
+    pending = [payload]
+    while pending:
+        node = pending.pop()
+        if not isinstance(node, Mapping):
+            continue
+        for key, value in node.items():
+            if key in commands and isinstance(value, bool):
+                selected[key] = value
+            elif isinstance(value, Mapping):
+                pending.append(value)
+    return selected
 
 
 def command_feature(command: str) -> str | None:

@@ -32,24 +32,21 @@ API_ENDPOINTS: tuple[str, ...] = (
     "/card/random",
     "/card/record",
     "/card/records",
-    "/castle/status",
     "/chat/records",
     "/chitu/records",
     "/chitu/week/records",
-    "/duowan/statistics",
+    "/choice/answer",
+    "/choice/drink",
+    "/choice/food",
     "/event/collect",
-    "/event/missing",
     "/event/recent",
     "/event/records",
     "/event/statistics",
     "/exam/search",
-    "/fenxian/records",
     "/firework/records",
     "/food/list",
     "/fraud/detail",
     "/home/flower",
-    "/home/furniture",
-    "/home/travel",
     "/mech/decrypt",
     "/mentor/search",
     "/monster/records",
@@ -59,11 +56,13 @@ API_ENDPOINTS: tuple[str, ...] = (
     "/raid/records",
     "/ranch/chat",
     "/ranch/records",
-    "/rank/arena",
-    "/rank/championship",
-    "/rank/constable",
-    "/rank/outlaw",
-    "/rank/statistics",
+    "/rank/battle",
+    "/rank/castle",
+    "/rank/contest",
+    "/rank/guild",
+    "/rank/jianghu",
+    "/rank/ladder",
+    "/rank/records",
     "/rank/trials",
     "/rank/wanted",
     "/recruit/search",
@@ -71,11 +70,8 @@ API_ENDPOINTS: tuple[str, ...] = (
     "/role/achievement",
     "/role/detail",
     "/sand/records",
-    "/saohua/answer",
     "/saohua/content",
     "/saohua/context",
-    "/saohua/drink",
-    "/saohua/eat",
     "/saohua/random",
     "/saohua/zhanan",
     "/school/matrix",
@@ -91,8 +87,32 @@ API_ENDPOINTS: tuple[str, ...] = (
     "/trade/manufacture",
     "/trade/records",
     "/trade/wanbaolou",
-    "/tuilan/achievement",
+    "/voice/channels",
     "/wicked/records",
+)
+
+# 旧接口重命名后，把已有的单项缓存时间迁移到新路径，并丢弃旧路径的缓存数据。
+ENDPOINT_RENAMES: tuple[tuple[str, str], ...] = (
+    ("/card/cached", "/card/record"),
+    ("/duowan/statistics", "/voice/channels"),
+    ("/rank/arena", "/rank/ladder"),
+    ("/rank/championship", "/rank/contest"),
+    ("/rank/statistics", "/rank/records"),
+    ("/rank/constable", "/rank/jianghu"),
+    ("/rank/outlaw", "/rank/jianghu"),
+    ("/saohua/answer", "/choice/answer"),
+    ("/saohua/drink", "/choice/drink"),
+    ("/saohua/eat", "/choice/food"),
+    ("/tuilan/achievement", "/role/achievement"),
+)
+
+# 已停止提供的接口：清理旧的单项缓存时间与缓存数据。
+REMOVED_ENDPOINTS: tuple[str, ...] = (
+    "/castle/status",
+    "/event/missing",
+    "/fenxian/records",
+    "/home/furniture",
+    "/home/travel",
 )
 
 
@@ -115,11 +135,11 @@ class CacheService:
     _NO_CACHE_API_DEFAULTS = frozenset(
         {
             "/card/random",
-            "/saohua/answer",
+            "/choice/answer",
+            "/choice/drink",
+            "/choice/food",
             "/saohua/content",
             "/saohua/context",
-            "/saohua/drink",
-            "/saohua/eat",
             "/saohua/random",
             "/saohua/zhanan",
             "/tieba/random",
@@ -246,24 +266,34 @@ class CacheService:
         await self._sqlite.execute(
             "CREATE INDEX IF NOT EXISTS idx_image_cache_name ON image_render_cache(cache_name)"
         )
-        # Preserve endpoint-specific TTLs without reusing the retired API's payloads.
+        # Preserve endpoint-specific TTLs without reusing retired API payloads.
         async with self._sqlite.transaction():
-            await self._sqlite.execute(
-                """
-                INSERT OR IGNORE INTO cache_settings(cache_type, cache_name, ttl_seconds)
-                SELECT cache_type, ?, ttl_seconds FROM cache_settings
-                WHERE cache_type='api' AND cache_name=?
-                """,
-                ("/card/record", "/card/cached"),
-            )
-            await self._sqlite.delete(
-                "cache_settings",
-                "cache_type='api' AND cache_name=?",
-                ("/card/cached",),
-            )
-            await self._sqlite.delete(
-                "api_response_cache", "endpoint=?", ("/card/cached",)
-            )
+            for old_path, new_path in ENDPOINT_RENAMES:
+                await self._sqlite.execute(
+                    """
+                    INSERT OR IGNORE INTO cache_settings(cache_type, cache_name, ttl_seconds)
+                    SELECT cache_type, ?, ttl_seconds FROM cache_settings
+                    WHERE cache_type='api' AND cache_name=?
+                    """,
+                    (new_path, old_path),
+                )
+                await self._sqlite.delete(
+                    "cache_settings",
+                    "cache_type='api' AND cache_name=?",
+                    (old_path,),
+                )
+                await self._sqlite.delete(
+                    "api_response_cache", "endpoint=?", (old_path,)
+                )
+            for endpoint in REMOVED_ENDPOINTS:
+                await self._sqlite.delete(
+                    "cache_settings",
+                    "cache_type='api' AND cache_name=?",
+                    (endpoint,),
+                )
+                await self._sqlite.delete(
+                    "api_response_cache", "endpoint=?", (endpoint,)
+                )
         await self._load_settings()
         await self._load_limits()
         async with self._api_storage_lock:
@@ -500,7 +530,7 @@ class CacheService:
 
     @classmethod
     def build_api_key(cls, endpoint: str, params: dict[str, Any]) -> str:
-        source = f"api:v1|{endpoint}|{cls._json(params, strip_sensitive=True)}"
+        source = f"api:v2|{endpoint}|{cls._json(params, strip_sensitive=True)}"
         return hashlib.sha256(source.encode("utf-8")).hexdigest()
 
     async def _read_api_payload(
@@ -535,7 +565,7 @@ class CacheService:
                 )
             except json.JSONDecodeError:
                 data = None
-            if data is None:
+            if data is None or (isinstance(data, (dict, list)) and not data):
                 self._forget_memory(cache_key)
                 await self._sqlite.delete(
                     "api_response_cache", "cache_key=?", (cache_key,)
@@ -729,7 +759,7 @@ class CacheService:
     ) -> str:
         source = "|".join(
             (
-                "image:v2",
+                "image:v3",
                 cache_name,
                 hashlib.sha256(template.encode("utf-8")).hexdigest(),
                 source_signature
@@ -755,7 +785,7 @@ class CacheService:
         """生成可在请求接口前计算的最终图片缓存键。"""
         source = "|".join(
             (
-                "image-request:v3",
+                "image-request:v4",
                 cache_name,
                 variant_signature,
                 scope_signature,
