@@ -1,6 +1,7 @@
 import json
 import html
 import re
+from urllib.parse import quote
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List, Union
 from inspect import isawaitable
@@ -468,6 +469,27 @@ class JX3BOXService:
 
         trade_items = self._flatten_trade_items(item_groups)
         matched_items = self._match_trade_items(trade_items, name, 50)
+
+        # 分组未收录时，按名称查询物品库
+        if not matched_items and (name or "").strip():
+            data = await self._base_request(
+                "node",
+                f"/item_merged/name/{quote(name.strip(), safe='')}",
+                params={"client": "std", "per": 50},
+                out="list",
+            )
+            if isinstance(data, list):
+                trade_items = [
+                    {
+                        "item_id": str(item["id"]),
+                        "label": str(item["Name"]),
+                        "icon": str(item.get("IconID") or ""),
+                    }
+                    for item in data
+                    if isinstance(item, dict) and item.get("id") and item.get("Name")
+                ]
+                matched_items = self._match_trade_items(trade_items, name, 50)
+
         if not matched_items:
             return_data["msg"] = "未找到匹配的交易行物品"
             return return_data
