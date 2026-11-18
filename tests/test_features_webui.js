@@ -102,7 +102,7 @@ test("refresh after other management changes also uses current switch values", a
   const page = createPage();
   await page.run("loadFeatures()");
   page.server.日常 = false;
-  await page.run('mutate("bindings/save", {}, "Saved")');
+  await page.run('mutate("bindings/delete", {}, "Saved")');
   assert.equal(page.input("日常").checked, false);
 });
 

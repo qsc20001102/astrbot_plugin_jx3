@@ -71,11 +71,7 @@ class WebUIService:
                 ["POST"],
                 "删除会话事件推送配置",
             ),
-            ("bindings/save", self.save_binding, ["POST"], "保存会话区服绑定"),
             ("bindings/delete", self.delete_binding, ["POST"], "删除会话区服绑定"),
-            ("aliases/save", self.save_aliases, ["POST"], "保存区服别名"),
-            ("aliases/delete", self.delete_aliases, ["POST"], "删除区服别名"),
-            ("aliases/restore", self.restore_aliases, ["POST"], "恢复默认区服别名"),
             ("kungfu/save", self.save_kungfu, ["POST"], "保存心法别名"),
             (
                 "kungfu/role-type",
@@ -162,7 +158,6 @@ class WebUIService:
         (
             bindings,
             subscriptions,
-            aliases,
             kungfu,
             session_control,
             token_stats,
@@ -172,7 +167,6 @@ class WebUIService:
         ) = await asyncio.gather(
             self.server_binding.list_bindings(),
             self.event_push.list_subscription_statuses(),
-            self.server_binding.list_aliases(),
             self.kungfu_alias.list_kungfu(),
             self.session_control.get_state(),
             self.jx3api.token_stats(),
@@ -184,9 +178,7 @@ class WebUIService:
             {
                 "bindings": bindings,
                 "subscriptions": subscriptions,
-                "aliases": aliases,
                 "kungfu": kungfu,
-                "servers": [item["server"] for item in aliases],
                 "events": {str(action): name for action, name in EVENT_NAMES.items()},
                 "free_event_actions": sorted(FREE_EVENT_ACTIONS),
                 "session_control": session_control,
@@ -263,20 +255,6 @@ class WebUIService:
             return error_response(str(exc), status_code=400)
         return json_response({"deleted": True})
 
-    async def save_binding(self):
-        try:
-            payload = await self._json_payload()
-            server = self.server_binding.resolve_standard_server(payload.get("server"))
-            if not server:
-                raise ValueError("绑定区服必须选择标准区服")
-            await self.server_binding.set_binding(
-                str(payload.get("session_id") or ""),
-                server,
-            )
-        except ValueError as exc:
-            return error_response(str(exc), status_code=400)
-        return json_response({"saved": True})
-
     async def delete_binding(self):
         try:
             payload = await self._json_payload()
@@ -287,35 +265,6 @@ class WebUIService:
         except ValueError as exc:
             return error_response(str(exc), status_code=400)
         return json_response({"deleted": True})
-
-    async def save_aliases(self):
-        try:
-            payload = await self._json_payload()
-            await self.server_binding.set_aliases(
-                str(payload.get("server") or ""),
-                self._parse_aliases(payload.get("aliases", [])),
-            )
-        except ValueError as exc:
-            return error_response(str(exc), status_code=400)
-        return json_response({"saved": True})
-
-    async def delete_aliases(self):
-        try:
-            payload = await self._json_payload()
-            server = str(payload.get("server") or "")
-            if not server.strip():
-                raise ValueError("标准区服名不能为空")
-            await self.server_binding.delete_aliases(server)
-        except ValueError as exc:
-            return error_response(str(exc), status_code=400)
-        return json_response({"deleted": True})
-
-    async def restore_aliases(self):
-        try:
-            restored = await self.server_binding.restore_default_aliases()
-        except (RuntimeError, ValueError) as exc:
-            return error_response(str(exc), status_code=500)
-        return json_response({"restored": restored})
 
     async def save_kungfu(self):
         try:

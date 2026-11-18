@@ -512,12 +512,12 @@ class EventPushService:
 
         recipients = await self._enabled_sessions(action)
         if "server" in detail:
-            event_server = self.server_binding.resolve_server(detail.get("server"))
+            event_server = str(detail.get("server") or "").strip().casefold()
             recipients = [
                 session_id
                 for session_id, bound_server in recipients
                 if not bound_server
-                or self.server_binding.resolve_server(bound_server) == event_server
+                or str(bound_server).strip().casefold() == event_server
             ]
         else:
             recipients = [session_id for session_id, _ in recipients]

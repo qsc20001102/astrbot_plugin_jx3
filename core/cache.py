@@ -69,6 +69,7 @@ API_ENDPOINTS: tuple[str, ...] = (
     "/reward/statistics",
     "/role/achievement",
     "/role/detail",
+    "/role/online/status",
     "/sand/records",
     "/saohua/content",
     "/saohua/context",
@@ -78,6 +79,8 @@ API_ENDPOINTS: tuple[str, ...] = (
     "/school/seniority",
     "/school/skills",
     "/school/talent",
+    "/server/search",
+    "/share/stay",
     "/server/status/check",
     "/skill/rework",
     "/steed/records",
@@ -87,6 +90,7 @@ API_ENDPOINTS: tuple[str, ...] = (
     "/trade/manufacture",
     "/trade/records",
     "/trade/wanbaolou",
+    "/trial/bosses",
     "/voice/channels",
     "/wicked/records",
 )
@@ -145,6 +149,8 @@ class CacheService:
             "/tieba/random",
         }
     )
+    # 属性/装备页包含实时在线状态，默认不缓存渲染图片，保证状态及时刷新。
+    _NO_CACHE_IMAGE_DEFAULTS = frozenset({"属性", "装备"})
 
     def __init__(
         self,
@@ -440,7 +446,10 @@ class CacheService:
         if cache_type == "api" and cache_name in self._NO_CACHE_API_DEFAULTS:
             return 0
         # 会话避雷图片默认不缓存，避免修改记录后仍展示旧图；仍可在 WebUI 单独开启。
-        if cache_type == "image" and cache_name in {"避雷查看", "避雷查询"}:
+        if cache_type == "image" and (
+            cache_name in {"避雷查看", "避雷查询"}
+            or cache_name in self._NO_CACHE_IMAGE_DEFAULTS
+        ):
             return 0
         return self.DEFAULT_API_TTL if cache_type == "api" else self.DEFAULT_IMAGE_TTL
 
@@ -450,7 +459,10 @@ class CacheService:
             return specific
         if cache_type == "api" and cache_name in self._NO_CACHE_API_DEFAULTS:
             return 0
-        if cache_type == "image" and cache_name in {"避雷查看", "避雷查询"}:
+        if cache_type == "image" and (
+            cache_name in {"避雷查看", "避雷查询"}
+            or cache_name in self._NO_CACHE_IMAGE_DEFAULTS
+        ):
             return 0
         default = self._settings.get((cache_type, "*"))
         if default is not None:
@@ -1036,7 +1048,11 @@ class CacheService:
                 (
                     (cache_type == "api" and cache_name in self._NO_CACHE_API_DEFAULTS)
                     or (
-                        cache_type == "image" and cache_name in {"避雷查看", "避雷查询"}
+                        cache_type == "image"
+                        and (
+                            cache_name in {"避雷查看", "避雷查询"}
+                            or cache_name in self._NO_CACHE_IMAGE_DEFAULTS
+                        )
                     )
                 )
                 and (cache_type, cache_name) not in self._settings

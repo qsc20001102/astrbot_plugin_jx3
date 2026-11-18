@@ -41,7 +41,7 @@ def command_map_commands() -> set[str]:
 class FeatureCatalogTest(unittest.TestCase):
     def test_every_command_has_a_home(self):
         commands = command_map_commands()
-        covered = set(features.ALWAYS_ON_COMMANDS)
+        covered: set[str] = set()
         for key in features.FEATURE_ORDER:
             covered |= set(features.FEATURE_COMMANDS[key])
         missing = sorted(commands - covered)
@@ -61,12 +61,14 @@ class FeatureCatalogTest(unittest.TestCase):
                 )
                 seen[command] = key
 
-    def test_always_on_commands_are_not_grouped(self):
-        for command in features.ALWAYS_ON_COMMANDS:
-            self.assertIsNone(
-                features.command_feature(command),
-                f"元指令「{command}」不应出现在功能分组里",
-            )
+    def test_all_commands_are_toggleable(self):
+        for key in features.FEATURE_ORDER:
+            for command in features.FEATURE_COMMANDS[key]:
+                with self.subTest(command=command):
+                    self.assertEqual(features.command_feature(command), key)
+                    self.assertFalse(
+                        features.command_enabled(command, {command: False})
+                    )
 
     def test_grouped_commands_are_registered(self):
         commands = command_map_commands()
@@ -78,33 +80,19 @@ class FeatureCatalogTest(unittest.TestCase):
                     f"分组 {key} 里的「{command}」并没有在 main.py 注册",
                 )
 
-    def test_groups_are_balanced(self):
+    def test_sections_have_commands(self):
         for key in features.FEATURE_ORDER:
             count = len(features.FEATURE_COMMANDS[key])
-            self.assertGreaterEqual(
-                count,
-                2,
-                f"分组 {key} 只有 {count} 条指令，卡片会显得过于零碎",
-            )
-            self.assertLessEqual(
-                count,
-                12,
-                f"分组 {key} 有 {count} 条指令，卡片会过高；请按官方子类拆分",
-            )
+            self.assertGreater(count, 0, f"分类 {key} 没有归入任何指令")
 
     def test_sections_cover_every_group(self):
         self.assertEqual(
             set(features.FEATURE_SECTIONS),
             set(features.FEATURE_SECTION_ORDER),
         )
+        self.assertEqual(set(features.FEATURE_ORDER), set(features.FEATURE_SECTIONS))
         for key in features.FEATURE_ORDER:
-            self.assertIn(
-                features.FEATURE_INFO[key]["section"], features.FEATURE_SECTIONS
-            )
-        self.assertEqual(
-            {features.FEATURE_INFO[key]["section"] for key in features.FEATURE_ORDER},
-            set(features.FEATURE_SECTION_ORDER),
-        )
+            self.assertIn(key, features.FEATURE_INFO)
 
     def test_removed_api_commands_are_absent(self):
         """JX3API 已移除的查询接口不再注册指令，也不再出现在功能目录中。"""
@@ -142,21 +130,24 @@ class FeatureCatalogTest(unittest.TestCase):
         self.assertTrue(features.command_enabled("绑定区服", enabled))
         self.assertFalse(features.command_enabled("奇遇", enabled))
         self.assertFalse(features.command_enabled("开团", enabled))
+        self.assertFalse(
+            features.command_enabled("绑定区服", features.resolve_enabled({"绑定区服": False}))
+        )
 
     def test_describe_has_per_command_state(self):
         resolved = features.resolve_enabled({"818": False})
-        tieba = next(
+        community = next(
             item
             for item in features.describe(resolved)
-            if item["key"] == "community_tieba"
+            if item["key"] == "community"
         )
         self.assertEqual(
-            tieba["total_count"],
-            len(features.FEATURE_COMMANDS["community_tieba"]),
+            community["total_count"],
+            len(features.FEATURE_COMMANDS["community"]),
         )
-        self.assertEqual(tieba["enabled_count"], tieba["total_count"] - 1)
-        self.assertEqual(tieba["section_name"], "游戏社区")
-        eight = next(cmd for cmd in tieba["commands"] if cmd["name"] == "818")
+        self.assertEqual(community["enabled_count"], community["total_count"] - 1)
+        self.assertEqual(community["section_name"], "游戏社区")
+        eight = next(cmd for cmd in community["commands"] if cmd["name"] == "818")
         self.assertFalse(eight["enabled"])
 
 

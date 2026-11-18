@@ -37,6 +37,22 @@
                 {% for label, value in [('门派', forceName), ('心法', kungfuName), ('体型', bodyName), ('阵营', campName), ('帮会', tongName)] %}
                 <div class="attribute-row"><span>{{ label }}</span><strong>{{ value or '暂无' }}</strong></div>
                 {% endfor %}
+                {% if onlineStatus is not none %}
+                <div class="attribute-row">
+                    <span>在线状态</span>
+                    <strong class="attribute-online attribute-online--{{ 'online' if onlineStatus else 'offline' }}">
+                        <i class="attribute-online-dot" aria-hidden="true"></i>{{ '在线' if onlineStatus else '离线' }}
+                    </strong>
+                </div>
+                <div class="attribute-row">
+                    <span>游戏登录</span>
+                    <strong>{{ '已登录' if gameLogin else '未登录' }}</strong>
+                </div>
+                <div class="attribute-row">
+                    <span>推栏登录</span>
+                    <strong>{{ '已登录' if appLogin else '未登录' }}</strong>
+                </div>
+                {% endif %}
             </section>
             <section class="panel attribute-panel">
                 <h2 class="section-title">基础属性</h2>

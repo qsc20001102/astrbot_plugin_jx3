@@ -21,6 +21,7 @@ with patch.dict(
 ):
     from core.jx3api_data import JX3APIService, ROLE_RANK_NAMES
     from core.request import APIClient, APIErrorResponse
+    from core.server_binding import ServerBindingService
 
 
 class ApiRouteTest(unittest.IsolatedAsyncioTestCase):
@@ -512,6 +513,145 @@ class ApiRouteTest(unittest.IsolatedAsyncioTestCase):
     async def test_random_post_endpoint_is_unchanged(self):
         await self.service.bagua(818, "梦江南", 10)
         self.assert_request_path("/tieba/random")
+
+    async def test_dunchong_uses_share_stay_endpoint(self):
+        self.api_get.return_value = [
+            {
+                "name": "蟹相",
+                "server": "梦江南",
+                "time": 1794986614,
+                "data": {
+                    "map_name": "枫华谷",
+                    "npc_name": "一本书",
+                    "min_time": 2,
+                    "max_time": 3,
+                },
+            }
+        ]
+        result = await self.service.dunchong("梦江南")
+        self.assert_request_path("/share/stay")
+        self.assertEqual(
+            self.api_get.await_args.kwargs["params"],
+            {"server": "梦江南", "token": "test-token"},
+        )
+        item = result["data"]["items"][0]
+        self.assertEqual(item["name"], "蟹相")
+        self.assertEqual(item["map_name"], "枫华谷")
+        self.assertEqual(item["npc_name"], "一本书")
+        self.assertTrue(item["time"])
+
+    async def test_miaoshang_uses_trial_bosses_endpoint(self):
+        self.api_get.return_value = {
+            "season": "苍生铸世50级",
+            "floor": 20,
+            "hpGrowth": 0.101242,
+            "bosses": [
+                {
+                    "boss": "雷神",
+                    "group": "short",
+                    "hp": 14230065,
+                    "clearDps": 79056,
+                    "perfectDps": 118584,
+                    "note": None,
+                }
+            ],
+        }
+        result = await self.service.miaoshang(20)
+        self.assert_request_path("/trial/bosses")
+        self.assertEqual(
+            self.api_get.await_args.kwargs["params"],
+            {"floor": 20, "token": "test-token"},
+        )
+        data = result["data"]
+        self.assertEqual(data["floor"], 20)
+        self.assertEqual(data["hp_growth"], "10.12%")
+        self.assertEqual(data["bosses"][0]["clear_dps"], "79,056")
+        self.assertEqual(data["bosses"][0]["group"], "短轴")
+
+    async def test_server_search_resolves_official_name(self):
+        self.api_get.return_value = {"server": "乾坤一掷"}
+        self.assertEqual(await self.service.server_search("华乾"), "乾坤一掷")
+        self.assert_request_path("/server/search")
+        self.assertEqual(
+            self.api_get.await_args.kwargs["params"],
+            {"server": "华乾", "token": "test-token"},
+        )
+
+    async def test_server_search_caches_missing_names(self):
+        self.api_get.return_value = APIErrorResponse(400, "服务器名称不正确")
+        self.assertIsNone(await self.service.server_search("不存在的区服"))
+        self.assertIsNone(await self.service.server_search("不存在的区服"))
+        self.api_get.assert_awaited_once()
+
+    async def test_role_online_formats_standalone_result(self):
+        self.service.ticket = "test-ticket"
+        self.service._api.post = AsyncMock(
+            return_value=[
+                {
+                    "serverName": "梦江南",
+                    "roleName": "测试角色",
+                    "onlineStatus": True,
+                    "gameLogin": True,
+                    "appLogin": False,
+                }
+            ]
+        )
+
+        result = await self.service.role_online("梦江南", "测试角色")
+
+        self.assertEqual(result["code"], 200)
+        self.assertIn("角色在线", result["data"])
+        self.assertIn("区服：梦江南", result["data"])
+        self.assertIn("在线状态：在线", result["data"])
+        self.assertIn("游戏登录：已登录", result["data"])
+        self.assertIn("推栏登录：未登录", result["data"])
+
+    async def test_all_server_keywords_accept_quanqu_and_quanfu(self):
+        binding = ServerBindingService(None)
+        for keyword in ("全区", "全服"):
+            with self.subTest(keyword=keyword):
+                self.assertTrue(binding.is_all_servers_query(keyword))
+        self.assertFalse(binding.is_all_servers_query("梦江南"))
+
+    async def test_role_online_status_uses_post_with_header_token(self):
+        self.service.ticket = "test-ticket"
+        post = AsyncMock(
+            return_value=[
+                {
+                    "onlineStatus": True,
+                    "gameLogin": False,
+                    "appLogin": True,
+                }
+            ]
+        )
+        self.service._api.post = post
+
+        result = await self.service.role_online_status("梦江南", "测试角色")
+
+        self.assertEqual(
+            result,
+            {"onlineStatus": True, "gameLogin": False, "appLogin": True},
+        )
+        post.assert_awaited_once()
+        self.assertEqual(
+            post.await_args.args,
+            ("https://www.jx3api.com/role/online/status",),
+        )
+        self.assertEqual(
+            post.await_args.kwargs["data"],
+            {
+                "query": [{"server": "梦江南", "name": "测试角色"}],
+                "ticket": "test-ticket",
+            },
+        )
+        self.assertEqual(post.await_args.kwargs["headers"], {"token": "test-token"})
+
+    async def test_role_online_status_skips_without_ticket(self):
+        post = AsyncMock()
+        self.service._api.post = post
+
+        self.assertIsNone(await self.service.role_online_status("梦江南", "测试角色"))
+        post.assert_not_awaited()
 
     async def test_achievement_distribution_uses_role_achievement(self):
         await self.service.zili("梦江南", "测试角色", {"1": "总览"})

@@ -800,7 +800,7 @@ class MessageBuilder:
 
         Args:
             event: Message event receiving the rendered image.
-            server: Server name after session binding and alias resolution.
+            server: Official server name after session binding and resolution.
             name: Role name to query.
         """
         return await self.T2I_image_msg(
@@ -812,7 +812,7 @@ class MessageBuilder:
 
         Args:
             event: Message event starting the two-round session.
-            server: Server name after session binding and alias resolution.
+            server: Official server name after session binding and resolution.
             name: Role name whose equipment records are queried.
         """
         return await self.handler_plain_image_msg(
@@ -856,6 +856,10 @@ class MessageBuilder:
     async def  jingnai(self, event: AstrMessageEvent, server: str, name: str):
         """ 精耐 服务器 角色 """
         return await self.T2I_image_msg(event, lambda: self.jx3api.jingnai(name, server))
+
+    async def  dunchong(self, event: AstrMessageEvent, server: str):
+        """ 蹲宠 服务器 """
+        return await self.T2I_image_msg(event, lambda: self.jx3api.dunchong(server))
     
     async def  baizhan(self, event: AstrMessageEvent):
         """ 百战"""
@@ -864,6 +868,10 @@ class MessageBuilder:
     async def  jueshe(self, event: AstrMessageEvent,server: str, name: str):
         """ 角色 服务器 名称 """
         return await self.plain_msg(event, lambda: self.jx3api.jueshe(server, name, 1))
+
+    async def  juesezaixian(self, event: AstrMessageEvent, server: str, name: str):
+        """ 在线 服务器 角色 """
+        return await self.plain_msg(event, lambda: self.jx3api.role_online(server, name))
 
     async def  zhenyan(self, event: AstrMessageEvent, kungfu: str):
         """ 阵眼 心法"""
@@ -1008,6 +1016,10 @@ class MessageBuilder:
     async def  diaoluo(self, event: AstrMessageEvent, name: str,  server: str = "", limit: str = "20",):
         """ 掉落 物品 服务器 数量 """
         return await self.T2I_image_msg(event, lambda: self.jx3api.diaoluo(name, server, limit))
+
+    async def  miaoshang(self, event: AstrMessageEvent, floor: int = 1):
+        """ 秒伤 层数 """
+        return await self.T2I_image_msg(event, lambda: self.jx3api.miaoshang(floor))
 
 
     async def  hong(self, event: AstrMessageEvent, kungfu: str):

@@ -36,8 +36,18 @@ class CardCacheTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn("/card/record", endpoints)
         self.assertIn("/card/records", endpoints)
         self.assertIn("/card/random", endpoints)
+        self.assertIn("/role/online/status", endpoints)
+        self.assertIn("/server/search", endpoints)
+        self.assertIn("/share/stay", endpoints)
+        self.assertIn("/trial/bosses", endpoints)
+        self.assertEqual(self.cache.get_ttl("api", "/share/stay"), 300)
+        self.assertEqual(self.cache.get_ttl("api", "/trial/bosses"), 300)
         self.assertNotIn("/card/cached", endpoints)
         self.assertEqual(self.cache.get_ttl("api", "/card/random"), 0)
+        self.assertEqual(self.cache.get_ttl("api", "/role/online/status"), 300)
+        self.assertEqual(self.cache.get_ttl("api", "/server/search"), 300)
+        self.assertEqual(self.cache.get_ttl("image", "属性"), 0)
+        self.assertEqual(self.cache.get_ttl("image", "装备"), 0)
 
     async def test_dashboard_lists_renamed_endpoints_only(self):
         dashboard = await self.cache.dashboard()

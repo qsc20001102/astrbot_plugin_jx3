@@ -81,11 +81,6 @@ class Jx3ApiPlugin(Star):
             await self.team.initialize()
             await self.team_rules.initialize()
 
-            # 获取区服目录，用于识别完整参数与区服别名。
-            await self.server_binding.update_server_catalog(
-                await self.jx3api.server_list()
-            )
-
             # 开启实时事件通道
             await self.event_push.initialize()
 
@@ -133,7 +128,6 @@ class Jx3ApiPlugin(Star):
         self.local_data_path = self.local_data_dir / "local_data.db"
         self.cache_image_dir = self.local_data_dir / "cache" / "images"
         self.kungfu_seed_path = self.plugin_data_dir / "kungfu.json"
-        self.server_alias_seed_path = self.plugin_data_dir / "server_aliases.json"
 
         # 图片文件路径
         self.plugin_temp_img = self.plugin_temp_dir / "img"
@@ -144,7 +138,6 @@ class Jx3ApiPlugin(Star):
         # 数据路径打印
         logger.debug(f"本地数据路径: {self.local_data_path}")
         logger.debug(f"心法种子数据路径: {self.kungfu_seed_path}")
-        logger.debug(f"区服别名种子数据路径: {self.server_alias_seed_path}")
         logger.debug(f"图片文件路径: {self.plugin_temp_img}")
         logger.debug(f"沙盘图片文件路径: {self.plugin_temp_sand}")
         logger.debug(f"图片文件路径: {self.plugin_temp_sect}")
@@ -182,10 +175,7 @@ class Jx3ApiPlugin(Star):
             self.local_sql_db,
             self.kungfu_seed_path,
         )
-        self.server_binding = ServerBindingService(
-            self.local_sql_db,
-            self.server_alias_seed_path,
-        )
+        self.server_binding = ServerBindingService(self.local_sql_db)
         self.session_control = SessionControlService(self.local_sql_db)
         self.team_rules = TeamRuleService(self.local_sql_db, self.kungfu_alias)
         self.team = TeamService(
@@ -312,7 +302,9 @@ class Jx3ApiPlugin(Star):
             "攻略": self.jx3cmd.qiyugonglue,
             "精耐": self.jx3cmd.jingnai,
             "百战": self.jx3cmd.baizhan,
+            "蹲宠": self.jx3cmd.dunchong,
             "角色": self.jx3cmd.jueshe,
+            "在线": self.jx3cmd.juesezaixian,
             "属性": self.jx3cmd.shuxing,
             "装备": self.jx3cmd.zhuangbei,
             "阵眼": self.jx3cmd.zhenyan,
@@ -350,6 +342,7 @@ class Jx3ApiPlugin(Star):
             "技改": self.jx3cmd.jigai,
             "解密": self.jx3cmd.jiemi,
             "掉落": self.jx3cmd.diaoluo,
+            "秒伤": self.jx3cmd.miaoshang,
             "宏": self.jx3cmd.hong,
             "交易行": self.jx3cmd.jiaoyihang,
             "绑定区服": self.bind_server,
@@ -459,7 +452,7 @@ class Jx3ApiPlugin(Star):
         event: AstrMessageEvent,
         args: list[str],
     ) -> list[str]:
-        """补齐会话绑定、解析区服别名，并支持用“全区”显式传空区服。"""
+        """补齐会话绑定，并通过官方接口把区服参数解析为标准名称。"""
         params = [
             parameter
             for parameter in inspect.signature(handler).parameters.values()
@@ -480,21 +473,20 @@ class Jx3ApiPlugin(Star):
         bound_server = await self.server_binding.get_binding(event.unified_msg_origin)
         has_server_arg = server_index < len(prepared)
 
-        if bound_server:
-            explicit_server = has_server_arg and (
-                self.server_binding.is_all_servers_query(prepared[server_index])
-                or self.server_binding.is_known_server(prepared[server_index])
-            )
-            if explicit_server:
-                prepared[server_index] = self.server_binding.resolve_query_server(
-                    prepared[server_index]
-                )
-            else:
+        if not has_server_arg:
+            if bound_server:
                 prepared.insert(server_index, bound_server)
-        elif has_server_arg:
-            prepared[server_index] = self.server_binding.resolve_query_server(
-                prepared[server_index]
-            )
+            return prepared
+
+        if self.server_binding.is_all_servers_query(prepared[server_index]):
+            prepared[server_index] = ""
+            return prepared
+
+        resolved_server = await self.jx3api.server_search(prepared[server_index])
+        if resolved_server:
+            prepared[server_index] = resolved_server
+        elif bound_server:
+            prepared.insert(server_index, bound_server)
 
         return prepared
 
@@ -632,9 +624,12 @@ class Jx3ApiPlugin(Star):
                 else "当前会话尚未绑定区服。\n用法：绑定区服 区服名"
             )
         else:
-            server = self.server_binding.resolve_server(server_name)
-            await self.server_binding.set_binding(session_id, server)
-            text = f"当前会话已绑定区服：{server}"
+            server = await self.jx3api.server_search(server_name)
+            if not server:
+                text = f"未找到区服：{server_name}"
+            else:
+                await self.server_binding.set_binding(session_id, server)
+                text = f"当前会话已绑定区服：{server}"
         await event.send(event.plain_result(text))
 
     async def unbind_server(self, event: AstrMessageEvent):

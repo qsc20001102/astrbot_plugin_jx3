@@ -2,9 +2,7 @@ const bridge = window.AstrBotPluginPage;
 const state = {
   bindings: [],
   subscriptions: [],
-  aliases: [],
   kungfu: [],
-  servers: [],
   events: {},
   free_event_actions: [],
   session_control: { mode: "all", entries: [] },
@@ -23,7 +21,7 @@ const state = {
     stats: {},
   },
 };
-const editing = { bindingSession: null, controlSession: null, aliasServer: null, kungfuPzid: null, subscriptionSession: null, teamRuleId: null };
+const editing = { controlSession: null, kungfuPzid: null, subscriptionSession: null, teamRuleId: null };
 const expandedTeamIds = new Set();
 let subscriptionSaving = false;
 const restoreConfirmationTimers = new WeakMap();
@@ -130,77 +128,8 @@ function inlineAliasEditor(aliases, label, onSave, onCancel) {
   return { input, controls: [saveButton, cancelButton] };
 }
 
-function createServerSelect(selectedServer = "", label = "绑定区服") {
-  const select = document.createElement("select");
-  select.className = "inline-editor";
-  select.required = true;
-  select.setAttribute("aria-label", label);
-
-  const placeholder = document.createElement("option");
-  placeholder.value = "";
-  placeholder.textContent = "请选择标准区服";
-  placeholder.disabled = true;
-  placeholder.defaultSelected = true;
-  select.append(placeholder);
-
-  state.servers.forEach((server) => {
-    const option = document.createElement("option");
-    option.value = server;
-    option.textContent = server;
-    select.append(option);
-  });
-  select.value = state.servers.includes(selectedServer) ? selectedServer : "";
-  return select;
-}
-
-function inlineServerEditor(item, onSave, onCancel) {
-  const select = createServerSelect(item.server, `${item.session_id}的绑定区服`);
-  const saveButton = button("保存", "", async () => {
-    if (!select.reportValidity()) return;
-    select.disabled = true;
-    saveButton.disabled = true;
-    cancelButton.disabled = true;
-    const saved = await onSave(select.value);
-    if (!saved) {
-      select.disabled = false;
-      saveButton.disabled = false;
-      cancelButton.disabled = false;
-      select.focus();
-    }
-  });
-  const cancelButton = button("取消", "", onCancel);
-  select.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      saveButton.click();
-    } else if (event.key === "Escape") {
-      event.preventDefault();
-      cancelButton.click();
-    }
-  });
-  queueMicrotask(() => select.focus());
-  return { select, controls: [saveButton, cancelButton] };
-}
-
 function bindingMap() {
   return new Map(state.bindings.map((item) => [item.session_id, item.server]));
-}
-
-function renderServerOptions() {
-  const select = byId("binding-server");
-  const currentValue = select.value;
-  const placeholder = document.createElement("option");
-  placeholder.value = "";
-  placeholder.textContent = "请选择标准区服";
-  placeholder.disabled = true;
-  placeholder.defaultSelected = true;
-  select.replaceChildren(placeholder, ...state.servers.map((server) => {
-    const option = document.createElement("option");
-    option.value = server;
-    option.textContent = server;
-    return option;
-  }));
-  select.value = state.servers.includes(currentValue) ? currentValue : "";
 }
 
 function renderSessionOptions() {
@@ -369,50 +298,20 @@ function renderBindings() {
     server.dataset.label = "绑定区服";
     actions.dataset.label = "操作";
     session.textContent = item.session_id;
+    server.textContent = item.server;
     actions.className = "actions";
-    if (editing.bindingSession === item.session_id) {
-      row.classList.add("is-editing");
-      const editor = inlineServerEditor(
-        item,
-        async (selectedServer) => {
-          editing.bindingSession = null;
-          const saved = await mutate(
-            "bindings/save",
-            { session_id: item.session_id, server: selectedServer },
-            "绑定信息已保存",
-          );
-          if (!saved) {
-            editing.bindingSession = item.session_id;
-            renderBindings();
-          }
-          return saved;
-        },
-        () => {
-          editing.bindingSession = null;
-          renderBindings();
-        },
-      );
-      server.append(editor.select);
-      actions.append(...editor.controls);
-    } else {
-      server.textContent = item.server;
-      actions.append(
-        button("编辑", "", () => {
-          editing.bindingSession = item.session_id;
-          renderBindings();
-        }),
-        button("解除绑定", "link-button--danger", async (event) => {
-          const control = event.currentTarget;
-          control.disabled = true;
-          const deleted = await mutate(
-            "bindings/delete",
-            { session_id: item.session_id },
-            "绑定已解除",
-          );
-          if (!deleted) control.disabled = false;
-        }),
-      );
-    }
+    actions.append(
+      button("解除绑定", "link-button--danger", async (event) => {
+        const control = event.currentTarget;
+        control.disabled = true;
+        const deleted = await mutate(
+          "bindings/delete",
+          { session_id: item.session_id },
+          "绑定已解除",
+        );
+        if (!deleted) control.disabled = false;
+      }),
+    );
     row.append(session, server, actions);
     return row;
   }));
@@ -538,71 +437,6 @@ function renderSubscriptions() {
       }),
     );
     row.append(session, server, enabled, actions, controls);
-    return row;
-  }));
-}
-
-function renderAliases() {
-  const body = byId("aliases-body");
-  const aliasesByServer = new Map(
-    state.aliases.map((item) => [item.server, item.aliases]),
-  );
-  const servers = [...new Set([
-    ...state.servers,
-    ...aliasesByServer.keys(),
-  ])].sort((left, right) => left.localeCompare(right, "zh-CN"));
-  if (!servers.length) {
-    body.replaceChildren(emptyRow(3, "暂无标准区服数据"));
-    return;
-  }
-  body.replaceChildren(...servers.map((serverName) => {
-    const item = {
-      server: serverName,
-      aliases: aliasesByServer.get(serverName) || [],
-    };
-    const row = document.createElement("tr");
-    const server = document.createElement("td");
-    const aliases = document.createElement("td");
-    const actions = document.createElement("td");
-    server.dataset.label = "标准区服名";
-    aliases.dataset.label = "别名";
-    actions.dataset.label = "操作";
-    server.textContent = item.server;
-    aliases.className = "alias-cell";
-    actions.className = "actions";
-    if (editing.aliasServer === item.server) {
-      row.classList.add("is-editing");
-      const editor = inlineAliasEditor(
-        item.aliases,
-        `${item.server}的区服别名`,
-        async (value) => {
-          editing.aliasServer = null;
-          const saved = await mutate(
-            "aliases/save",
-            { server: item.server, aliases: value },
-            "区服别名已保存",
-          );
-          if (!saved) {
-            editing.aliasServer = item.server;
-            renderAliases();
-          }
-          return saved;
-        },
-        () => {
-          editing.aliasServer = null;
-          renderAliases();
-        },
-      );
-      aliases.append(editor.input);
-      actions.append(...editor.controls);
-    } else {
-      aliases.textContent = aliasText(item.aliases);
-      actions.append(button("编辑", "", () => {
-        editing.aliasServer = item.server;
-        renderAliases();
-      }));
-    }
-    row.append(server, aliases, actions);
     return row;
   }));
 }
@@ -1357,12 +1191,10 @@ function renderTeams() {
 
 function render() {
   renderTokenStats();
-  renderServerOptions();
   renderSessionOptions();
   renderSessionControl();
   renderBindings();
   renderSubscriptions();
-  renderAliases();
   renderKungfu();
   renderFeatures();
   renderCache();
@@ -1442,7 +1274,9 @@ function updateFeatureSummary() {
 }
 
 function syncGroup(groupKey, checked) {
-  commandInputs(groupKey).forEach((input) => { input.checked = checked; });
+  commandInputs(groupKey).forEach((input) => {
+    if (!input.disabled) input.checked = checked;
+  });
   const group = featureCatalog().find((item) => item.key === groupKey);
   updateGroupMaster(groupKey);
   if (group) updateSectionMaster(group.section);
@@ -1450,7 +1284,9 @@ function syncGroup(groupKey, checked) {
 }
 
 function syncSection(sectionKey, checked) {
-  sectionInputs(sectionKey).forEach((input) => { input.checked = checked; });
+  sectionInputs(sectionKey).forEach((input) => {
+    if (!input.disabled) input.checked = checked;
+  });
   featureCatalog()
     .filter((group) => group.section === sectionKey)
     .forEach((group) => updateGroupMaster(group.key));
@@ -1475,9 +1311,11 @@ function createFeatureCard(group) {
 
   const head = document.createElement("div");
   head.className = "feature-card__head";
-  const title = document.createElement("strong");
-  title.textContent = group.name;
-  head.append(title);
+  if (group.name !== group.section_name) {
+    const title = document.createElement("strong");
+    title.textContent = group.name;
+    head.append(title);
+  }
   if (group.cost) {
     const cost = document.createElement("span");
     cost.className = "feature-card__cost";
@@ -1490,9 +1328,14 @@ function createFeatureCard(group) {
   count.textContent = `${group.enabled_count} / ${group.total_count}`;
   head.append(count);
 
-  const desc = document.createElement("p");
-  desc.className = "feature-card__desc";
-  desc.textContent = group.description || "";
+  const body = document.createElement("div");
+  body.className = "feature-card__body";
+  if (group.name !== group.section_name) {
+    const desc = document.createElement("p");
+    desc.className = "feature-card__desc";
+    desc.textContent = group.description || "";
+    body.append(desc);
+  }
 
   const commands = document.createElement("div");
   commands.className = "feature-card__commands";
@@ -1516,11 +1359,13 @@ function createFeatureCard(group) {
     commands.append(row);
   });
 
-  const body = document.createElement("div");
-  body.className = "feature-card__body";
-  body.append(head, desc, commands);
+  body.append(head, commands);
 
-  card.append(masterLabel, body);
+  if (group.name === group.section_name) {
+    card.append(body);
+  } else {
+    card.append(masterLabel, body);
+  }
   card.classList.toggle("is-on", group.enabled_count === group.total_count && group.total_count > 0);
   return card;
 }
@@ -1799,15 +1644,6 @@ byId("subscription-form").addEventListener("submit", async (event) => {
   }
 });
 
-byId("binding-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const saved = await mutate("bindings/save", {
-    session_id: byId("binding-session").value,
-    server: byId("binding-server").value,
-  }, "绑定信息已保存");
-  if (saved) event.currentTarget.reset();
-});
-
 document.querySelectorAll('input[name="control_mode"]').forEach((input) => {
   input.addEventListener("change", () => {
     updateModeSelection(input.value);
@@ -1913,16 +1749,6 @@ byId("team-delete-all").addEventListener("click", async (event) => {
     "teams/delete-all",
     { session_id: sessionId },
     `会话 ${sessionId} 的全部团队已结束`,
-  );
-});
-
-byId("restore-aliases").addEventListener("click", async (event) => {
-  await restoreDefaults(
-    event.currentTarget,
-    "aliases/restore",
-    "再次点击按钮，确认使用内置 JSON 覆盖当前全部区服别名",
-    "区服别名已恢复默认",
-    () => { editing.aliasServer = null; },
   );
 });
 

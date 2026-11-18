@@ -1,14 +1,15 @@
-"""功能开关目录：定义可启用的功能分组、每个指令的归属，以及逐条指令开关。
+"""功能开关目录：按 JX3API 官网一级分类划归指令，并提供逐条指令开关。
 
 这份目录同时服务三处：
 
 1. ``main.py`` 的 ``ini_command_map``：按逐条指令开关决定注册哪些指令；
 2. ``core/webui.py``：把目录与当前开关状态提供给管理页的「功能开关」页；
-3. ``tests/test_features.py``：校验每个指令都有归属、分组之间不重叠。
+3. ``tests/test_features.py``：校验每个指令都有归属、分类之间不重叠。
 
 开关状态只在插件管理页配置，由 ``core/feature_settings.py`` 保存到本地 SQLite。
-新增指令时，除了在 ``ini_command_map`` 注册，也要把它加进下面某个分组
-（或 ``ALWAYS_ON_COMMANDS``），否则 ``tests/test_features.py`` 会失败。
+所有指令都归入下面的分类，并统一受功能开关控制；新增指令时除了在
+``ini_command_map`` 注册，也要把它加进对应分类，否则
+``tests/test_features.py`` 会失败。
 """
 
 from __future__ import annotations
@@ -16,17 +17,9 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-# 始终注册的元指令与会话设置，不受功能开关影响。
-ALWAYS_ON_COMMANDS: frozenset[str] = frozenset(
-    {
-        "功能",
-        "绑定区服",
-        "解绑区服",
-    }
-)
-
-# 管理页按 JX3API 官方一级分类展示；本地能力单独放在最后。
+# 分类顺序尽量与 JX3API 官网一致；“功能类”固定放在第一位。
 FEATURE_SECTION_ORDER: tuple[str, ...] = (
+    "functions",
     "activity",
     "ranking",
     "trade",
@@ -35,21 +28,27 @@ FEATURE_SECTION_ORDER: tuple[str, ...] = (
     "community",
     "tools",
     "dungeon",
-    "local",
+    "macro",
+    "avoid",
+    "team",
 )
 
 FEATURE_SECTIONS: dict[str, dict[str, str]] = {
+    "functions": {
+        "name": "功能类",
+        "description": "功能帮助、区服绑定与事件推送等插件入口。",
+    },
     "activity": {
         "name": "活动情报",
-        "description": "活动日历、世界首领、赤兔、烟花与马场。",
+        "description": "活动日历、声望社、赤兔、马场与烟花。",
     },
     "ranking": {
         "name": "排行榜单",
-        "description": "名剑、个人与帮会榜单、据点贡献、绝境战场、试炼与资历。",
+        "description": "名剑战绩、跨服与个人/帮会榜单、试炼、资历、据点贡献与绝境战场。",
     },
     "trade": {
         "name": "物价交易",
-        "description": "阵营竞拍、的卢拍卖与物品行情。",
+        "description": "阵营竞拍、的卢拍卖、金币行情、物品物价、成本、万宝楼与交易行。",
     },
     "battle": {
         "name": "阵营战场",
@@ -57,214 +56,124 @@ FEATURE_SECTIONS: dict[str, dict[str, str]] = {
     },
     "role": {
         "name": "角色查询",
-        "description": "角色资料、名片、奇遇、百战与心法配装。",
+        "description": "奇遇、角色详情、在线状态、属性与装备、心法配装、名片、百战与蹲宠。",
+    },
+    "macro": {
+        "name": "魔盒功能",
+        "description": "魔盒配装、魔盒宏与交易行。",
     },
     "community": {
         "name": "游戏社区",
-        "description": "聊天、家园、师徒、资讯、招募、骚话与随机帖子。",
+        "description": "趣味选择、小药、语录、聊天、统战、家园、师徒、新闻、招募与贴吧。",
     },
     "tools": {
         "name": "系统工具",
-        "description": "科举、大区状态与技改记录。",
+        "description": "科举答案、大区状态、开服状态与技改记录。",
     },
     "dungeon": {
         "name": "副本秘境",
-        "description": "秘境方位与掉落统计。",
+        "description": "秘境方位、物品掉落统计与试炼秒伤计算。",
     },
-    "local": {
-        "name": "本地增强",
-        "description": "团队管理、避雷记录和实时事件推送等插件自有能力。",
+    "avoid": {
+        "name": "避雷功能",
+        "description": "按会话隔离的避雷记录增删改查。",
+    },
+    "team": {
+        "name": "团队功能",
+        "description": "开团、报名、成员调整、团队黑本与报名限制。",
     },
 }
 
-# 功能分组顺序即管理页卡片展示顺序。单个分组保持在 12 条以内，
-# 避免某张卡片过高导致页面失衡；官方大类过大时按子标签拆分。
-FEATURE_ORDER: tuple[str, ...] = (
-    "activity_calendar",
-    "activity_field",
-    "ranking_arena",
-    "ranking_general",
-    "ranking_history",
-    "trade",
-    "battle",
-    "role_profile",
-    "role_card",
-    "role_event",
-    "role_baizhan",
-    "role_kungfu",
-    "community_interaction",
-    "community_home",
-    "community_news",
-    "community_saohua",
-    "community_tieba",
-    "tools",
-    "dungeon",
-    "local_team_signup",
-    "local_team_rules",
-    "local_assist",
-)
+# 分类顺序即管理页卡片展示顺序。
+FEATURE_ORDER: tuple[str, ...] = FEATURE_SECTION_ORDER
 
-# 分组元信息：所属官方大类、展示名、说明、令牌消耗提示、默认开关。
+# 分类元信息：展示名、说明、令牌消耗提示、默认开关。
 FEATURE_INFO: dict[str, dict[str, Any]] = {
-    "activity_calendar": {
-        "section": "activity",
-        "name": "日历与首领",
-        "description": "活动日历、地图活动与世界首领。",
+    "functions": {
+        "name": "功能类",
+        "description": "功能帮助、区服绑定与事件推送等插件入口。",
+        "cost": "不消耗 JX3API 次数",
+        "default": True,
+    },
+    "activity": {
+        "name": "活动情报",
+        "description": "活动日历、声望社、赤兔、马场与烟花。",
         "cost": "消耗 JX3API 次数",
         "default": True,
     },
-    "activity_field": {
-        "section": "activity",
-        "name": "赤兔与马场",
-        "description": "赤兔记录、烟花事件与马场动态。",
-        "cost": "消耗 JX3API 次数",
-        "default": True,
-    },
-    "ranking_arena": {
-        "section": "ranking",
-        "name": "名剑相关",
-        "description": "名剑战绩、排行与统计。",
-        "cost": "消耗 JX3API 次数",
-        "default": True,
-    },
-    "ranking_general": {
-        "section": "ranking",
-        "name": "综合榜单",
-        "description": "跨服名剑、武林争霸、个人与帮会阵营榜单、据点贡献与绝境战场。",
-        "cost": "消耗 JX3API 次数",
-        "default": True,
-    },
-    "ranking_history": {
-        "section": "ranking",
-        "name": "试炼与资历",
-        "description": "试炼排行、资历分布与资历排行。",
+    "ranking": {
+        "name": "排行榜单",
+        "description": "名剑、跨服、个人/帮会榜单、试炼、资历、据点贡献与绝境战场。",
         "cost": "消耗 JX3API 次数",
         "default": True,
     },
     "trade": {
-        "section": "trade",
-        "name": "拍卖与行情",
-        "description": "阵营竞拍、的卢、金币、物品物价、成本与交易行。",
+        "name": "物价交易",
+        "description": "阵营竞拍、的卢、金币、物品物价、成本与万宝楼。",
         "cost": "含 JX3BOX 行情查询",
         "default": True,
     },
     "battle": {
-        "section": "battle",
         "name": "阵营战场",
         "description": "帮战记录、阵营沙盘与诛恶事件。",
         "cost": "消耗 JX3API 次数",
         "default": True,
     },
-    "role_profile": {
-        "section": "role",
-        "name": "角色资料",
-        "description": "角色详情、属性面板与装备记录。",
-        "cost": "消耗 JX3API 次数",
-        "default": True,
-    },
-    "role_card": {
-        "section": "role",
-        "name": "角色名片",
-        "description": "当前名片、全部名片与随机名片。",
-        "cost": "消耗 JX3API 次数",
-        "default": True,
-    },
-    "role_event": {
-        "section": "role",
-        "name": "奇遇相关",
-        "description": "角色奇遇、汇总、近期、统计与攻略。",
+    "role": {
+        "name": "角色查询",
+        "description": "奇遇、角色详情、在线状态、属性与装备、心法配装、名片、百战与蹲宠。",
         "cost": "含 JX3BOX 攻略",
         "default": True,
     },
-    "role_baizhan": {
-        "section": "role",
-        "name": "百战记录",
-        "description": "角色百战精耐与每周百战首领。",
-        "cost": "消耗 JX3API 次数",
+    "macro": {
+        "name": "魔盒功能",
+        "description": "魔盒配装、魔盒宏与交易行。",
+        "cost": "含 JX3BOX 配装、宏与交易行",
         "default": True,
     },
-    "role_kungfu": {
-        "section": "role",
-        "name": "心法配装",
-        "description": "阵眼、配装、技能、奇穴与宏。",
-        "cost": "含 JX3BOX 配装与宏",
-        "default": True,
-    },
-    "community_interaction": {
-        "section": "community",
-        "name": "互动与防骗",
-        "description": "聊天记录、多玩语音、小吃小药与骗子查询。",
-        "cost": "消耗 JX3API 次数",
-        "default": True,
-    },
-    "community_home": {
-        "section": "community",
-        "name": "家园与师徒",
-        "description": "家园鲜花，以及拜师和收徒。",
-        "cost": "消耗 JX3API 次数",
-        "default": True,
-    },
-    "community_news": {
-        "section": "community",
-        "name": "资讯与招募",
-        "description": "维护、新闻，以及团队招募、团长和团牌。",
-        "cost": "消耗 JX3API 次数",
-        "default": True,
-    },
-    "community_saohua": {
-        "section": "community",
-        "name": "骚话语录",
-        "description": "答案之书、语录、吃喝选择与随机骚话。",
-        "cost": "消耗 JX3API 次数",
-        "default": True,
-    },
-    "community_tieba": {
-        "section": "community",
-        "name": "随机帖子",
-        "description": "贴吧物价与随机帖子内容。",
-        "cost": "消耗 JX3API 次数",
+    "community": {
+        "name": "游戏社区",
+        "description": "趣味选择、小药、语录、聊天、统战、家园、师徒、新闻、招募与贴吧。",
+        "cost": "含 JX3BOX 小药",
         "default": True,
     },
     "tools": {
-        "section": "tools",
         "name": "系统工具",
         "description": "科举答案、大区状态、开服状态与技改记录。",
         "cost": "消耗 JX3API 次数",
         "default": True,
     },
     "dungeon": {
-        "section": "dungeon",
         "name": "副本秘境",
-        "description": "秘境方位解密与物品掉落统计。",
+        "description": "秘境方位、物品掉落统计与试炼秒伤计算。",
         "cost": "消耗 JX3API 次数",
         "default": True,
     },
-    "local_team_signup": {
-        "section": "local",
-        "name": "团队报名",
-        "description": "开团、报名、成员调整与团队黑本。",
+    "avoid": {
+        "name": "避雷功能",
+        "description": "按会话隔离的避雷名单。",
         "cost": "不消耗 JX3API 次数",
         "default": True,
     },
-    "local_team_rules": {
-        "section": "local",
-        "name": "团队规则",
-        "description": "团队收尾、团队黑本、清空报名以及报名限制规则。",
+    "team": {
+        "name": "团队功能",
+        "description": "开团、报名、成员调整、团队黑本与报名限制。",
         "cost": "不消耗 JX3API 次数",
-        "default": True,
-    },
-    "local_assist": {
-        "section": "local",
-        "name": "避雷与推送",
-        "description": "按会话隔离的避雷名单，以及实时事件推送配置。",
-        "cost": "避雷本地运行；推送需令牌",
         "default": True,
     },
 }
 
-# 每个分组包含的指令名（不含元指令与会话设置）。
+# 每个分类直接包含的指令名（不含元指令与会话设置）。
 FEATURE_COMMANDS: dict[str, frozenset[str]] = {
-    "activity_calendar": frozenset(
+    "functions": frozenset(
+        {
+            "功能",
+            "绑定区服",
+            "解绑区服",
+            "事件推送",
+        }
+    ),
+    "activity": frozenset(
         {
             "日常",
             "日常预测",
@@ -272,26 +181,18 @@ FEATURE_COMMANDS: dict[str, frozenset[str]] = {
             "披风会",
             "云从社",
             "楚天社",
-        }
-    ),
-    "activity_field": frozenset(
-        {
             "赤兔",
             "本周赤兔",
-            "烟花",
             "刷马",
             "马场",
+            "烟花",
         }
     ),
-    "ranking_arena": frozenset(
+    "ranking": frozenset(
         {
             "战绩",
             "名剑排行",
             "名剑统计",
-        }
-    ),
-    "ranking_general": frozenset(
-        {
             "跨服名剑",
             "武林争霸",
             "捕快荣誉",
@@ -302,10 +203,6 @@ FEATURE_COMMANDS: dict[str, frozenset[str]] = {
             "个人排行",
             "据点贡献",
             "绝境战场",
-        }
-    ),
-    "ranking_history": frozenset(
-        {
             "试炼排行",
             "资历",
             "资历排行",
@@ -319,7 +216,6 @@ FEATURE_COMMANDS: dict[str, frozenset[str]] = {
             "物价",
             "成本",
             "看号",
-            "交易行",
         }
     ),
     "battle": frozenset(
@@ -329,21 +225,7 @@ FEATURE_COMMANDS: dict[str, frozenset[str]] = {
             "诛恶",
         }
     ),
-    "role_profile": frozenset(
-        {
-            "角色",
-            "属性",
-            "装备",
-        }
-    ),
-    "role_card": frozenset(
-        {
-            "名片",
-            "全名片",
-            "随机秀",
-        }
-    ),
-    "role_event": frozenset(
+    "role": frozenset(
         {
             "奇遇",
             "查询",
@@ -351,63 +233,52 @@ FEATURE_COMMANDS: dict[str, frozenset[str]] = {
             "近期",
             "统计",
             "攻略",
-        }
-    ),
-    "role_baizhan": frozenset(
-        {
-            "精耐",
-            "百战",
-        }
-    ),
-    "role_kungfu": frozenset(
-        {
+            "角色",
+            "在线",
+            "属性",
+            "装备",
             "阵眼",
-            "配装",
             "技能",
             "奇穴",
+            "名片",
+            "全名片",
+            "随机秀",
+            "精耐",
+            "百战",
+            "蹲宠",
+        }
+    ),
+    "macro": frozenset(
+        {
+            "配装",
             "宏",
+            "交易行",
         }
     ),
-    "community_interaction": frozenset(
-        {
-            "发言",
-            "统战",
-            "小药",
-            "骗子",
-        }
-    ),
-    "community_home": frozenset(
-        {
-            "花价",
-            "拜师",
-            "收徒",
-        }
-    ),
-    "community_news": frozenset(
-        {
-            "维护",
-            "新闻",
-            "招募",
-            "团长",
-            "团牌",
-        }
-    ),
-    "community_saohua": frozenset(
+    "community": frozenset(
         {
             "答案之书",
+            "喝什么",
+            "吃什么",
+            "小药",
             "舔狗语录",
             "疯狂星期四",
             "彩虹屁",
             "毒鸡汤",
             "朋友圈",
-            "喝什么",
-            "吃什么",
             "骚话",
             "渣男语录",
-        }
-    ),
-    "community_tieba": frozenset(
-        {
+            "发言",
+            "统战",
+            "骗子",
+            "花价",
+            "拜师",
+            "收徒",
+            "维护",
+            "新闻",
+            "招募",
+            "团长",
+            "团牌",
             "贴吧物价",
             "818",
         }
@@ -424,9 +295,19 @@ FEATURE_COMMANDS: dict[str, frozenset[str]] = {
         {
             "解密",
             "掉落",
+            "秒伤",
         }
     ),
-    "local_team_signup": frozenset(
+    "avoid": frozenset(
+        {
+            "避雷添加",
+            "避雷查看",
+            "避雷查询",
+            "避雷修改",
+            "避雷删除",
+        }
+    ),
+    "team": frozenset(
         {
             "开团",
             "打开报名",
@@ -437,10 +318,6 @@ FEATURE_COMMANDS: dict[str, frozenset[str]] = {
             "查看团队",
             "修改报名",
             "交换位置",
-        }
-    ),
-    "local_team_rules": frozenset(
-        {
             "结束团队",
             "结束全部团队",
             "清空报名",
@@ -452,15 +329,113 @@ FEATURE_COMMANDS: dict[str, frozenset[str]] = {
             "恢复默认限制",
         }
     ),
-    "local_assist": frozenset(
-        {
-            "避雷添加",
-            "避雷查看",
-            "避雷查询",
-            "避雷修改",
-            "避雷删除",
-            "事件推送",
-        }
+}
+
+# 分类内固定展示顺序：优先按官网小类及其接口顺序排列。
+COMMAND_ORDER: dict[str, tuple[str, ...]] = {
+    "functions": ("功能", "绑定区服", "解绑区服", "事件推送"),
+    "activity": (
+        "日常",
+        "日常预测",
+        "穹野卫",
+        "披风会",
+        "云从社",
+        "楚天社",
+        "赤兔",
+        "本周赤兔",
+        "刷马",
+        "马场",
+        "烟花",
+    ),
+    "ranking": (
+        "战绩",
+        "名剑排行",
+        "名剑统计",
+        "绝境战场",
+        "据点贡献",
+        "帮会排行",
+        "个人排行",
+        "试炼排行",
+        "武林争霸",
+        "捕快荣誉",
+        "江湖浪客",
+        "跨服名剑",
+        "决斗挑战",
+        "资历",
+        "资历排行",
+    ),
+    "trade": ("金价", "物价", "成本", "看号", "阵营拍卖", "的卢"),
+    "battle": ("帮战", "沙盘", "诛恶"),
+    "role": (
+        "汇总",
+        "近期",
+        "奇遇",
+        "查询",
+        "统计",
+        "攻略",
+        "角色",
+        "在线",
+        "属性",
+        "装备",
+        "阵眼",
+        "技能",
+        "奇穴",
+        "名片",
+        "随机秀",
+        "全名片",
+        "精耐",
+        "百战",
+        "蹲宠",
+    ),
+    "macro": ("配装", "宏", "交易行"),
+    "community": (
+        "答案之书",
+        "喝什么",
+        "吃什么",
+        "小药",
+        "花价",
+        "维护",
+        "新闻",
+        "舔狗语录",
+        "朋友圈",
+        "骚话",
+        "渣男语录",
+        "疯狂星期四",
+        "彩虹屁",
+        "毒鸡汤",
+        "统战",
+        "骗子",
+        "拜师",
+        "收徒",
+        "招募",
+        "团长",
+        "团牌",
+        "贴吧物价",
+        "818",
+        "发言",
+    ),
+    "tools": ("科举", "区服", "开服", "技改"),
+    "dungeon": ("解密", "掉落", "秒伤"),
+    "avoid": ("避雷添加", "避雷查看", "避雷查询", "避雷修改", "避雷删除"),
+    "team": (
+        "开团",
+        "打开报名",
+        "关闭报名",
+        "关闭报警",
+        "结束团队",
+        "结束全部团队",
+        "清空报名",
+        "修改报名",
+        "交换位置",
+        "查看限制",
+        "添加限制",
+        "修改限制",
+        "删除限制",
+        "恢复默认限制",
+        "团队黑本",
+        "报名",
+        "取消报名",
+        "查看团队",
     ),
 }
 
@@ -493,7 +468,7 @@ def normalize_selection(payload: Any) -> dict[str, bool]:
     """从 WebUI 提交的数据中提取可识别的逐条指令开关。
 
     Args:
-        payload: 可能为 ``{分组: {指令名: bool}}``、扁平 ``{指令名: bool}``
+        payload: 可能为 ``{分类: {指令名: bool}}``、扁平 ``{指令名: bool}``
             或两者的混合结构。
 
     Returns:
@@ -515,7 +490,7 @@ def normalize_selection(payload: Any) -> dict[str, bool]:
 
 
 def command_feature(command: str) -> str | None:
-    """返回指令所属分组；元指令返回 ``None``。"""
+    """返回指令所属分类；元指令返回 ``None``。"""
     for key in FEATURE_ORDER:
         if command in FEATURE_COMMANDS[key]:
             return key
@@ -524,16 +499,14 @@ def command_feature(command: str) -> str | None:
 
 def command_enabled(command: str, enabled: Mapping[str, bool]) -> bool:
     """判断某条指令在当前开关下是否应注册。"""
-    if command in ALWAYS_ON_COMMANDS:
-        return True
     if command_feature(command) is None:
-        # 未归类的指令按始终启用处理，避免误伤；test_features 会提醒补录。
+        # 未归类的指令按默认启用处理，避免误伤；test_features 会提醒补录。
         return True
     return bool(enabled.get(command, True))
 
 
 def describe(enabled: Mapping[str, bool] | None = None) -> list[dict[str, Any]]:
-    """输出供管理页渲染的分组列表（含每条指令的开关状态）。"""
+    """输出供管理页渲染的分类列表（含每条指令的开关状态）。"""
     resolved = command_defaults()
     if isinstance(enabled, Mapping):
         for command in resolved:
@@ -543,17 +516,24 @@ def describe(enabled: Mapping[str, bool] | None = None) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     for key in FEATURE_ORDER:
         info = FEATURE_INFO[key]
-        section_key = info["section"]
-        section = FEATURE_SECTIONS[section_key]
+        section = FEATURE_SECTIONS[key]
+        order = COMMAND_ORDER.get(key, ())
+        order_index = {name: index for index, name in enumerate(order)}
         commands = [
-            {"name": command, "enabled": bool(resolved.get(command, True))}
-            for command in sorted(FEATURE_COMMANDS[key])
+            {
+                "name": command,
+                "enabled": bool(resolved.get(command, True)),
+            }
+            for command in sorted(
+                FEATURE_COMMANDS[key],
+                key=lambda name: order_index.get(name, len(order)),
+            )
         ]
         enabled_count = sum(1 for item in commands if item["enabled"])
         items.append(
             {
                 "key": key,
-                "section": section_key,
+                "section": key,
                 "section_name": section["name"],
                 "section_description": section["description"],
                 "name": info["name"],

@@ -186,6 +186,72 @@ class AttributeTest(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("测试套装", html)
         self.assertNotIn("未激活属性", html)
 
+    async def test_server_search_reuses_api_cache(self):
+        self.api_get.side_effect = None
+        self.api_get.return_value = {"server": "乾坤一掷"}
+
+        first = await self.service.server_search("华乾")
+        second = await self.service.server_search("华乾")
+
+        self.assertEqual(first, "乾坤一掷")
+        self.assertEqual(second, "乾坤一掷")
+        self.assertEqual(self.api_get.await_count, 1)
+
+    async def test_online_status_is_shown_in_role_info(self):
+        self.service.ticket = "test-ticket"
+        post = AsyncMock(
+            return_value=[
+                {
+                    "roleName": "测试角色",
+                    "serverName": "梦江南",
+                    "onlineStatus": True,
+                    "gameLogin": True,
+                    "appLogin": False,
+                }
+            ]
+        )
+        self.service._api.post = post
+
+        result = await self.service.shuxing("梦江南", "测试角色")
+        html = await self.render(result)
+
+        post.assert_awaited_once()
+        self.assertEqual(
+            post.await_args.args,
+            ("https://www.jx3api.com/role/online/status",),
+        )
+        self.assertEqual(
+            post.await_args.kwargs["data"],
+            {
+                "query": [{"server": "梦江南", "name": "测试角色"}],
+                "ticket": "test-ticket",
+            },
+        )
+        self.assertEqual(
+            post.await_args.kwargs["headers"], {"token": "test-token"}
+        )
+        for text in (
+            "在线状态",
+            "attribute-online--online",
+            "游戏登录",
+            "推栏登录",
+            "已登录",
+            "未登录",
+        ):
+            with self.subTest(text=text):
+                self.assertIn(text, html)
+
+    async def test_online_status_hidden_when_ticket_is_missing(self):
+        post = AsyncMock()
+        self.service._api.post = post
+
+        result = await self.service.shuxing("梦江南", "测试角色")
+        html = await self.render(result)
+
+        post.assert_not_awaited()
+        self.assertNotIn("在线状态", html)
+        self.assertIn("670,564", html)
+
     async def test_missing_or_failed_card_does_not_hide_attributes(self):
         for card in (
             None,
@@ -238,6 +304,7 @@ class AttributeTest(unittest.IsolatedAsyncioTestCase):
             compile(ast.Module(body=[handler], type_ignores=[]), "message.py", "exec"),
             namespace,
         )
+        self.service.server_search = AsyncMock(return_value=None)
         fake_builder = types.SimpleNamespace(jx3api=self.service)
 
         async def image_pipeline(event, action):
@@ -252,6 +319,7 @@ class AttributeTest(unittest.IsolatedAsyncioTestCase):
             is_allowed=Mock(return_value=True)
         )
         plugin.cache = self.cache
+        plugin.jx3api = self.service
         plugin._prepare_kungfu_args = Mock(side_effect=lambda handler, args: args)
         for name in ("_prepare_server_args", "_call_with_auto_args"):
             main_tree = ast.parse((ROOT / "main.py").read_text(encoding="utf-8"))
@@ -270,7 +338,6 @@ class AttributeTest(unittest.IsolatedAsyncioTestCase):
         plugin.server_binding = types.SimpleNamespace(
             get_binding=AsyncMock(return_value="梦江南"),
             is_all_servers_query=Mock(return_value=False),
-            is_known_server=Mock(return_value=False),
         )
         event = types.SimpleNamespace(
             message_str="属性 测试角色",

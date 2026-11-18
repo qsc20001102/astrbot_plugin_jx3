@@ -1,6 +1,7 @@
 """Exercise the actual dispatch methods without starting AstrBot or its services."""
 
 import ast
+import inspect
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
@@ -17,7 +18,12 @@ def load_dispatch_plugin(source_path: Path):
         for node in tree.body
         if isinstance(node, ast.ClassDef) and node.name == "Jx3ApiPlugin"
     )
-    names = {"parse_message", "resolve_command", "on_all_message"}
+    names = {
+        "parse_message",
+        "resolve_command",
+        "on_all_message",
+        "_prepare_server_args",
+    }
     methods = [node for node in plugin.body if getattr(node, "name", "") in names]
     if {node.name for node in methods} != names:
         raise AssertionError("Production command dispatch methods are missing")
@@ -28,7 +34,7 @@ def load_dispatch_plugin(source_path: Path):
     plugin.decorator_list = []
     plugin.body = methods
     module = ast.Module(body=[plugin], type_ignores=[])
-    namespace = {"AstrMessageEvent": object, "logger": Mock()}
+    namespace = {"AstrMessageEvent": object, "logger": Mock(), "inspect": inspect}
     exec(
         compile(ast.fix_missing_locations(module), str(source_path), "exec"), namespace
     )
@@ -150,6 +156,66 @@ class CommandRoutingTest(unittest.IsolatedAsyncioTestCase):
             self.plugin.resolve_command(self.event("  jx3  日常  ")),
             ("日常", [], self.handler),
         )
+
+    async def test_prepare_server_args_resolves_official_name(self):
+        async def handler(self, event, server, name):
+            return server, name
+
+        self.plugin.server_binding = SimpleNamespace(
+            get_binding=AsyncMock(return_value=""),
+            is_all_servers_query=Mock(return_value=False),
+        )
+        self.plugin.jx3api = SimpleNamespace(
+            server_search=AsyncMock(return_value="梦江南")
+        )
+        event = self.event("查询 华乾 角色")
+
+        self.assertEqual(
+            await self.plugin._prepare_server_args(handler, event, ["华乾", "角色"]),
+            ["梦江南", "角色"],
+        )
+        self.plugin.jx3api.server_search.assert_awaited_once_with("华乾")
+
+    async def test_prepare_server_args_inserts_binding_when_lookup_fails(self):
+        async def handler(self, event, server, name):
+            return server, name
+
+        self.plugin.server_binding = SimpleNamespace(
+            get_binding=AsyncMock(return_value="梦江南"),
+            is_all_servers_query=Mock(return_value=False),
+        )
+        self.plugin.jx3api = SimpleNamespace(server_search=AsyncMock(return_value=None))
+        event = self.event("查询 角色")
+
+        self.assertEqual(
+            await self.plugin._prepare_server_args(handler, event, ["角色"]),
+            ["梦江南", "角色"],
+        )
+        self.plugin.jx3api.server_search.assert_awaited_once_with("角色")
+
+    async def test_prepare_server_args_supports_all_servers_and_explicit_alias(self):
+        async def handler(self, event, server, name):
+            return server, name
+
+        self.plugin.server_binding = SimpleNamespace(
+            get_binding=AsyncMock(return_value="梦江南"),
+            is_all_servers_query=Mock(side_effect=lambda value: value == "全区"),
+        )
+        search = AsyncMock(return_value="乾坤一掷")
+        self.plugin.jx3api = SimpleNamespace(server_search=search)
+        event = self.event("查询 全区 角色")
+
+        self.assertEqual(
+            await self.plugin._prepare_server_args(handler, event, ["全区", "角色"]),
+            ["", "角色"],
+        )
+        search.assert_not_awaited()
+
+        self.assertEqual(
+            await self.plugin._prepare_server_args(handler, event, ["华乾", "角色"]),
+            ["乾坤一掷", "角色"],
+        )
+        search.assert_awaited_once_with("华乾")
 
     async def test_rejected_message_does_not_stop_other_plugins_or_llm(self):
         event = self.event("jx3 日常", awake=False)

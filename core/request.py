@@ -59,7 +59,14 @@ class APIClient:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.close()
 
-    async def _request(self, method: str, url: str, params: Optional[Dict] = None, json_data: Optional[Dict] = None) -> Any:
+    async def _request(
+        self,
+        method: str,
+        url: str,
+        params: Optional[Dict] = None,
+        json_data: Optional[Dict] = None,
+        headers: Optional[Dict[str, str]] = None,
+    ) -> Any:
         """
         统一的内部请求处理方法
         """
@@ -77,6 +84,7 @@ class APIClient:
                 url=url,
                 params=params,
                 json=json_data,
+                headers=headers,
                 ssl=self.ssl_verify
             ) as response:
                 return await self._handle_response(response)
@@ -139,9 +147,10 @@ class APIClient:
         out_key: Optional[str] = None,
         success_codes: Optional[Collection[Any]] = None,
         return_error: bool = False,
+        headers: Optional[Dict[str, str]] = None,
     ) -> Any:
         """GET 请求封装"""
-        data = await self._request('GET', url, params=params)
+        data = await self._request('GET', url, params=params, headers=headers)
         return self._extract_data(
             data,
             out_key,
@@ -156,9 +165,10 @@ class APIClient:
         out_key: Optional[str] = None,
         success_codes: Optional[Collection[Any]] = None,
         return_error: bool = False,
+        headers: Optional[Dict[str, str]] = None,
     ) -> Any:
         """POST 请求封装 (默认发送 JSON)"""
-        data = await self._request('POST', url, json_data=data)
+        data = await self._request('POST', url, json_data=data, headers=headers)
         return self._extract_data(
             data,
             out_key,

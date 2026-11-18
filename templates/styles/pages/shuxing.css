@@ -105,6 +105,34 @@
     font-variant-numeric: tabular-nums;
 }
 
+.attribute-online {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 7px;
+}
+
+.attribute-online-dot {
+    width: 9px;
+    height: 9px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--jx3-text-muted);
+}
+
+.attribute-online--online {
+    color: var(--jx3-green);
+}
+
+.attribute-online--online .attribute-online-dot {
+    background: var(--jx3-green);
+    box-shadow: 0 0 0 3px rgba(32, 117, 77, 0.16);
+}
+
+.attribute-online--offline {
+    color: var(--jx3-text-muted);
+}
+
 .attribute-score {
     padding: 18px 24px;
 }
