@@ -33,7 +33,7 @@ PLUGIN_NAME = "astrbot_plugin_jx3"
     "astrbot_plugin_jx3",
     "fxdyz",
     "聚合剑网三游戏数据，提供查询、团队管理、图片渲染、本地避雷和实时事件推送。",
-    "3.5.7",
+    "3.6.2",
     "https://github.com/qsc20001102/astrbot_plugin_jx3",
 )
 class Jx3ApiPlugin(Star):
@@ -372,16 +372,19 @@ class Jx3ApiPlugin(Star):
             "删除限制": self.jx3cmd.team_delete_rule,
             "恢复默认限制": self.jx3cmd.team_reset_rules,
         }
+        full_command_map = dict(self.command_map)
         enabled = self.feature_settings.enabled()
         self.command_map = {
             name: handler
             for name, handler in self.command_map.items()
             if features.command_enabled(name, enabled)
         }
-        self.cache.register_image_names(
-            command_name
-            for command_name, handler in self.command_map.items()
-            if handler.__name__ in MessageBuilder.IMAGE_RENDER_HANDLERS
+        self.cache.register_image_commands(
+            {
+                command_name: features.command_feature(command_name)
+                for command_name, handler in full_command_map.items()
+                if handler.__name__ in MessageBuilder.IMAGE_RENDER_HANDLERS
+            }
         )
 
     def enabled_features(self) -> dict[str, bool]:

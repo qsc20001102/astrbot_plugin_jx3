@@ -35,9 +35,10 @@ class MessageBuilder:
             "zhengyingpaimai", "dilujilu", "jinjia", "wujia", "chengbeng",
             "bangzhanjilu", "shapan", "zhueevent", "qiyuhuizong",
             "jinqiqiyu", "juesheqiyu", "qiyutongji", "qiyugonglue", "jingnai",
-            "baizhan", "zilipaixing", "jineng", "qixue", "liaotian",
+            "baizhan", "miaoshang", "dunchong", "zilipaixing",
+            "jineng", "qixue", "liaotian",
             "xiaoyao", "huajia", "baishi", "shoutu",
-            "tuanduizhaomu", "tuanzhang", "tuanpai", "zhuangtai", "fubeng",
+            "tuanduizhaomu", "tuanzhang", "tuanpai", "zhuangtai", "team_view",
             "diaoluo", "hong", "zili", "jiaoyihang", "bilei_all", "bilei_select",
             "shuxing", "zhuangbei",
         }
@@ -197,19 +198,24 @@ class MessageBuilder:
             self.cache.current_command() if self.cache else ""
         )
         options = self._build_render_options(render_options)
-        cache_key = cache_key_override
-        if self.cache and effective_cache_name:
-            if not cache_key:
-                cache_key = self.cache.build_image_key(
-                    effective_cache_name,
-                    template,
-                    render_data,
-                    options,
-                    source_signature=source_signature,
-                    variant_signature=(
-                        variant_signature or self.cache.current_command_signature()
-                    ),
-                )
+        cache_enabled = bool(
+            self.cache
+            and effective_cache_name
+            and self.cache.get_ttl("image", effective_cache_name) > 0
+        )
+        cache_key = cache_key_override if cache_enabled else ""
+        if cache_enabled and not cache_key:
+            cache_key = self.cache.build_image_key(
+                effective_cache_name,
+                template,
+                render_data,
+                options,
+                source_signature=source_signature,
+                variant_signature=(
+                    variant_signature or self.cache.current_command_signature()
+                ),
+            )
+        if cache_key:
             cached_path = await self.cache.get_image(cache_key, effective_cache_name)
             if cached_path:
                 return str(cached_path)
@@ -237,7 +243,7 @@ class MessageBuilder:
                     return str(saved_path)
             return rendered_path
 
-        if not self.cache or not cache_key:
+        if not cache_key:
             return await render_and_save()
         if cache_lock_held:
             return await render_and_save()
@@ -370,7 +376,7 @@ class MessageBuilder:
 
 
     async def adaptive_msg(self, event: AstrMessageEvent, action):
-        """Send a standard result as text or as a freshly rendered image."""
+        """Send a standard result as text or as a cached rendered image."""
         try:
             data = await action()
             if data["code"] != 200:
@@ -384,7 +390,6 @@ class MessageBuilder:
                 data["data"],
                 include_icons=True,
                 data_time=self._format_data_time(data),
-                disable_cache=True,
             )
             await event.send(event.image_result(image_path))
         except ActionFailed as exc:
@@ -399,20 +404,6 @@ class MessageBuilder:
         except Exception as exc:
             logger.error(f"功能函数执行错误: {exc}")
             await event.send(event.plain_result("猪脑过载，请稍后再试"))
-
-
-    async def image_msg(self, event: AstrMessageEvent, action):
-        """最终将数据整理成图片发送"""
-        data = await action()
-        try:
-            if data["code"] == 200:
-                await event.send(event.image_result(data["data"])) 
-            else:
-                await event.send(event.plain_result(data["msg"])) 
-
-        except Exception as e:
-            logger.error(f"功能函数执行错误: {e}")
-            await event.send(event.plain_result("猪脑过载，请稍后再试")) 
 
 
     async def plain_chain(self, event: AstrMessageEvent, action):
@@ -1008,10 +999,6 @@ class MessageBuilder:
     async def  jiemi(self, event: AstrMessageEvent):
         """ 解密"""
         return await self.plain_msg(event, self.jx3api.jiemi)
-
-    async def  fubeng(self, event: AstrMessageEvent, server:str, name:str):
-        """ 副本"""
-        return await self.T2I_image_msg(event, lambda: self.jx3api.fubengjilu(server,name))
 
     async def  diaoluo(self, event: AstrMessageEvent, name: str,  server: str = "", limit: str = "20",):
         """ 掉落 物品 服务器 数量 """

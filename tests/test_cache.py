@@ -13,6 +13,7 @@ with patch.dict(
         "astrbot.api": types.SimpleNamespace(logger=Mock()),
     },
 ):
+    from core.api_catalog import API_CATALOG, API_CATEGORY_ORDER
     from core.cache import CacheService
 
 
@@ -84,26 +85,60 @@ class CardCacheTest(unittest.IsolatedAsyncioTestCase):
             "/fenxian/records",
             "/home/furniture",
             "/home/travel",
+            "/raid/records",
         }
         self.assertFalse(removed & endpoints)
 
-    async def test_renamed_endpoint_ttl_and_payload_migrate(self):
-        await self.cache.set_ttl("api", "/saohua/answer", 1234)
-        await self.cache._save_api_payload(
-            "old-choice", "/saohua/answer", {"answer": "old"}, 300
+    async def test_api_catalog_entries_are_complete(self):
+        self.assertTrue(API_CATALOG)
+        for endpoint, (title, category) in API_CATALOG.items():
+            with self.subTest(endpoint=endpoint):
+                self.assertTrue(title.strip())
+                self.assertIn(category, API_CATEGORY_ORDER)
+
+    async def test_dashboard_exposes_api_name_and_category(self):
+        dashboard = await self.cache.dashboard()
+        items = {item["name"]: item for item in dashboard["api"]}
+        calendar = items["/active/calendar"]
+        self.assertEqual(calendar["title"], "活动日历")
+        self.assertEqual(calendar["category"], "活动情报")
+        self.assertEqual(items["/rank/battle"]["category"], "排行榜单")
+        self.assertTrue(all(item["title"] for item in dashboard["api"]))
+        categories = [item["name"] for item in dashboard["api_categories"]]
+        self.assertEqual(categories[0], "活动情报")
+        self.assertIn("排行榜单", categories)
+        self.assertEqual(
+            sum(item["count"] for item in dashboard["api_categories"]),
+            len(dashboard["api"]),
         )
+        activity = [
+            item["name"]
+            for item in dashboard["api"]
+            if item["category"] == "活动情报"
+        ]
+        self.assertEqual(
+            activity,
+            [
+                "/active/calendar",
+                "/active/celebs",
+                "/ranch/records",
+                "/ranch/chat",
+                "/chitu/records",
+                "/chitu/week/records",
+                "/firework/records",
+            ],
+        )
+        # 官网把 /school/seniority 归在心法配装，也就是“角色查询”大分类。
+        self.assertEqual(items["/school/seniority"]["category"], "角色查询")
+
+    async def test_renamed_endpoint_ttl_migrates(self):
+        await self.cache.set_ttl("api", "/saohua/answer", 1234)
         await self.cache.initialize()
         await self.cache.stop()
         self.assertEqual(self.cache.get_ttl("api", "/choice/answer"), 1234)
         self.assertIsNone(
             await self.db.fetch_one(
                 "SELECT * FROM cache_settings WHERE cache_name=?",
-                ("/saohua/answer",),
-            )
-        )
-        self.assertIsNone(
-            await self.db.fetch_one(
-                "SELECT * FROM api_response_cache WHERE endpoint=?",
                 ("/saohua/answer",),
             )
         )
@@ -134,11 +169,8 @@ class CardCacheTest(unittest.IsolatedAsyncioTestCase):
             )
         )
 
-    async def test_removed_endpoint_settings_and_cache_are_cleaned(self):
+    async def test_removed_endpoint_settings_are_cleaned(self):
         await self.cache.set_ttl("api", "/castle/status", 1234)
-        await self.cache._save_api_payload(
-            "old-castle", "/castle/status", {"status": "old"}, 300
-        )
         await self.cache.initialize()
         await self.cache.stop()
         self.assertIsNone(
@@ -147,33 +179,18 @@ class CardCacheTest(unittest.IsolatedAsyncioTestCase):
                 ("/castle/status",),
             )
         )
-        self.assertIsNone(
-            await self.db.fetch_one(
-                "SELECT * FROM api_response_cache WHERE endpoint=?",
-                ("/castle/status",),
-            )
-        )
 
-    async def test_legacy_ttl_migrates_and_old_payload_is_discarded(self):
+    async def test_legacy_ttl_migrates(self):
         for ttl in (0, 1234):
             with self.subTest(ttl=ttl):
                 await self.cache.set_ttl("api", "/card/record", inherit=True)
                 await self.cache.set_ttl("api", "/card/cached", ttl)
-                await self.cache._save_api_payload(
-                    "old-card", "/card/cached", {"showAvatar": "old-image"}, 300
-                )
                 await self.cache.initialize()
                 await self.cache.stop()
                 self.assertEqual(self.cache.get_ttl("api", "/card/record"), ttl)
                 self.assertIsNone(
                     await self.db.fetch_one(
                         "SELECT * FROM cache_settings WHERE cache_name=?",
-                        ("/card/cached",),
-                    )
-                )
-                self.assertIsNone(
-                    await self.db.fetch_one(
-                        "SELECT * FROM api_response_cache WHERE endpoint=?",
                         ("/card/cached",),
                     )
                 )
@@ -184,7 +201,7 @@ class CardCacheTest(unittest.IsolatedAsyncioTestCase):
     async def test_empty_cached_payload_is_treated_as_miss(self):
         params = {"mode": "day", "num": 0}
         cache_key = self.cache.build_api_key("/active/calendar", params)
-        await self.cache._save_api_payload(
+        self.cache._save_api_payload(
             cache_key, "/active/calendar", {}, 300
         )
         fetcher = AsyncMock(return_value={"date": "2026-11-19"})
@@ -194,6 +211,119 @@ class CardCacheTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(data, {"date": "2026-11-19"})
         self.assertFalse(metadata["hit"])
         fetcher.assert_awaited_once()
+
+    async def test_api_cache_is_memory_only(self):
+        self.cache._save_api_payload(
+            "memory-key", "/active/calendar", {"date": "2026-11-19"}, 300
+        )
+        self.assertEqual(len(self.cache._memory), 1)
+        legacy = await self.db.fetch_one(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+            ("api_response_cache",),
+        )
+        self.assertIsNone(legacy)
+        limit_names = {
+            str(row["limit_name"])
+            for row in await self.db.fetch_all("SELECT limit_name FROM cache_limits")
+        }
+        self.assertNotIn("api_max_entries", limit_names)
+
+    async def test_legacy_sqlite_api_cache_is_removed(self):
+        await self.db.execute(
+            """
+            CREATE TABLE api_response_cache(
+                cache_key TEXT PRIMARY KEY,
+                endpoint TEXT NOT NULL,
+                payload TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                expires_at INTEGER NOT NULL,
+                last_accessed_at INTEGER NOT NULL
+            )
+            """
+        )
+        await self.db.execute(
+            "INSERT INTO api_response_cache VALUES(?, ?, ?, ?, ?, ?)",
+            ("legacy-key", "/active/calendar", "{}", 1, 2, 3),
+        )
+        await self.db.execute(
+            "INSERT INTO cache_limits(limit_name, limit_value) VALUES(?, ?)",
+            ("api_max_entries", 256),
+        )
+        await self.cache.initialize()
+        table = await self.db.fetch_one(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+            ("api_response_cache",),
+        )
+        self.assertIsNone(table)
+        limit = await self.db.fetch_one(
+            "SELECT * FROM cache_limits WHERE limit_name=?",
+            ("api_max_entries",),
+        )
+        self.assertIsNone(limit)
+
+    async def test_stop_clears_memory_cache(self):
+        self.cache._save_api_payload(
+            "memory-key", "/active/calendar", {"date": "2026-11-19"}, 300
+        )
+        self.assertTrue(self.cache._memory)
+        await self.cache.stop()
+        self.assertFalse(self.cache._memory)
+        self.assertEqual(self.cache._memory_size_bytes, 0)
+        fetcher = AsyncMock(return_value={"date": "2026-11-20"})
+        data, metadata = await self.cache.request_api(
+            "/active/calendar", {"mode": "day"}, fetcher, bool
+        )
+        self.assertEqual(data, {"date": "2026-11-20"})
+        self.assertFalse(metadata["hit"])
+
+    async def test_clear_item_only_removes_matching_endpoint(self):
+        self.cache._save_api_payload("a", "/active/calendar", {"a": 1}, 300)
+        self.cache._save_api_payload("b", "/rank/battle", {"b": 2}, 300)
+        removed = await self.cache.clear_item("api", "/active/calendar")
+        self.assertEqual(removed, 1)
+        self.assertNotIn("a", self.cache._memory)
+        self.assertIn("b", self.cache._memory)
+
+    async def test_dashboard_stats_are_memory_based(self):
+        self.cache._save_api_payload(
+            "memory-key", "/active/calendar", {"date": "2026-11-19"}, 300
+        )
+        dashboard = await self.cache.dashboard()
+        self.assertEqual(dashboard["stats"]["api_count"], 1)
+        self.assertGreater(dashboard["stats"]["api_size_bytes"], 0)
+        self.assertNotIn("api_entry_limit", dashboard["stats"])
+        self.assertNotIn("api_max_entries", dashboard["limits"])
+
+    async def test_set_limits_persists_memory_and_image_only(self):
+        await self.cache.set_limits(8, 256)
+        await self.cache.initialize()
+        self.assertEqual(self.cache.max_memory_bytes, 8 * 1024 * 1024)
+        self.assertEqual(self.cache.max_image_bytes, 256 * 1024 * 1024)
+        limit_names = {
+            str(row["limit_name"])
+            for row in await self.db.fetch_all("SELECT limit_name FROM cache_limits")
+        }
+        self.assertEqual(limit_names, {"api_memory_max_mb", "image_max_mb"})
+
+    async def test_image_cache_groups_commands_by_feature(self):
+        self.cache.register_image_commands(
+            {"战绩": "ranking", "属性": "role", "查看团队": "team"}
+        )
+        dashboard = await self.cache.dashboard()
+        items = {item["name"]: item for item in dashboard["images"]}
+        self.assertEqual(items["战绩"]["category"], "排行榜单")
+        self.assertEqual(items["属性"]["category"], "角色查询")
+        self.assertEqual(items["查看团队"]["category"], "团队功能")
+        self.assertEqual(items["查看团队"]["ttl_seconds"], 0)
+        self.assertTrue(items["查看团队"]["safe_default"])
+        categories = [
+            category["name"] for category in dashboard["image_categories"]
+        ]
+        self.assertEqual(categories, ["排行榜单", "角色查询", "团队功能"])
+        self.assertEqual(
+            sum(category["count"] for category in dashboard["image_categories"]),
+            3,
+        )
 
     async def test_explicit_new_ttl_wins_and_other_settings_survive(self):
         await self.cache.set_ttl("api", "/card/cached", 100)

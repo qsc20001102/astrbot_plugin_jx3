@@ -344,7 +344,6 @@ class WebUIService:
             payload = await self._json_payload()
             await self.cache.set_limits(
                 payload.get("api_memory_max_mb"),
-                payload.get("api_max_entries"),
                 payload.get("image_max_mb"),
             )
         except ValueError as exc:

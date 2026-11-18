@@ -15,9 +15,11 @@ const state = {
   token_stats: null,
   cache: {
     defaults: { api: 300, image: 300 },
-    limits: { api_memory_max_mb: 16, api_max_entries: 1024, image_max_mb: 512 },
+    limits: { api_memory_max_mb: 16, image_max_mb: 512 },
     api: [],
+    api_categories: [],
     images: [],
+    image_categories: [],
     stats: {},
   },
 };
@@ -525,16 +527,13 @@ function renderKungfu() {
 
 function cacheSettingRow(cacheType, item) {
   const row = document.createElement("tr");
-  const name = document.createElement("td");
   const ttl = document.createElement("td");
   const status = document.createElement("td");
   const actions = document.createElement("td");
-  name.dataset.label = cacheType === "api" ? "接口路径" : "图片指令";
+  const displayName = item.title || item.name;
   ttl.dataset.label = "缓存时间（秒）";
   status.dataset.label = "配置状态";
   actions.dataset.label = "操作";
-  name.textContent = item.name;
-  name.className = "cache-name-cell";
   actions.className = "actions";
 
   const input = document.createElement("input");
@@ -545,7 +544,7 @@ function cacheSettingRow(cacheType, item) {
   input.step = "1";
   input.required = true;
   input.value = String(item.ttl_seconds);
-  input.setAttribute("aria-label", `${item.name}缓存时间（秒）`);
+  input.setAttribute("aria-label", `${displayName}缓存时间（秒）`);
   ttl.append(input);
 
   const badge = document.createElement("span");
@@ -564,7 +563,7 @@ function cacheSettingRow(cacheType, item) {
     const saved = await mutate(
       "cache/settings/save",
       { cache_type: cacheType, cache_name: item.name, ttl_seconds: Number(input.value) },
-      `${item.name}缓存时间已保存`,
+      `${displayName}缓存时间已保存`,
     );
     if (!saved) {
       saveButton.disabled = false;
@@ -577,7 +576,7 @@ function cacheSettingRow(cacheType, item) {
     const saved = await mutate(
       "cache/settings/save",
       { cache_type: cacheType, cache_name: item.name, inherit: true },
-      `${item.name}已恢复默认时间`,
+      `${displayName}已恢复默认时间`,
     );
     if (!saved) {
       restoreButton.disabled = false;
@@ -589,7 +588,7 @@ function cacheSettingRow(cacheType, item) {
     const cleared = await mutate(
       "cache/item/clear",
       { cache_type: cacheType, cache_name: item.name },
-      `${item.name}缓存已清除，下次调用将重新生成`,
+      `${displayName}缓存已清除，下次调用将重新生成`,
     );
     if (!cleared) clearButton.disabled = false;
   });
@@ -601,44 +600,208 @@ function cacheSettingRow(cacheType, item) {
     }
   });
   actions.append(saveButton, restoreButton, clearButton);
-  row.append(name, ttl, status, actions);
+
+  if (cacheType === "api") {
+    const title = document.createElement("td");
+    title.dataset.label = "接口名称";
+    title.className = "cache-title-cell";
+    title.textContent = displayName;
+    const path = document.createElement("td");
+    path.dataset.label = "接口路径";
+    path.className = "cache-path-cell";
+    path.textContent = item.name;
+    row.append(title, path, ttl, status, actions);
+  } else {
+    const name = document.createElement("td");
+    name.dataset.label = "图片指令";
+    name.className = "cache-name-cell";
+    name.textContent = item.name;
+    row.append(name, ttl, status, actions);
+  }
   return row;
 }
 
-function renderCacheTable(cacheType) {
+function cacheItemMatches(item, filter, category) {
+  if (category && item.category !== category) return false;
+  if (!filter) return true;
+  const haystack = [item.name, item.title, item.category]
+    .filter(Boolean)
+    .join(" ")
+    .toLocaleLowerCase("zh-CN");
+  return haystack.includes(filter);
+}
+
+const CACHE_CATEGORY_COLUMNS = {
+  api: [
+    ["接口名称", ""],
+    ["接口路径", ""],
+    ["缓存时间（秒）", ""],
+    ["配置状态", ""],
+    ["操作", "actions"],
+  ],
+  image: [
+    ["图片指令", ""],
+    ["缓存时间（秒）", ""],
+    ["配置状态", ""],
+    ["操作", "actions"],
+  ],
+};
+
+const API_CACHE_COLLAPSED_KEY = "jx3.api-cache-collapsed.v1";
+const IMAGE_CACHE_COLLAPSED_KEY = "jx3.image-cache-collapsed.v1";
+
+function readCollapsedCategories(storageKey) {
+  try {
+    const value = JSON.parse(localStorage.getItem(storageKey) || "[]");
+    return new Set(
+      Array.isArray(value) ? value.filter((item) => typeof item === "string") : [],
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+function saveCollapsedCategories(storageKey, categories) {
+  try {
+    localStorage.setItem(storageKey, JSON.stringify([...categories]));
+  } catch {
+    // localStorage 不可用时只保留当前页面状态
+  }
+}
+
+function cacheCategoryGroup(group, items, cacheType, collapsed, storageKey) {
+  const details = document.createElement("details");
+  details.className = "cache-category";
+  details.dataset.category = group.name;
+  details.open = !collapsed.has(group.name);
+
+  const summary = document.createElement("summary");
+  const title = document.createElement("span");
+  title.className = "cache-category__title";
+  title.textContent = group.name;
+  const count = document.createElement("span");
+  count.className = "cache-category__count";
+  count.textContent = `${items.length} ${cacheType === "api" ? "个接口" : "条指令"}`;
+  summary.append(title, count);
+  summary.addEventListener("click", () => {
+    queueMicrotask(() => {
+      if (details.open) collapsed.delete(group.name);
+      else collapsed.add(group.name);
+      saveCollapsedCategories(storageKey, collapsed);
+    });
+  });
+
+  const wrap = document.createElement("div");
+  wrap.className = "table-wrap";
+  const table = document.createElement("table");
+  const thead = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  for (const [label, className] of CACHE_CATEGORY_COLUMNS[cacheType]) {
+    const th = document.createElement("th");
+    th.textContent = label;
+    if (className) th.className = className;
+    headRow.append(th);
+  }
+  thead.append(headRow);
+  const tbody = document.createElement("tbody");
+  tbody.append(...items.map((item) => cacheSettingRow(cacheType, item)));
+  table.append(thead, tbody);
+  wrap.append(table);
+  details.append(summary, wrap);
+  return details;
+}
+
+function renderCategoryFilter(selectId, categories) {
+  const select = byId(selectId);
+  const current = select.value;
+  const options = [new Option("全部分类", "")];
+  for (const category of categories || []) {
+    options.push(new Option(`${category.name}（${category.count}）`, category.name));
+  }
+  select.replaceChildren(...options);
+  select.value = (categories || []).some((category) => category.name === current)
+    ? current
+    : "";
+}
+
+function renderApiCategoryFilter() {
+  renderCategoryFilter("api-cache-category", state.cache?.api_categories);
+}
+
+function renderImageCategoryFilter() {
+  renderCategoryFilter("image-cache-category", state.cache?.image_categories);
+}
+
+function renderCacheCategoryTable(cacheType) {
   const isApi = cacheType === "api";
-  const items = isApi ? state.cache.api : state.cache.images;
+  const items = (isApi ? state.cache?.api : state.cache?.images) || [];
   const filter = byId(isApi ? "api-cache-filter" : "image-cache-filter")
     .value.trim().toLocaleLowerCase("zh-CN");
-  const visible = items.filter((item) => item.name.toLocaleLowerCase("zh-CN").includes(filter));
-  const body = byId(isApi ? "api-cache-settings-body" : "image-cache-settings-body");
-  body.replaceChildren(...(
-    visible.length
-      ? visible.map((item) => cacheSettingRow(cacheType, item))
-      : [emptyRow(4, filter ? "没有匹配的缓存项目" : "暂无缓存项目")]
-  ));
+  const category = byId(isApi ? "api-cache-category" : "image-cache-category").value;
+  const categories = isApi
+    ? state.cache?.api_categories
+    : state.cache?.image_categories;
+  const groups = categories?.length
+    ? categories
+    : [...new Set(items.map((item) => item.category))]
+        .filter(Boolean)
+        .map((name) => ({
+          name,
+          count: items.filter((item) => item.category === name).length,
+        }));
+  const collapsed = readCollapsedCategories(
+    isApi ? API_CACHE_COLLAPSED_KEY : IMAGE_CACHE_COLLAPSED_KEY,
+  );
+  const nodes = [];
+  for (const group of groups) {
+    if (category && group.name !== category) continue;
+    const groupItems = items.filter(
+      (item) => item.category === group.name && cacheItemMatches(item, filter, category),
+    );
+    if (!groupItems.length) continue;
+    const details = cacheCategoryGroup(
+      group,
+      groupItems,
+      cacheType,
+      collapsed,
+      isApi ? API_CACHE_COLLAPSED_KEY : IMAGE_CACHE_COLLAPSED_KEY,
+    );
+    // 搜索或分类筛选时强制展开，避免匹配项被折叠隐藏。
+    if (filter || category) details.open = true;
+    nodes.push(details);
+  }
+  if (!nodes.length) {
+    const empty = document.createElement("p");
+    empty.className = "cache-empty";
+    empty.textContent = filter || category ? "没有匹配的缓存项目" : "暂无缓存项目";
+    nodes.push(empty);
+  }
+  byId(isApi ? "api-cache-groups" : "image-cache-groups").replaceChildren(...nodes);
+}
+
+function renderCacheTable(cacheType) {
+  renderCacheCategoryTable(cacheType);
 }
 
 function renderCache() {
-  const cache = state.cache || { defaults: {}, limits: {}, api: [], images: [], stats: {} };
+  const cache = state.cache || { defaults: {}, limits: {}, api: [], api_categories: [], images: [], image_categories: [], stats: {} };
   const stats = cache.stats || {};
   const apiDefault = cache.defaults?.api ?? 300;
   const imageDefault = cache.defaults?.image ?? 600;
   const memoryLimitMb = cache.limits?.api_memory_max_mb ?? 16;
-  const apiEntryLimit = cache.limits?.api_max_entries ?? stats.api_entry_limit ?? 256;
   const imageLimitMb = cache.limits?.image_max_mb ?? 512;
-  byId("api-cache-count").textContent = `${stats.api_count || 0} / ${apiEntryLimit} 条`;
-  byId("api-cache-size").textContent = formatBytes(stats.api_size_bytes);
+  byId("api-cache-count").textContent = `${stats.api_count || 0} 条`;
+  byId("api-cache-size").textContent = `${formatBytes(stats.api_size_bytes)} / ${formatBytes(stats.api_memory_limit_bytes)}`;
   byId("image-cache-count").textContent = `${stats.image_count || 0} 张`;
   byId("image-cache-size").textContent = `${formatBytes(stats.image_size_bytes)} / ${formatBytes(stats.image_limit_bytes)}`;
   byId("api-default-ttl").value = String(apiDefault);
   byId("image-default-ttl").value = String(imageDefault);
   byId("api-memory-size-limit").value = String(memoryLimitMb);
-  byId("api-entry-limit").value = String(apiEntryLimit);
   byId("image-size-limit").value = String(imageLimitMb);
-  byId("api-memory-summary").textContent = `${formatBytes(stats.api_memory_size_bytes)} / ${formatBytes(stats.api_memory_limit_bytes)}`;
-  byId("api-memory-count").textContent = `${stats.api_memory_count || 0} 条，最久未使用优先淘汰`;
-  byId("cache-default-summary").textContent = `${apiDefault} / ${imageDefault} 秒`;
+  byId("api-default-summary").textContent = `${apiDefault} 秒`;
+  byId("image-default-summary").textContent = `${imageDefault} 秒`;
+  renderApiCategoryFilter();
+  renderImageCategoryFilter();
   renderCacheTable("api");
   renderCacheTable("image");
 }
@@ -1763,49 +1926,77 @@ byId("restore-kungfu").addEventListener("click", async (event) => {
 });
 
 byId("api-cache-filter").addEventListener("input", () => renderCacheTable("api"));
+byId("api-cache-category").addEventListener("change", () => renderCacheTable("api"));
 byId("image-cache-filter").addEventListener("input", () => renderCacheTable("image"));
+byId("image-cache-category").addEventListener("change", () => renderCacheTable("image"));
 
-byId("cache-default-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const submit = event.currentTarget.querySelector('button[type="submit"]');
-  submit.disabled = true;
+function currentCacheLimits() {
+  const limits = state.cache?.limits || {};
+  return {
+    api_memory_max_mb: limits.api_memory_max_mb ?? 16,
+    image_max_mb: limits.image_max_mb ?? 512,
+  };
+}
+
+async function saveCacheDefaults(form, cacheType, inputId, successMessage) {
+  const submit = form.querySelector('button[type="submit"]');
+  if (submit) submit.disabled = true;
   try {
     await bridge.apiPost("cache/settings/save", {
-      cache_type: "api",
+      cache_type: cacheType,
       cache_name: "*",
-      ttl_seconds: Number(byId("api-default-ttl").value),
-    });
-    await bridge.apiPost("cache/settings/save", {
-      cache_type: "image",
-      cache_name: "*",
-      ttl_seconds: Number(byId("image-default-ttl").value),
+      ttl_seconds: Number(byId(inputId).value),
     });
     await loadData();
-    showToast("默认缓存时间已保存");
+    showToast(successMessage);
   } catch (error) {
     showToast(error?.message || "默认缓存时间保存失败", true);
   } finally {
-    submit.disabled = false;
+    if (submit) submit.disabled = false;
   }
+}
+
+byId("api-cache-default-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  saveCacheDefaults(event.currentTarget, "api", "api-default-ttl", "接口默认缓存时间已保存");
+});
+byId("image-cache-default-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  saveCacheDefaults(event.currentTarget, "image", "image-default-ttl", "图片默认缓存时间已保存");
 });
 
-byId("cache-limit-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const submit = event.currentTarget.querySelector('button[type="submit"]');
-  submit.disabled = true;
+async function saveCacheLimits(form, payload, successMessage) {
+  const submit = form.querySelector('button[type="submit"]');
+  if (submit) submit.disabled = true;
   try {
-    await bridge.apiPost("cache/limits/save", {
-      api_memory_max_mb: Number(byId("api-memory-size-limit").value),
-      api_max_entries: Number(byId("api-entry-limit").value),
-      image_max_mb: Number(byId("image-size-limit").value),
-    });
+    await bridge.apiPost("cache/limits/save", { ...currentCacheLimits(), ...payload });
     await loadData();
-    showToast("缓存容量限制已保存并立即生效");
+    showToast(successMessage);
   } catch (error) {
     showToast(error?.message || "缓存容量限制保存失败", true);
   } finally {
-    submit.disabled = false;
+    if (submit) submit.disabled = false;
   }
+}
+
+byId("api-cache-limit-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  saveCacheLimits(
+    event.currentTarget,
+    {
+      api_memory_max_mb: Number(byId("api-memory-size-limit").value),
+    },
+    "接口缓存容量限制已保存并立即生效",
+  );
+});
+
+byId("image-cache-limit-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  saveCacheLimits(
+    event.currentTarget,
+    { image_max_mb: Number(byId("image-size-limit").value) },
+    "图片缓存容量限制已保存并立即生效",
+  );
 });
 
 async function clearCache(cacheType, control) {

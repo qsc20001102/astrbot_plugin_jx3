@@ -12,7 +12,7 @@
       <header class="page-header">
         <div>
           <h1>剑网三插件管理</h1>
-          <p>管理团队、报名限制、心法职责、会话访问范围、查询缓存、事件推送及会话区服绑定。</p>
+          <p>管理团队、报名限制、心法职责、会话访问范围、接口与图片缓存、事件推送及会话区服绑定。</p>
         </div>
         <button class="button button--secondary" id="refresh" type="button">刷新数据</button>
       </header>
@@ -43,7 +43,8 @@
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="bindings">区服绑定</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="kungfu">心法配置</button>
         <button class="tab" type="button" role="tab" aria-selected="false" data-tab="teams">团队管理</button>
-        <button class="tab" type="button" role="tab" aria-selected="false" data-tab="cache">缓存管理</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-tab="api-cache">接口缓存</button>
+        <button class="tab" type="button" role="tab" aria-selected="false" data-tab="image-cache">图片缓存</button>
       </nav>
 
       <section class="panel is-active" id="session-control-panel" role="tabpanel">
@@ -194,30 +195,65 @@
         <div class="team-list" id="team-list"></div>
       </section>
 
-      <section class="panel" id="cache-panel" role="tabpanel" hidden>
+      <section class="panel" id="api-cache-panel" role="tabpanel" hidden>
         <div class="section-intro section-intro--actions">
           <div>
-            <h2>查询与图片缓存</h2>
-            <p>接口数据以 JSON 保存到 SQLite，渲染图片保存到插件数据目录。图片命中时会直接发送，不再请求其上游接口；缓存时间使用秒，填写 0 可关闭对应缓存。每 60 秒自动清理过期缓存，接口请求失败时不使用过期数据。</p>
+            <h2>接口缓存</h2>
+            <p>仅包含 JX3API 接口数据，全部保存在内存中；插件重载或停止后自动清空并重新缓存。缓存时间使用秒，填写 0 可关闭对应缓存；每 60 秒自动清理过期缓存，接口请求失败时不使用过期数据。</p>
           </div>
           <div class="cache-clear-actions">
             <button class="button button--secondary" id="clear-api-cache" type="button">清空接口缓存</button>
+          </div>
+        </div>
+
+        <div class="cache-summary cache-summary--api" aria-label="接口缓存统计">
+          <div class="cache-stat"><span>接口缓存（内存）</span><strong id="api-cache-count">0 条</strong><small id="api-cache-size">0 B / 16 MB</small></div>
+          <div class="cache-stat"><span>默认缓存时间</span><strong id="api-default-summary">300 秒</strong><small>未单独配置的接口</small></div>
+        </div>
+
+        <form class="cache-defaults cache-defaults--single" id="api-cache-default-form">
+          <label>
+            <span>接口默认缓存时间（秒）</span>
+            <input id="api-default-ttl" type="number" min="0" max="2592000" step="1" required />
+          </label>
+          <button class="button button--primary" type="submit">保存默认时间</button>
+        </form>
+
+        <form class="cache-defaults cache-defaults--single" id="api-cache-limit-form">
+          <label>
+            <span>接口内存缓存最大容量（MB）</span>
+            <input id="api-memory-size-limit" type="number" min="1" max="1024" step="1" required />
+          </label>
+          <button class="button button--primary" type="submit">保存容量限制</button>
+        </form>
+
+        <div class="cache-toolbar cache-toolbar--standalone">
+          <input id="api-cache-filter" type="search" placeholder="筛选接口名称或路径" aria-label="筛选接口名称或路径" />
+          <select id="api-cache-category" aria-label="筛选接口分类">
+            <option value="">全部分类</option>
+          </select>
+          <span>接口名称与分类取自 JX3API 官方文档，按官网顺序展示；点击分类可折叠或展开。</span>
+        </div>
+        <div class="cache-category-list" id="api-cache-groups"></div>
+      </section>
+
+      <section class="panel" id="image-cache-panel" role="tabpanel" hidden>
+        <div class="section-intro section-intro--actions">
+          <div>
+            <h2>图片缓存</h2>
+            <p>渲染完成的图片保存到插件数据目录；命中时直接发送，不再请求上游接口。仅列出本地渲染图片的指令，缓存时间决定最终结果的新鲜度，填写 0 可关闭对应缓存。</p>
+          </div>
+          <div class="cache-clear-actions">
             <button class="button button--secondary" id="clear-image-cache" type="button">清空图片缓存</button>
           </div>
         </div>
 
-        <div class="cache-summary" aria-label="缓存统计">
-          <div class="cache-stat"><span>接口缓存（SQLite）</span><strong id="api-cache-count">0 / 256 条</strong><small id="api-cache-size">0 B</small></div>
+        <div class="cache-summary cache-summary--image" aria-label="图片缓存统计">
           <div class="cache-stat"><span>图片缓存</span><strong id="image-cache-count">0 张</strong><small id="image-cache-size">0 B</small></div>
-          <div class="cache-stat"><span>接口内存缓存</span><strong id="api-memory-summary">0 B / 16 MB</strong><small id="api-memory-count">0 条，最久未使用优先淘汰</small></div>
-          <div class="cache-stat"><span>默认缓存时间</span><strong id="cache-default-summary">300 / 600 秒</strong><small>接口 / 图片</small></div>
+          <div class="cache-stat"><span>默认缓存时间</span><strong id="image-default-summary">600 秒</strong><small>未单独配置的图片指令</small></div>
         </div>
 
-        <form class="cache-defaults" id="cache-default-form">
-          <label>
-            <span>接口数据默认缓存时间（秒）</span>
-            <input id="api-default-ttl" type="number" min="0" max="2592000" step="1" required />
-          </label>
+        <form class="cache-defaults cache-defaults--single" id="image-cache-default-form">
           <label>
             <span>图片默认缓存时间（秒）</span>
             <input id="image-default-ttl" type="number" min="0" max="2592000" step="1" required />
@@ -225,15 +261,7 @@
           <button class="button button--primary" type="submit">保存默认时间</button>
         </form>
 
-        <form class="cache-defaults cache-limits" id="cache-limit-form">
-          <label>
-            <span>接口内存缓存最大容量（MB）</span>
-            <input id="api-memory-size-limit" type="number" min="1" max="1024" step="1" required />
-          </label>
-          <label>
-            <span>SQLite 接口缓存最大条数</span>
-            <input id="api-entry-limit" type="number" min="1" max="100000" step="1" required />
-          </label>
+        <form class="cache-defaults cache-defaults--single" id="image-cache-limit-form">
           <label>
             <span>图片缓存最大容量（MB）</span>
             <input id="image-size-limit" type="number" min="1" max="10240" step="1" required />
@@ -241,33 +269,14 @@
           <button class="button button--primary" type="submit">保存容量限制</button>
         </form>
 
-        <details class="cache-group" open>
-          <summary>JX3API 接口数据缓存</summary>
-          <div class="cache-toolbar">
-            <input id="api-cache-filter" type="search" placeholder="筛选接口路径" aria-label="筛选接口路径" />
-            <span>单项设置优先；恢复后通常继承全局时间，“安全默认”项目恢复为 0 秒。</span>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>接口路径</th><th>缓存时间（秒）</th><th>配置状态</th><th class="actions">操作</th></tr></thead>
-              <tbody id="api-cache-settings-body"></tbody>
-            </table>
-          </div>
-        </details>
-
-        <details class="cache-group" open>
-          <summary>渲染图片缓存</summary>
-          <div class="cache-toolbar">
-            <input id="image-cache-filter" type="search" placeholder="筛选图片指令" aria-label="筛选图片指令" />
-            <span>图片缓存时间决定最终结果的新鲜度；过期后才重新请求数据并渲染。</span>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>图片指令</th><th>缓存时间（秒）</th><th>配置状态</th><th class="actions">操作</th></tr></thead>
-              <tbody id="image-cache-settings-body"></tbody>
-            </table>
-          </div>
-        </details>
+        <div class="cache-toolbar cache-toolbar--standalone">
+          <input id="image-cache-filter" type="search" placeholder="筛选图片指令" aria-label="筛选图片指令" />
+          <select id="image-cache-category" aria-label="筛选图片分类">
+            <option value="">全部分类</option>
+          </select>
+          <span>按功能分类展示所有本地渲染图片的指令；点击分类可折叠或展开。</span>
+        </div>
+        <div class="cache-category-list" id="image-cache-groups"></div>
       </section>
 
       <section class="panel" id="bindings-panel" role="tabpanel" hidden>

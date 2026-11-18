@@ -9,93 +9,22 @@ import shutil
 import time
 import weakref
 from collections import OrderedDict
-from collections.abc import Awaitable, Callable, Iterable
+from collections.abc import Awaitable, Callable, Iterable, Mapping
 from contextvars import ContextVar, Token
 from pathlib import Path
 from typing import Any
 
 from astrbot.api import logger
 
+from .api_catalog import (
+    API_CATALOG,
+    API_CATEGORY_ORDER,
+    category_name,
+)
+from .features import COMMAND_ORDER, FEATURE_SECTION_ORDER, command_feature
 from .sqlite import AsyncSQLiteDB
 
-API_ENDPOINTS: tuple[str, ...] = (
-    "/active/calendar",
-    "/active/celebs",
-    "/arena/awesome",
-    "/arena/recent",
-    "/arena/schools",
-    "/auction/records",
-    "/battle/records",
-    "/calcd/attribute",
-    "/calcd/detail",
-    "/calcd/records",
-    "/card/random",
-    "/card/record",
-    "/card/records",
-    "/chat/records",
-    "/chitu/records",
-    "/chitu/week/records",
-    "/choice/answer",
-    "/choice/drink",
-    "/choice/food",
-    "/event/collect",
-    "/event/recent",
-    "/event/records",
-    "/event/statistics",
-    "/exam/search",
-    "/firework/records",
-    "/food/list",
-    "/fraud/detail",
-    "/home/flower",
-    "/mech/decrypt",
-    "/mentor/search",
-    "/monster/records",
-    "/monster/weekly",
-    "/news/announce",
-    "/news/records",
-    "/raid/records",
-    "/ranch/chat",
-    "/ranch/records",
-    "/rank/battle",
-    "/rank/castle",
-    "/rank/contest",
-    "/rank/guild",
-    "/rank/jianghu",
-    "/rank/ladder",
-    "/rank/records",
-    "/rank/trials",
-    "/rank/wanted",
-    "/recruit/search",
-    "/reward/statistics",
-    "/role/achievement",
-    "/role/detail",
-    "/role/online/status",
-    "/sand/records",
-    "/saohua/content",
-    "/saohua/context",
-    "/saohua/random",
-    "/saohua/zhanan",
-    "/school/matrix",
-    "/school/seniority",
-    "/school/skills",
-    "/school/talent",
-    "/server/search",
-    "/share/stay",
-    "/server/status/check",
-    "/skill/rework",
-    "/steed/records",
-    "/tieba/item/records",
-    "/tieba/random",
-    "/trade/demon",
-    "/trade/manufacture",
-    "/trade/records",
-    "/trade/wanbaolou",
-    "/trial/bosses",
-    "/voice/channels",
-    "/wicked/records",
-)
-
-# 旧接口重命名后，把已有的单项缓存时间迁移到新路径，并丢弃旧路径的缓存数据。
+# 旧接口重命名后，把已有的单项缓存时间迁移到新路径，并丢弃旧路径的配置。
 ENDPOINT_RENAMES: tuple[tuple[str, str], ...] = (
     ("/card/cached", "/card/record"),
     ("/duowan/statistics", "/voice/channels"),
@@ -110,27 +39,26 @@ ENDPOINT_RENAMES: tuple[tuple[str, str], ...] = (
     ("/tuilan/achievement", "/role/achievement"),
 )
 
-# 已停止提供的接口：清理旧的单项缓存时间与缓存数据。
+# 已停止提供的接口：清理旧的单项缓存配置。
 REMOVED_ENDPOINTS: tuple[str, ...] = (
     "/castle/status",
     "/event/missing",
     "/fenxian/records",
     "/home/furniture",
     "/home/travel",
+    "/raid/records",
 )
 
 
 class CacheService:
-    """持久化接口 JSON 与 HTML 渲染图片，并提供 WebUI 配置。"""
+    """接口 JSON 仅内存缓存、渲染图片持久化，并提供 WebUI 配置。"""
 
     DEFAULT_API_TTL = 300
     DEFAULT_IMAGE_TTL = 600
     MAX_TTL_SECONDS = 30 * 24 * 60 * 60
     DEFAULT_MAX_MEMORY_BYTES = 16 * 1024 * 1024
-    DEFAULT_MAX_API_ENTRIES = 256
     DEFAULT_MAX_IMAGE_BYTES = 512 * 1024 * 1024
     MAX_MEMORY_MB_LIMIT = 1024
-    MAX_API_ENTRIES_LIMIT = 100_000
     MAX_IMAGE_MB_LIMIT = 10_240
     CLEANUP_INTERVAL_SECONDS = 60
     _SENSITIVE_KEYS = frozenset(
@@ -149,8 +77,8 @@ class CacheService:
             "/tieba/random",
         }
     )
-    # 属性/装备页包含实时在线状态，默认不缓存渲染图片，保证状态及时刷新。
-    _NO_CACHE_IMAGE_DEFAULTS = frozenset({"属性", "装备"})
+    # 属性/装备页包含实时在线状态，查看团队包含实时团队数据，默认不缓存渲染图片。
+    _NO_CACHE_IMAGE_DEFAULTS = frozenset({"属性", "装备", "查看团队"})
 
     def __init__(
         self,
@@ -162,11 +90,10 @@ class CacheService:
         self.image_dir = Path(image_dir)
         self._settings: dict[tuple[str, str], int] = {}
         self.max_memory_bytes = self.DEFAULT_MAX_MEMORY_BYTES
-        self.max_api_entries = self.DEFAULT_MAX_API_ENTRIES
         self.max_image_bytes = self.DEFAULT_MAX_IMAGE_BYTES
-        self._memory: OrderedDict[str, tuple[int, int, bytes, int]] = OrderedDict()
+        # cache_key -> (created_at, expires_at, payload, size_bytes, endpoint)
+        self._memory: OrderedDict[str, tuple[int, int, bytes, int, str]] = OrderedDict()
         self._memory_size_bytes = 0
-        self._api_storage_lock = asyncio.Lock()
         self._cleanup_task: asyncio.Task | None = None
         self._api_locks: weakref.WeakValueDictionary[str, asyncio.Lock] = (
             weakref.WeakValueDictionary()
@@ -178,7 +105,7 @@ class CacheService:
             "jx3_cache_command_context",
             default=("", ""),
         )
-        self._image_names: set[str] = set()
+        self._image_names: dict[str, str] = {}
         self._asset_signature = self._build_asset_signature(asset_roots)
 
     @staticmethod
@@ -229,18 +156,6 @@ class CacheService:
         )
         await self._sqlite.execute(
             """
-            CREATE TABLE IF NOT EXISTS api_response_cache(
-                cache_key TEXT PRIMARY KEY,
-                endpoint TEXT NOT NULL,
-                payload TEXT NOT NULL,
-                created_at INTEGER NOT NULL,
-                expires_at INTEGER NOT NULL,
-                last_accessed_at INTEGER NOT NULL
-            )
-            """
-        )
-        await self._sqlite.execute(
-            """
             CREATE TABLE IF NOT EXISTS image_render_cache(
                 cache_key TEXT PRIMARY KEY,
                 cache_name TEXT NOT NULL,
@@ -264,15 +179,14 @@ class CacheService:
                 """
             )
         await self._sqlite.execute(
-            "CREATE INDEX IF NOT EXISTS idx_api_cache_endpoint ON api_response_cache(endpoint)"
-        )
-        await self._sqlite.execute(
-            "CREATE INDEX IF NOT EXISTS idx_api_cache_lru ON api_response_cache(last_accessed_at)"
-        )
-        await self._sqlite.execute(
             "CREATE INDEX IF NOT EXISTS idx_image_cache_name ON image_render_cache(cache_name)"
         )
-        # Preserve endpoint-specific TTLs without reusing retired API payloads.
+        # 接口数据已改为纯内存缓存：删除旧版本持久化的接口 JSON 与条数上限。
+        await self._sqlite.execute("DROP TABLE IF EXISTS api_response_cache")
+        await self._sqlite.execute(
+            "DELETE FROM cache_limits WHERE limit_name IN ('api_max_entries', 'api_memory_entries')"
+        )
+        # Preserve endpoint-specific TTLs; API payloads are no longer persisted.
         async with self._sqlite.transaction():
             for old_path, new_path in ENDPOINT_RENAMES:
                 await self._sqlite.execute(
@@ -288,22 +202,14 @@ class CacheService:
                     "cache_type='api' AND cache_name=?",
                     (old_path,),
                 )
-                await self._sqlite.delete(
-                    "api_response_cache", "endpoint=?", (old_path,)
-                )
             for endpoint in REMOVED_ENDPOINTS:
                 await self._sqlite.delete(
                     "cache_settings",
                     "cache_type='api' AND cache_name=?",
                     (endpoint,),
                 )
-                await self._sqlite.delete(
-                    "api_response_cache", "endpoint=?", (endpoint,)
-                )
         await self._load_settings()
         await self._load_limits()
-        async with self._api_storage_lock:
-            await self._enforce_api_limit()
         await self.cleanup_expired()
         await self._enforce_image_limit()
         if self._cleanup_task is None or self._cleanup_task.done():
@@ -317,6 +223,7 @@ class CacheService:
             with contextlib.suppress(asyncio.CancelledError):
                 await self._cleanup_task
             self._cleanup_task = None
+        self._clear_memory()
 
     async def _cleanup_loop(self):
         while True:
@@ -343,12 +250,6 @@ class CacheService:
             )
         )
         self.max_memory_bytes = memory_limit_mb * 1024 * 1024
-        self.max_api_entries = self._validated_api_entry_limit(
-            limits.get(
-                "api_max_entries",
-                limits.get("api_memory_entries", self.DEFAULT_MAX_API_ENTRIES),
-            )
-        )
         image_limit_mb = self._validated_image_limit_mb(
             limits.get("image_max_mb", self.DEFAULT_MAX_IMAGE_BYTES // 1024 // 1024)
         )
@@ -367,18 +268,6 @@ class CacheService:
         return limit
 
     @classmethod
-    def _validated_api_entry_limit(cls, value: Any) -> int:
-        if isinstance(value, bool):
-            raise ValueError("SQLite 接口缓存条数必须是整数")
-        try:
-            limit = int(value)
-        except (TypeError, ValueError) as exc:
-            raise ValueError("SQLite 接口缓存条数必须是整数") from exc
-        if limit < 1 or limit > cls.MAX_API_ENTRIES_LIMIT:
-            raise ValueError("SQLite 接口缓存条数必须在 1 到 100000 之间")
-        return limit
-
-    @classmethod
     def _validated_image_limit_mb(cls, value: Any) -> int:
         if isinstance(value, bool):
             raise ValueError("图片缓存容量必须是整数 MB")
@@ -393,15 +282,12 @@ class CacheService:
     async def set_limits(
         self,
         api_memory_max_mb: Any,
-        api_max_entries: Any,
         image_max_mb: Any,
     ):
         memory_limit_mb = self._validated_memory_limit_mb(api_memory_max_mb)
-        api_entry_limit = self._validated_api_entry_limit(api_max_entries)
         image_limit_mb = self._validated_image_limit_mb(image_max_mb)
         for limit_name, limit_value in (
             ("api_memory_max_mb", memory_limit_mb),
-            ("api_max_entries", api_entry_limit),
             ("image_max_mb", image_limit_mb),
         ):
             await self._sqlite.execute(
@@ -413,17 +299,18 @@ class CacheService:
                 """,
                 (limit_name, limit_value),
             )
+        self.max_memory_bytes = memory_limit_mb * 1024 * 1024
         self.max_image_bytes = image_limit_mb * 1024 * 1024
-        async with self._api_storage_lock:
-            self.max_memory_bytes = memory_limit_mb * 1024 * 1024
-            self.max_api_entries = api_entry_limit
-            await self._enforce_api_limit()
+        self._enforce_memory_limit()
         await self._enforce_image_limit()
 
-    def register_image_names(self, names: Iterable[str]):
-        self._image_names.update(
-            str(name).strip() for name in names if str(name).strip()
-        )
+    def register_image_commands(self, commands: Mapping[str, str | None]):
+        """登记需要本地渲染图片的指令及其功能分类。"""
+        self._image_names = {
+            str(name).strip(): str(category or "").strip()
+            for name, category in commands.items()
+            if str(name).strip()
+        }
 
     def enter_command(self, command_name: str, args: Iterable[Any] = ()) -> Token:
         argument_signature = hashlib.sha256(
@@ -545,55 +432,36 @@ class CacheService:
         source = f"api:v2|{endpoint}|{cls._json(params, strip_sensitive=True)}"
         return hashlib.sha256(source.encode("utf-8")).hexdigest()
 
-    async def _read_api_payload(
+    def _read_api_payload(
         self,
         cache_key: str,
         endpoint: str,
     ) -> tuple[Any | None, int | None, int | None]:
-        async with self._api_storage_lock:
-            now = time.time()
-            ttl = self.get_ttl("api", endpoint)
-            memory = self._memory.get(cache_key)
-            if memory is not None:
-                created_at, expires_at, payload, _ = memory
-            else:
-                row = await self._sqlite.fetch_one(
-                    """
-                    SELECT payload, created_at, expires_at
-                    FROM api_response_cache
-                    WHERE cache_key=? AND endpoint=?
-                    """,
-                    (cache_key, endpoint),
-                )
-                if not row:
-                    return None, None, None
-                created_at = int(row["created_at"])
-                expires_at = int(row["expires_at"])
-                payload = str(row["payload"])
-            effective_expiry = min(expires_at, created_at + ttl)
-            try:
-                data = (
-                    json.loads(payload) if ttl > 0 and effective_expiry > now else None
-                )
-            except json.JSONDecodeError:
-                data = None
-            if data is None or (isinstance(data, (dict, list)) and not data):
-                self._forget_memory(cache_key)
-                await self._sqlite.delete(
-                    "api_response_cache", "cache_key=?", (cache_key,)
-                )
-                return None, effective_expiry, created_at
-
-            self._remember(cache_key, created_at, expires_at, payload)
-            await self._sqlite.execute(
-                "UPDATE api_response_cache SET last_accessed_at=? WHERE cache_key=?",
-                (now, cache_key),
-            )
-            return data, effective_expiry, created_at
+        now = time.time()
+        ttl = self.get_ttl("api", endpoint)
+        memory = self._memory.get(cache_key)
+        if memory is None:
+            return None, None, None
+        created_at, expires_at, payload, _size, _endpoint = memory
+        effective_expiry = min(expires_at, created_at + ttl)
+        if ttl <= 0 or effective_expiry <= now:
+            self._forget_memory(cache_key)
+            return None, effective_expiry, created_at
+        try:
+            data = json.loads(payload)
+        except json.JSONDecodeError:
+            self._forget_memory(cache_key)
+            return None, effective_expiry, created_at
+        if data is None or (isinstance(data, (dict, list)) and not data):
+            self._forget_memory(cache_key)
+            return None, effective_expiry, created_at
+        self._memory.move_to_end(cache_key)
+        return data, effective_expiry, created_at
 
     def _remember(
         self,
         cache_key: str,
+        endpoint: str,
         created_at: int,
         expires_at: int,
         payload: str | bytes,
@@ -603,7 +471,13 @@ class CacheService:
         size_bytes = len(encoded)
         if size_bytes > self.max_memory_bytes:
             return
-        self._memory[cache_key] = (created_at, expires_at, encoded, size_bytes)
+        self._memory[cache_key] = (
+            created_at,
+            expires_at,
+            encoded,
+            size_bytes,
+            endpoint,
+        )
         self._memory_size_bytes += size_bytes
         self._memory.move_to_end(cache_key)
         self._enforce_memory_limit()
@@ -617,42 +491,12 @@ class CacheService:
         self._memory.clear()
         self._memory_size_bytes = 0
 
-    def _retain_memory_keys(self, retained: set[str]):
-        self._memory = OrderedDict(
-            (key, value) for key, value in self._memory.items() if key in retained
-        )
-        self._memory_size_bytes = sum(value[3] for value in self._memory.values())
-
     def _enforce_memory_limit(self):
         while self._memory_size_bytes > self.max_memory_bytes and self._memory:
             _, removed = self._memory.popitem(last=False)
             self._memory_size_bytes -= removed[3]
 
-    async def _enforce_api_limit(self):
-        """Enforce memory bytes and SQLite entries while holding the storage lock."""
-        self._enforce_memory_limit()
-        row = await self._sqlite.fetch_one(
-            "SELECT COUNT(*) AS count FROM api_response_cache"
-        )
-        if int((row or {}).get("count") or 0) <= self.max_api_entries:
-            return
-        await self._sqlite.execute(
-            """
-            DELETE FROM api_response_cache WHERE cache_key IN (
-                SELECT cache_key FROM api_response_cache
-                ORDER BY last_accessed_at DESC, rowid DESC
-                LIMIT -1 OFFSET ?
-            )
-            """,
-            (self.max_api_entries,),
-        )
-        remaining = await self._sqlite.fetch_all(
-            "SELECT cache_key FROM api_response_cache"
-        )
-        retained = {row["cache_key"] for row in remaining}
-        self._retain_memory_keys(retained)
-
-    async def _save_api_payload(
+    def _save_api_payload(
         self,
         cache_key: str,
         endpoint: str,
@@ -661,24 +505,7 @@ class CacheService:
     ) -> int:
         payload = self._json(data)
         now = int(time.time())
-        expires_at = now + ttl_seconds
-        async with self._api_storage_lock:
-            await self._sqlite.execute(
-                """
-            INSERT INTO api_response_cache(
-                cache_key, endpoint, payload, created_at, expires_at, last_accessed_at
-            ) VALUES(?, ?, ?, ?, ?, ?)
-            ON CONFLICT(cache_key) DO UPDATE SET
-                endpoint=excluded.endpoint,
-                payload=excluded.payload,
-                created_at=excluded.created_at,
-                expires_at=excluded.expires_at,
-                last_accessed_at=excluded.last_accessed_at
-            """,
-                (cache_key, endpoint, payload, now, expires_at, time.time()),
-            )
-            self._remember(cache_key, now, expires_at, payload)
-            await self._enforce_api_limit()
+        self._remember(cache_key, endpoint, now, now + ttl_seconds, payload)
         return now
 
     async def request_api(
@@ -710,7 +537,7 @@ class CacheService:
             return data, metadata
 
         if not force_refresh:
-            cached, _, created_at = await self._read_api_payload(cache_key, endpoint)
+            cached, _, created_at = self._read_api_payload(cache_key, endpoint)
             if cached is not None:
                 metadata["hit"] = True
                 metadata["created_at"] = created_at
@@ -722,7 +549,7 @@ class CacheService:
         lock = self._api_locks.setdefault(cache_key, asyncio.Lock())
         async with lock:
             if not force_refresh:
-                cached, _, created_at = await self._read_api_payload(
+                cached, _, created_at = self._read_api_payload(
                     cache_key, endpoint
                 )
                 if cached is not None:
@@ -738,17 +565,13 @@ class CacheService:
                 data = await requester()
             finally:
                 if not is_cacheable(data):
-                    async with self._api_storage_lock:
-                        self._forget_memory(cache_key)
-                        await self._sqlite.delete(
-                            "api_response_cache", "cache_key=?", (cache_key,)
-                        )
+                    self._forget_memory(cache_key)
             if is_cacheable(data):
                 metadata["data_hash"] = hashlib.sha256(
                     self._json(data).encode("utf-8")
                 ).hexdigest()
                 try:
-                    metadata["created_at"] = await self._save_api_payload(
+                    metadata["created_at"] = self._save_api_payload(
                         cache_key,
                         endpoint,
                         data,
@@ -940,25 +763,19 @@ class CacheService:
 
     async def cleanup_expired(self):
         now = int(time.time())
-        async with self._api_storage_lock:
-            uncached_defaults = sorted(self._NO_CACHE_API_DEFAULTS)
-            placeholders = ",".join("?" for _ in uncached_defaults)
-            await self._sqlite.execute(
-                f"""
-                DELETE FROM api_response_cache
-                WHERE expires_at<=? OR created_at + COALESCE(
-                    (SELECT ttl_seconds FROM cache_settings
-                     WHERE cache_type='api' AND cache_name=api_response_cache.endpoint),
-                    CASE WHEN endpoint IN ({placeholders}) THEN 0 ELSE ? END
-                )<=?
-                """,
-                (now, *uncached_defaults, self.get_ttl("api", "*"), now),
-            )
-            remaining = await self._sqlite.fetch_all(
-                "SELECT cache_key FROM api_response_cache"
-            )
-            retained = {row["cache_key"] for row in remaining}
-            self._retain_memory_keys(retained)
+        stale = [
+            cache_key
+            for cache_key, (
+                created_at,
+                expires_at,
+                _payload,
+                _size,
+                endpoint,
+            ) in self._memory.items()
+            if min(expires_at, created_at + self.get_ttl("api", endpoint)) <= now
+        ]
+        for cache_key in stale:
+            self._forget_memory(cache_key)
         rows = await self._sqlite.fetch_all(
             "SELECT cache_key, file_name FROM image_render_cache WHERE expires_at<=?",
             (now,),
@@ -983,13 +800,8 @@ class CacheService:
             raise ValueError("清理类型仅支持 api、image 或 all")
         removed = {"api": 0, "image": 0}
         if cache_type in {"api", "all"}:
-            async with self._api_storage_lock:
-                row = await self._sqlite.fetch_one(
-                    "SELECT COUNT(*) AS count FROM api_response_cache"
-                )
-                removed["api"] = int((row or {}).get("count") or 0)
-                await self._sqlite.execute("DELETE FROM api_response_cache")
-                self._clear_memory()
+            removed["api"] = len(self._memory)
+            self._clear_memory()
         if cache_type in {"image", "all"}:
             rows = await self._sqlite.fetch_all(
                 "SELECT cache_key, file_name FROM image_render_cache"
@@ -1010,19 +822,20 @@ class CacheService:
             raise ValueError("缓存项目不能为空")
 
         if cache_type == "api":
-            async with self._api_storage_lock:
-                rows = await self._sqlite.fetch_all(
-                    "SELECT cache_key FROM api_response_cache WHERE endpoint=?",
-                    (cache_name,),
-                )
-                await self._sqlite.delete(
-                    "api_response_cache",
-                    "endpoint=?",
-                    (cache_name,),
-                )
-                for row in rows:
-                    self._forget_memory(str(row["cache_key"]))
-                return len(rows)
+            keys = [
+                cache_key
+                for cache_key, (
+                    _created_at,
+                    _expires_at,
+                    _payload,
+                    _size,
+                    endpoint,
+                ) in self._memory.items()
+                if endpoint == cache_name
+            ]
+            for cache_key in keys:
+                self._forget_memory(cache_key)
+            return len(keys)
 
         rows = await self._sqlite.fetch_all(
             """
@@ -1040,7 +853,7 @@ class CacheService:
         return len(rows)
 
     def _setting_item(self, cache_type: str, cache_name: str) -> dict[str, Any]:
-        return {
+        item: dict[str, Any] = {
             "name": cache_name,
             "ttl_seconds": self.get_ttl(cache_type, cache_name),
             "overridden": (cache_type, cache_name) in self._settings,
@@ -1058,16 +871,25 @@ class CacheService:
                 and (cache_type, cache_name) not in self._settings
             ),
         }
+        if cache_type == "api":
+            title, category_key = API_CATALOG.get(cache_name, (cache_name, ""))
+            item["title"] = title
+            item["category_key"] = category_key
+            item["category"] = (
+                category_name(category_key) if category_key else "其他"
+            )
+        if cache_type == "image":
+            category_key = self._image_names.get(cache_name)
+            if not category_key:
+                category_key = command_feature(cache_name) or ""
+            item["category_key"] = category_key
+            item["category"] = (
+                category_name(category_key) if category_key else "其他"
+            )
+        return item
 
     async def dashboard(self) -> dict[str, Any]:
         await self.cleanup_expired()
-        api_row = await self._sqlite.fetch_one(
-            """
-            SELECT COUNT(*) AS count,
-                   COALESCE(SUM(LENGTH(CAST(payload AS BLOB))), 0) AS size_bytes
-            FROM api_response_cache
-            """
-        )
         image_row = await self._sqlite.fetch_one(
             """
             SELECT COUNT(*) AS count,
@@ -1075,18 +897,59 @@ class CacheService:
             FROM image_render_cache
             """
         )
-        known_api_names = set(API_ENDPOINTS)
-        known_api_names.update(
-            name
-            for cache_type, name in self._settings
-            if cache_type == "api" and name != "*"
-        )
+        api_items = [self._setting_item("api", name) for name in API_CATALOG]
+        category_counts: dict[str, int] = {}
+        for item in api_items:
+            category_key = str(item["category_key"])
+            category_counts[category_key] = category_counts.get(category_key, 0) + 1
         known_image_names = set(self._image_names)
         known_image_names.update(
             name
             for cache_type, name in self._settings
             if cache_type == "image" and name != "*"
         )
+        section_order = {
+            key: index for index, key in enumerate(FEATURE_SECTION_ORDER)
+        }
+        command_order: dict[str, int] = {}
+        for section in FEATURE_SECTION_ORDER:
+            for index, command in enumerate(COMMAND_ORDER.get(section, ())):
+                command_order[command] = index
+        image_items = [
+            self._setting_item("image", name) for name in known_image_names
+        ]
+        image_items.sort(
+            key=lambda item: (
+                section_order.get(
+                    str(item["category_key"]), len(section_order)
+                ),
+                command_order.get(str(item["name"]), len(command_order)),
+                str(item["name"]).encode("utf-8"),
+            )
+        )
+        image_category_counts: dict[str, int] = {}
+        for item in image_items:
+            category_key = str(item["category_key"])
+            image_category_counts[category_key] = (
+                image_category_counts.get(category_key, 0) + 1
+            )
+        image_categories = [
+            {
+                "key": category_key,
+                "name": category_name(category_key),
+                "count": image_category_counts[category_key],
+            }
+            for category_key in FEATURE_SECTION_ORDER
+            if image_category_counts.get(category_key)
+        ]
+        if image_category_counts.get(""):
+            image_categories.append(
+                {
+                    "key": "",
+                    "name": "其他",
+                    "count": image_category_counts[""],
+                }
+            )
         return {
             "defaults": {
                 "api": self.get_ttl("api", "*"),
@@ -1094,25 +957,26 @@ class CacheService:
             },
             "limits": {
                 "api_memory_max_mb": self.max_memory_bytes // 1024 // 1024,
-                "api_max_entries": self.max_api_entries,
                 "image_max_mb": self.max_image_bytes // 1024 // 1024,
             },
-            "api": [
-                self._setting_item("api", name) for name in sorted(known_api_names)
+            "api": api_items,
+            "api_categories": [
+                {
+                    "key": category_key,
+                    "name": category_name(category_key),
+                    "count": category_counts[category_key],
+                }
+                for category_key in API_CATEGORY_ORDER
+                if category_counts.get(category_key)
             ],
-            "images": [
-                self._setting_item("image", name)
-                for name in sorted(
-                    known_image_names, key=lambda value: value.encode("utf-8")
-                )
-            ],
+            "images": image_items,
+            "image_categories": image_categories,
             "stats": {
-                "api_count": int((api_row or {}).get("count") or 0),
-                "api_size_bytes": int((api_row or {}).get("size_bytes") or 0),
+                "api_count": len(self._memory),
+                "api_size_bytes": self._memory_size_bytes,
                 "api_memory_count": len(self._memory),
                 "api_memory_size_bytes": self._memory_size_bytes,
                 "api_memory_limit_bytes": self.max_memory_bytes,
-                "api_entry_limit": self.max_api_entries,
                 "image_count": int((image_row or {}).get("count") or 0),
                 "image_size_bytes": int((image_row or {}).get("size_bytes") or 0),
                 "image_limit_bytes": self.max_image_bytes,

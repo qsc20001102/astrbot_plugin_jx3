@@ -2835,15 +2835,3 @@ class JX3APIService:
             processor=processor,
             template="miaoshang.html",
         )
-
-    async def fubengjilu(self, server:str, name: str ) -> Dict[str, Any]:
-        """副本记录"""
-        async def processor(data: Any, return_data: Dict[str, Any]) -> None:
-            return_data["data"]["list"] = data
-
-        return await self._request_api(
-            path="/raid/records",
-            params= {"server": server,"name": name,"token": self.token,},
-            processor=processor,
-            template="fubenjilu.html"
-        )
