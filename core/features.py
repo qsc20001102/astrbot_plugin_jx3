@@ -56,11 +56,11 @@ FEATURE_SECTIONS: dict[str, dict[str, str]] = {
     },
     "role": {
         "name": "角色查询",
-        "description": "奇遇、角色详情、在线状态、属性与装备、心法配装、名片、百战与蹲宠。",
+        "description": "奇遇、角色详情、在线状态、属性与装备、阵眼、技能、奇穴、名片、百战与蹲宠。",
     },
     "macro": {
         "name": "魔盒功能",
-        "description": "魔盒配装、魔盒宏与交易行。",
+        "description": "魔盒配装、奇遇攻略、魔盒宏与交易行。",
     },
     "community": {
         "name": "游戏社区",
@@ -121,14 +121,14 @@ FEATURE_INFO: dict[str, dict[str, Any]] = {
     },
     "role": {
         "name": "角色查询",
-        "description": "奇遇、角色详情、在线状态、属性与装备、心法配装、名片、百战与蹲宠。",
-        "cost": "含 JX3BOX 攻略",
+        "description": "奇遇、角色详情、在线状态、属性与装备、阵眼、技能、奇穴、名片、百战与蹲宠。",
+        "cost": "消耗 JX3API 次数",
         "default": True,
     },
     "macro": {
         "name": "魔盒功能",
-        "description": "魔盒配装、魔盒宏与交易行。",
-        "cost": "含 JX3BOX 配装、宏与交易行",
+        "description": "魔盒配装、奇遇攻略、魔盒宏与交易行。",
+        "cost": "含 JX3BOX 配装、攻略、宏与交易行",
         "default": True,
     },
     "community": {
@@ -232,7 +232,6 @@ FEATURE_COMMANDS: dict[str, frozenset[str]] = {
             "汇总",
             "近期",
             "统计",
-            "攻略",
             "角色",
             "在线",
             "属性",
@@ -251,6 +250,7 @@ FEATURE_COMMANDS: dict[str, frozenset[str]] = {
     "macro": frozenset(
         {
             "配装",
+            "攻略",
             "宏",
             "交易行",
         }
@@ -312,7 +312,6 @@ FEATURE_COMMANDS: dict[str, frozenset[str]] = {
             "开团",
             "打开报名",
             "关闭报名",
-            "关闭报警",
             "报名",
             "取消报名",
             "查看团队",
@@ -372,7 +371,6 @@ COMMAND_ORDER: dict[str, tuple[str, ...]] = {
         "奇遇",
         "查询",
         "统计",
-        "攻略",
         "角色",
         "在线",
         "属性",
@@ -387,7 +385,7 @@ COMMAND_ORDER: dict[str, tuple[str, ...]] = {
         "百战",
         "蹲宠",
     ),
-    "macro": ("配装", "宏", "交易行"),
+    "macro": ("配装", "攻略", "宏", "交易行"),
     "community": (
         "答案之书",
         "喝什么",
@@ -421,7 +419,6 @@ COMMAND_ORDER: dict[str, tuple[str, ...]] = {
         "开团",
         "打开报名",
         "关闭报名",
-        "关闭报警",
         "结束团队",
         "结束全部团队",
         "清空报名",

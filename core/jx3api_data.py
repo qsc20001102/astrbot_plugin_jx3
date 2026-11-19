@@ -15,13 +15,33 @@ import astrbot.api.message_components as Comp
 
 from .request import APIClient, APIErrorResponse
 from .sqlite import AsyncSQLiteDB
-from .fun_basic import load_template,gold_to_parts,week_to_num,compare_date_str,format_time,format_remaining
+from .fun_basic import (
+    load_template,
+    gold_to_parts,
+    week_to_num,
+    compare_date_str,
+    format_time,
+    format_remaining,
+    format_duration,
+    clean_jx3_text,
+)
 
 if TYPE_CHECKING:
     from .cache import CacheService
 
 
 JX3API_BASE_URL = "https://www.jx3api.com"
+JX3BOX_ICON_BASE_URL = "https://icon.jx3box.com/icon"
+
+
+def icon_url(icon: Any) -> str:
+    """把 JX3API 返回的图标编号转换为可访问的 JX3BOX 图标地址。"""
+    value = str(icon or "").strip()
+    if not value:
+        return ""
+    if value.startswith(("http://", "https://", "data:")):
+        return value
+    return f"{JX3BOX_ICON_BASE_URL}/{value}.png"
 
 ROLE_RANK_NAMES = {
     "名士五十强",
@@ -242,7 +262,7 @@ class JX3APIService:
         """获取当前有效区服名称，供 WebUI 区服下拉框使用。"""
         data, _ = await self._cached_request(
             "/server/status/check",
-            {"server": "", "type": "其他"},
+            {"server": "", "type": 0},
             force_refresh=force_refresh,
         )
         if not isinstance(data, list):
@@ -1501,13 +1521,45 @@ class JX3APIService:
     async def bangzhanjilu(self, server: str) -> Dict[str, Any]:
         """帮战记录"""
         async def processor(data: Any, return_data: Dict[str, Any]) -> None:
-            for item in data:
-                item["startTime"] = format_time(item["startTime"])
-                item["durationSeconds"] = format_remaining(item["durationSeconds"])
-                item["endTime"] = format_time(item["endTime"])
+            if isinstance(data, dict):
+                records = data.get("data") or data.get("detail") or []
+            else:
+                records = data if isinstance(data, list) else []
+            items = []
+            for item in records:
+                if not isinstance(item, dict):
+                    continue
+                items.append(
+                    {
+                        "declaringName": item.get("declaringName") or "",
+                        "acceptingName": item.get("acceptingName") or "",
+                        "type": (
+                            item.get("type")
+                            or item.get("battleType")
+                            or item.get("battlefieldType")
+                            or ""
+                        ),
+                        "startTime": format_time(item.get("startTime")),
+                        "endTime": (
+                            format_time(item.get("endTime"))
+                            if item.get("endTime")
+                            else ""
+                        ),
+                        "duration": format_duration(item.get("durationSeconds")),
+                        "winnerName": (
+                            item.get("winnerName")
+                            or item.get("victoryTongName")
+                            or ""
+                        ),
+                    }
+                )
+
+            if not items:
+                return_data["msg"] = "未查询到帮战记录"
+                return
 
             return_data["data"] = {
-                "items": data,
+                "items": items,
                 "server": server,
                 "update_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             }
@@ -1973,18 +2025,52 @@ class JX3APIService:
     async def zhenyan(self, kungfu: str) -> Dict[str, Any]:
         """阵眼"""
         async def processor(data: Any, return_data: Dict[str, Any]) -> None:
-            items = data.get("data", [])
-            if not isinstance(items, list) or not items:
+            # 新版接口返回 detail 列表，每项是一套阵法；旧版曾返回
+            # {name, skillName, data: [...]}，这里一并兼容。
+            if isinstance(data, dict):
+                if isinstance(data.get("levels"), list):
+                    matrices = [data]
+                else:
+                    matrices = data.get("data") or data.get("detail") or []
+            else:
+                matrices = data
+
+            if not isinstance(matrices, list) or not matrices:
                 return_data["msg"] = "未查询到该心法阵眼信息"
-                return return_data
+                return
 
-            result_msg = f"{data.get('name', kungfu)}-{data.get('skillName', '')}\n"
-            for item in items:
-                if not isinstance(item, dict):
+            blocks = []
+            for matrix in matrices:
+                if not isinstance(matrix, dict):
                     continue
-                result_msg += f"{item.get('name', '')}：{item.get('desc', '')}\n"
 
-            return_data["data"] = result_msg.rstrip()
+                name = str(matrix.get("name") or "阵眼")
+                desc = clean_jx3_text(matrix.get("desc"))
+                lines = [f"{name}：{desc}" if desc else name]
+
+                levels = matrix.get("levels")
+                if isinstance(levels, list):
+                    for level in levels:
+                        if not isinstance(level, dict):
+                            continue
+                        level_desc = clean_jx3_text(level.get("desc"))
+                        if not level_desc:
+                            continue
+                        level_no = level.get("level")
+                        label = (
+                            f"{level_no}重"
+                            if level_no not in (None, "")
+                            else "效果"
+                        )
+                        lines.append(f"{label}：{level_desc}")
+
+                blocks.append("\n".join(lines))
+
+            if not blocks:
+                return_data["msg"] = "未查询到该心法阵眼信息"
+                return
+
+            return_data["data"] = f"{kungfu}\n" + "\n\n".join(blocks)
 
         return await self._request_api(
             path="/school/matrix",
@@ -1996,39 +2082,72 @@ class JX3APIService:
     async def jineng(self, kungfu: str) -> Dict[str, Any]:
         """技能"""
         async def processor(data: Any, return_data: Dict[str, Any]) -> None:
-            groups = []
-            for group in data:
+            if isinstance(data, dict):
+                items = data.get("data") or data.get("detail") or []
+            else:
+                items = data
+            if not isinstance(items, list):
+                items = []
+
+            groups: List[Dict[str, Any]] = []
+            group_index: Dict[str, Dict[str, Any]] = {}
+            for group in items:
                 if not isinstance(group, dict):
                     continue
 
-                skills = group.get("data", [])
-                if not isinstance(skills, list) or not skills:
-                    continue
+                # 新版接口是一层扁平技能列表，按 group 字段分组；旧版
+                # 接口返回 [{class, data: [...]}]，继续兼容。
+                if isinstance(group.get("data"), list) and group.get("class"):
+                    raw_skills = group["data"]
+                    group_name = str(group.get("class") or "其他技能")
+                else:
+                    raw_skills = [group]
+                    group_name = str(group.get("group") or "其他技能")
 
-                parsed_skills = []
-                for skill in skills:
+                bucket = group_index.get(group_name)
+                if bucket is None:
+                    bucket = {"title": group_name, "skills": []}
+                    group_index[group_name] = bucket
+                    groups.append(bucket)
+
+                for skill in raw_skills:
                     if not isinstance(skill, dict):
                         continue
 
-                    parsed_skills.append({
+                    interval_text = ""
+                    try:
+                        interval = int(skill.get("interval"))
+                    except (TypeError, ValueError):
+                        interval = 0
+                    if interval > 0:
+                        interval_text = f"{interval}秒"
+
+                    distance_text = ""
+                    try:
+                        distance = int(skill.get("distance"))
+                    except (TypeError, ValueError):
+                        distance = 0
+                    if distance > 0:
+                        distance_text = f"{distance}尺"
+
+                    bucket["skills"].append({
                         "name": skill.get("name", ""),
-                        "icon": skill.get("icon", ""),
-                        "desc": skill.get("desc", ""),
-                        "interval": skill.get("interval", ""),
-                        "distance": skill.get("distance", ""),
-                        "release_type": skill.get("releaseType", ""),
+                        "icon": icon_url(skill.get("icon")),
+                        "desc": clean_jx3_text(skill.get("desc")),
+                        "interval": interval_text,
+                        "distance": distance_text,
+                        "release_type": (
+                            "被动"
+                            if skill.get("passive")
+                            else skill.get("releaseType", "")
+                        ),
                         "weapon": skill.get("weapon", ""),
                     })
 
-                if parsed_skills:
-                    groups.append({
-                        "title": group.get("class", "其他技能"),
-                        "skills": parsed_skills,
-                    })
-
+            groups = [group for group in groups if group["skills"]]
             if not groups:
                 return_data["msg"] = "未查询到该心法技能信息"
-                return return_data
+                return
 
             return_data["data"] = {
                 "name": kungfu,
@@ -2046,59 +2165,112 @@ class JX3APIService:
     async def qixue(self, kungfu: str) -> Dict[str, Any]:
         """奇穴"""
         async def processor(data: Any, return_data: Dict[str, Any]) -> None:
-            level_titles = {
-                1: "主奇穴",
-                2: "第一重",
-                3: "第二重",
-                4: "第三重",
-                5: "第四重",
-                6: "第五重",
-                7: "第六重",
-                8: "混池",
-            }
+            if isinstance(data, dict):
+                items = data.get("data") or data.get("detail") or []
+            else:
+                items = data
+            if not isinstance(items, list):
+                items = []
 
-            groups = []
-            for group in data:
+            parsed_groups: List[Dict[str, Any]] = []
+            for index, group in enumerate(items):
                 if not isinstance(group, dict):
                     continue
 
-                level = group.get("level")
-                try:
-                    level_key = int(level)
-                except (TypeError, ValueError):
-                    level_key = 0
-
-                items = group.get("data", [])
-                if not isinstance(items, list) or not items:
+                options = group.get("options")
+                if not isinstance(options, list):
+                    options = group.get("data")
+                if not isinstance(options, list):
                     continue
 
-                parsed_items = []
-                for item in items:
+                slot = group.get("slot")
+                if slot is None:
+                    slot = group.get("level")
+                try:
+                    slot_no = int(slot)
+                except (TypeError, ValueError):
+                    slot_no = index + 1
+
+                talents = []
+                for item in options:
                     if not isinstance(item, dict):
                         continue
 
-                    class_value = item.get("class")
-                    is_active = class_value == 1 or str(class_value) == "1"
-                    parsed_items.append({
+                    interval_text = ""
+                    try:
+                        interval = int(item.get("interval"))
+                    except (TypeError, ValueError):
+                        interval = 0
+                    if interval > 0:
+                        interval_text = f"{interval}秒"
+
+                    if "passive" in item:
+                        class_text = "被动" if item.get("passive") else "主动"
+                    else:
+                        # 旧版奇穴接口用 class=1 表示主动。
+                        class_value = item.get("class")
+                        class_text = (
+                            "主动" if class_value in (1, "1") else "被动"
+                        )
+
+                    talents.append({
                         "name": item.get("name", ""),
-                        "icon": item.get("icon", ""),
-                        "desc": item.get("desc", ""),
-                        "class_text": "主动" if is_active else "被动",
-                        "interval": item.get("interval", "") if is_active else "",
+                        "icon": icon_url(item.get("icon")),
+                        "desc": clean_jx3_text(item.get("desc")),
+                        "class_text": class_text,
+                        "interval": interval_text,
                     })
 
-                if parsed_items:
-                    groups.append({
-                        "level": level_key,
-                        "title": level_titles.get(level_key, f"第{level_key}组"),
-                        "talents": parsed_items,
+                if talents:
+                    parsed_groups.append({
+                        "slot": slot_no,
+                        "signature": tuple(talent["name"] for talent in talents),
+                        "talents": talents,
                     })
 
-            if not groups:
+            if not parsed_groups:
                 return_data["msg"] = "未查询到该心法奇穴信息"
-                return return_data
+                return
 
-            groups.sort(key=lambda item: item["level"])
+            parsed_groups.sort(key=lambda item: item["slot"])
+
+            # 新版的第七重之后是混选池：多个层会返回完全相同的选项集合。
+            signature_counts: Dict[tuple, int] = {}
+            for group in parsed_groups:
+                signature = group["signature"]
+                signature_counts[signature] = signature_counts.get(signature, 0) + 1
+
+            chinese_numbers = "一二三四五六七八九十"
+            pool_index = 0
+            groups = []
+            for group in parsed_groups:
+                is_pool = (
+                    signature_counts[group["signature"]] > 1
+                    or len(group["talents"]) > 6
+                )
+                if is_pool:
+                    pool_index += 1
+                    if pool_index <= len(chinese_numbers):
+                        title = f"混选{chinese_numbers[pool_index - 1]}"
+                    else:
+                        title = f"混选{pool_index}"
+                elif group["slot"] == 1:
+                    title = "第一重（核心）"
+                else:
+                    slot_no = group["slot"]
+                    slot_text = (
+                        chinese_numbers[slot_no - 1]
+                        if 1 <= slot_no <= len(chinese_numbers)
+                        else str(slot_no)
+                    )
+                    title = f"第{slot_text}重"
+
+                groups.append({
+                    "level": group["slot"],
+                    "title": title,
+                    "talents": group["talents"],
+                })
+
             return_data["data"] = {
                 "name": kungfu,
                 "groups": groups,
@@ -2696,7 +2868,7 @@ class JX3APIService:
 
         return await self._request_api(
             path="/server/status/check",
-            params= {"server": server, "type": "其他"},
+            params= {"server": server, "type": 0},
             processor=processor,
             template="qufuzhuangtai.html"
         )

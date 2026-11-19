@@ -778,6 +778,154 @@ class ApiRouteTest(unittest.IsolatedAsyncioTestCase):
             {"mode": "list", "num": 0},
         )
 
+    async def test_battle_records_format_duration_and_extra_columns(self):
+        self.api_get.return_value = [
+            {
+                "declaringName": "浩气盟",
+                "acceptingName": "恶人谷",
+                "type": "帮会领地战",
+                "startTime": 1700000000,
+                "durationSeconds": 3661,
+                "endTime": 1700003661,
+                "winnerName": "浩气盟",
+                "winnerScore": "100",
+            },
+            {
+                "declaringName": "甲帮会",
+                "acceptingName": "乙帮会",
+                "type": "野外帮战",
+                "startTime": 1700000000,
+                "durationSeconds": 59,
+                "endTime": None,
+            },
+        ]
+
+        result = await self.service.bangzhanjilu("梦江南")
+
+        self.assertEqual(result["code"], 200)
+        items = result["data"]["items"]
+        self.assertEqual(items[0]["duration"], "1时01分01秒")
+        self.assertEqual(items[0]["type"], "帮会领地战")
+        self.assertEqual(items[0]["winnerName"], "浩气盟")
+        self.assertEqual(items[1]["duration"], "59秒")
+        self.assertEqual(items[1]["winnerName"], "")
+        self.assertEqual(items[1]["endTime"], "")
+
+    async def test_zhenyan_parses_matrix_list_detail(self):
+        self.api_get.return_value = [
+            {
+                "id": 745,
+                "name": "天鼓雷音阵",
+                "icon": 1812,
+                "desc": "需至少一名队友在身边，结阵。",
+                "levels": [
+                    {"level": 1, "desc": "内功基础攻击力提高5%"},
+                    {"level": 2, "desc": "无双提高2%。"},
+                ],
+            }
+        ]
+
+        result = await self.service.zhenyan("少林")
+
+        self.assertEqual(result["code"], 200)
+        self.assertIn("少林", result["data"])
+        self.assertIn("天鼓雷音阵", result["data"])
+        self.assertIn("1重：内功基础攻击力提高5%", result["data"])
+
+    async def test_jineng_parses_flat_skill_list_grouped_by_group(self):
+        self.api_get.return_value = [
+            {
+                "id": 232,
+                "name": "普渡四方",
+                "icon": 447,
+                "group": "罗汉棍法",
+                "passive": False,
+                "interval": 2,
+                "distance": 4,
+                "desc": "造成伤害。<SUB 17641 0><TALENT 16890 1 额外效果>",
+            },
+            {
+                "id": 260,
+                "name": "擒龙诀",
+                "icon": 445,
+                "group": "达摩武诀",
+                "passive": True,
+                "interval": 0,
+                "distance": 0,
+                "desc": "回复禅那。",
+            },
+        ]
+
+        result = await self.service.jineng("少林")
+
+        self.assertEqual(result["code"], 200)
+        groups = result["data"]["groups"]
+        self.assertEqual([group["title"] for group in groups], ["罗汉棍法", "达摩武诀"])
+        skill = groups[0]["skills"][0]
+        self.assertEqual(skill["icon"], "https://icon.jx3box.com/icon/447.png")
+        self.assertEqual(skill["interval"], "2秒")
+        self.assertEqual(skill["distance"], "4尺")
+        self.assertIn("额外效果", skill["desc"])
+        self.assertNotIn("<TALENT", skill["desc"])
+        self.assertEqual(groups[1]["skills"][0]["release_type"], "被动")
+
+    async def test_qixue_parses_slot_options_and_marks_pool_slots(self):
+        regular = {
+            "slot": 1,
+            "pointId": 73,
+            "options": [
+                {"id": 44370, "name": "业因", "icon": 17176, "passive": True, "desc": "效果一"},
+                {"id": 32649, "name": "无诤", "icon": 18297, "passive": True, "desc": "效果二"},
+            ],
+        }
+        second = {
+            "slot": 2,
+            "pointId": 74,
+            "options": [
+                {"id": 44994, "name": "众嗔", "icon": 2972, "passive": True, "desc": "效果三"},
+                {"id": 259, "name": "轮回诀", "icon": 444, "passive": False, "desc": "效果四"},
+            ],
+        }
+        pool_options = [
+            {"id": index, "name": f"混选{index}", "icon": 100 + index, "passive": True, "desc": "效果"}
+            for index in range(1, 8)
+        ]
+        self.api_get.return_value = [
+            regular,
+            second,
+            {"slot": 7, "pointId": 80, "options": pool_options},
+            {"slot": 8, "pointId": 81, "options": pool_options},
+            {"slot": 9, "pointId": 82, "options": pool_options},
+        ]
+
+        result = await self.service.qixue("少林")
+
+        self.assertEqual(result["code"], 200)
+        groups = result["data"]["groups"]
+        self.assertEqual(
+            [group["title"] for group in groups],
+            ["第一重（核心）", "第二重", "混选一", "混选二", "混选三"],
+        )
+        first_talent = groups[0]["talents"][0]
+        self.assertEqual(first_talent["icon"], "https://icon.jx3box.com/icon/17176.png")
+        self.assertEqual(first_talent["class_text"], "被动")
+        self.assertEqual(groups[1]["talents"][1]["class_text"], "主动")
+
+    async def test_server_status_uses_numeric_type_zero_and_open_status_keeps_one(self):
+        self.api_get.return_value = []
+        await self.service.zhuangtai("")
+        self.assertEqual(
+            self.api_get.await_args.kwargs["params"],
+            {"server": "", "type": 0},
+        )
+
+        self.api_get.return_value = [{"status": 1}]
+        await self.service.kaifu("梦江南")
+        self.assertEqual(
+            self.api_get.await_args.kwargs["params"],
+            {"server": "梦江南", "type": 1},
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

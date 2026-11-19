@@ -356,7 +356,6 @@ class Jx3ApiPlugin(Star):
             "开团": self.jx3cmd.team_create,
             "打开报名": self.jx3cmd.team_open_registration,
             "关闭报名": self.jx3cmd.team_close_registration,
-            "关闭报警": self.jx3cmd.team_close_registration,
             "结束团队": self.jx3cmd.team_end,
             "结束全部团队": self.jx3cmd.team_end_all,
             "清空报名": self.jx3cmd.team_clear_members,

@@ -3,6 +3,7 @@ from zoneinfo import ZoneInfo
 
 import base64
 import os
+import re
 
 from astrbot.api import logger
 
@@ -149,3 +150,45 @@ def format_remaining(ts):
         return f"{hours}时{minutes:02d}分{seconds:02d}秒"
     except (TypeError, ValueError):
         return ""
+
+
+def format_duration(seconds):
+    """把秒数格式化为“时/分/秒”，与到期时间戳区分开。"""
+    try:
+        total = max(0, int(seconds))
+    except (TypeError, ValueError):
+        return ""
+
+    hours, remainder = divmod(total, 3600)
+    minutes, secs = divmod(remainder, 60)
+    if hours:
+        return f"{hours}时{minutes:02d}分{secs:02d}秒"
+    if minutes:
+        return f"{minutes}分{secs:02d}秒"
+    return f"{secs}秒"
+
+
+# 剑网3 的技能/奇穴描述里会混入给客户端解析的占位标签，例如
+# <SUB 17641 0>、<TALENT 16890 1 额外效果>、<BUFF 743 0 desc>。
+# 其中 TALENT、BUFF_NOUN、EnchantID 的最后一段是可读文本，需要保留；
+# 其余标签只用于取值，直接移除。
+_JX3_INLINE_TEXT_PATTERN = re.compile(
+    r"<(?:TALENT|BUFF_NOUN)\s+\d+\s+\d+\s*(.*?)>",
+    re.DOTALL,
+)
+_JX3_ENCHANT_TEXT_PATTERN = re.compile(
+    r"<EnchantID\s+\d+\s*(.*?)>",
+    re.DOTALL,
+)
+_JX3_ANY_TAG_PATTERN = re.compile(r"<[^>]*>")
+
+
+def clean_jx3_text(value):
+    """把接口返回的剑网3富文本占位标签清理成可读文本。"""
+    text = str(value or "")
+    text = _JX3_INLINE_TEXT_PATTERN.sub(lambda match: match.group(1), text)
+    text = _JX3_ENCHANT_TEXT_PATTERN.sub(lambda match: match.group(1), text)
+    text = _JX3_ANY_TAG_PATTERN.sub("", text)
+    text = text.replace("\\n", " ")
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()

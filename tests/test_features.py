@@ -102,6 +102,18 @@ class FeatureCatalogTest(unittest.TestCase):
                 self.assertNotIn(command, commands)
                 self.assertNotIn(command, features.command_defaults())
 
+    def test_guide_command_belongs_to_macro_section(self):
+        """奇遇攻略调用 JX3BOX，应归入魔盒功能。"""
+        self.assertEqual(features.command_feature("攻略"), "macro")
+        self.assertIn("攻略", features.FEATURE_COMMANDS["macro"])
+        self.assertNotIn("攻略", features.FEATURE_COMMANDS["role"])
+
+    def test_removed_team_alias_is_absent(self):
+        """“关闭报警”只是“关闭报名”的历史错字别名，已不再注册。"""
+        commands = command_map_commands()
+        self.assertNotIn("关闭报警", commands)
+        self.assertNotIn("关闭报警", features.command_defaults())
+
     def test_config_schema_has_no_feature_switches(self):
         """功能开关只在 WebUI 中配置，不应再出现在插件配置结构中。"""
         schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
