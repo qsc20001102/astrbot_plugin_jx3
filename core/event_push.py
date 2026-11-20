@@ -18,29 +18,30 @@ from .session_control import SessionControlService
 from .sqlite import AsyncSQLiteDB
 
 DEFAULT_WSS_URL = "wss://socket.nicemoe.cn"
-FREE_EVENT_ACTIONS = frozenset({2001, 2002, 2003, 2004, 2005, 2006})
+# 事件编号以 JX3API 事件版文档（/doc/json/openapi.socket.json，2026-11-15 更新）为准。
+FREE_EVENT_ACTIONS = frozenset({2001, 2002, 2003, 2004, 2007})
 EVENT_NAMES = {
     1001: "奇遇触发",
-    1002: "马驹刷新",
+    1002: "马驹预告",
     1003: "马驹捕获",
     1004: "扶摇预告",
     1005: "扶摇开启",
     1006: "扶摇点名",
-    1007: "烟花报时",
     1008: "的卢预告",
     1009: "的卢刷新",
     1010: "的卢捕获",
     1011: "的卢拍卖",
-    1012: "玄晶报时",
+    1012: "副本掉落 / 私货",
     1013: "阵营拍卖",
     1014: "诛恶事件",
     1015: "追魂点名",
-    1016: "阵营祭天预告",
-    1017: "阵营祭天终点",
+    1017: "阵营祭祀",
+    1019: "赤兔预告",
     1101: "领地宣战·开始",
     1102: "领地宣战·结束",
-    1108: "帮会野外宣战·开始",
-    1109: "帮会野外宣战·结束",
+    1103: "野外宣战·开始",
+    1104: "野外宣战·结束",
+    1105: "帮会约战·完胜",
     1111: "抢占粮仓",
     1112: "大旗重置",
     1113: "大旗被夺",
@@ -53,12 +54,12 @@ EVENT_NAMES = {
     1120: "小攻防分红",
     1121: "大攻防分红",
     1122: "大攻防分红（含指挥）",
-    2001: "开服状态",
-    2002: "官方新闻",
+    1201: "微博更新",
+    2001: "开服报时",
+    2002: "官方资讯",
     2003: "版本更新",
-    2004: "八卦速报",
-    2005: "关隘首领",
-    2006: "云丛预告",
+    2004: "贴吧 818",
+    2007: "地震信息",
 }
 EVENT_ACTIONS = tuple(EVENT_NAMES)
 
@@ -71,13 +72,12 @@ EVENT_FIELDS = {
     + (
         ("角色", "name", "text"),
         ("奇遇", "event", "text"),
-        ("等级", "level", "text"),
         ("时间", "time", "time"),
     ),
     1002: SERVER_FIELDS
     + (
         ("地图", "map_name", "text"),
-        ("刷新时间", "time", "time"),
+        ("公告时间", "time", "time"),
     ),
     1003: SERVER_FIELDS
     + (
@@ -94,14 +94,6 @@ EVENT_FIELDS = {
         ("点名角色", "name", "list"),
         ("时间", "time", "time"),
     ),
-    1007: SERVER_FIELDS
-    + (
-        ("燃放者", "sender", "text"),
-        ("接收者", "receiver", "text"),
-        ("烟花", "firework", "text"),
-        ("地图", "map_name", "text"),
-        ("时间", "time", "time"),
-    ),
     1008: SERVER_FIELDS
     + (
         ("马驹", "name", "text"),
@@ -110,13 +102,11 @@ EVENT_FIELDS = {
     ),
     1009: SERVER_FIELDS
     + (
-        ("马驹", "name", "text"),
         ("地图", "map_name", "text"),
         ("刷新时间", "refresh_time", "time"),
     ),
     1010: SERVER_FIELDS
     + (
-        ("马驹", "name", "text"),
         ("地图", "map_name", "text"),
         ("捕获角色", "capture_role_name", "text"),
         ("角色阵营", "capture_camp_name", "text"),
@@ -124,7 +114,6 @@ EVENT_FIELDS = {
     ),
     1011: SERVER_FIELDS
     + (
-        ("马驹", "name", "text"),
         ("竞拍角色", "auction_role_name", "text"),
         ("角色阵营", "auction_camp_name", "text"),
         ("成交金额", "auction_amount", "text"),
@@ -133,8 +122,9 @@ EVENT_FIELDS = {
     1012: SERVER_FIELDS
     + (
         ("角色", "role_name", "text"),
-        ("副本", "map_name", "text"),
+        ("地图", "map_name", "text"),
         ("物品", "item_name", "text"),
+        ("金额", "item_amount", "amount"),
         ("时间", "time", "time"),
     ),
     1013: SERVER_FIELDS
@@ -148,6 +138,7 @@ EVENT_FIELDS = {
     1014: SERVER_FIELDS
     + (
         ("地图", "map_name", "text"),
+        ("档位", "tier", "text"),
         ("时间", "time", "time"),
     ),
     1015: SERVER_FIELDS
@@ -156,7 +147,6 @@ EVENT_FIELDS = {
         ("点名角色", "role_name", "text"),
         ("时间", "time", "time"),
     ),
-    1016: SERVER_FIELDS + (("预告时间", "time", "time"),),
     1017: SERVER_FIELDS
     + (
         ("阵营", "camp_name", "text"),
@@ -164,6 +154,12 @@ EVENT_FIELDS = {
         ("角色", "role_name", "text"),
         ("据点", "castle_name", "text"),
         ("时间", "time", "time"),
+    ),
+    1019: SERVER_FIELDS
+    + (
+        ("马驹", "name", "text"),
+        ("地图", "map_name", "text"),
+        ("预告时间", "time", "time"),
     ),
     1101: SERVER_FIELDS
     + (
@@ -183,7 +179,7 @@ EVENT_FIELDS = {
         ("获胜积分", "victory_score", "text"),
         ("结束时间", "end_time", "time"),
     ),
-    1108: SERVER_FIELDS
+    1103: SERVER_FIELDS
     + (
         ("战场类型", "battlefield_type", "text"),
         ("宣战帮会", "declaring_tong_name", "text"),
@@ -191,12 +187,19 @@ EVENT_FIELDS = {
         ("持续时长（小时）", "duration_hours", "text"),
         ("开始时间", "start_time", "time"),
     ),
-    1109: SERVER_FIELDS
+    1104: SERVER_FIELDS
     + (
         ("战场类型", "battlefield_type", "text"),
         ("宣战帮会", "declaring_tong_name", "text"),
         ("应战帮会", "accepting_tong_name", "text"),
         ("结束时间", "end_time", "time"),
+    ),
+    1105: SERVER_FIELDS
+    + (
+        ("挑战帮会", "challenge_tong_name", "text"),
+        ("对手帮会", "opponent_tong_name", "text"),
+        ("获胜帮会", "victory_tong_name", "text"),
+        ("时间", "time", "time"),
     ),
     1111: SERVER_FIELDS
     + (
@@ -273,9 +276,17 @@ EVENT_FIELDS = {
     + (
         ("阵营", "camp_name", "text"),
         ("指挥帮会", "chief_tong_name", "text"),
-        ("分红帮会", "tong_name", "list"),
+        ("分红帮会", "tong_names", "list"),
         ("分红金额", "split_amount", "text"),
         ("时间", "time", "time"),
+    ),
+    1201: (
+        ("用户", "user_name", "text"),
+        ("正文", "article_text", "text"),
+        ("发布时间", "created_at", "time"),
+        ("链接", "url", "text"),
+        ("微博 ID", "article_id", "text"),
+        ("用户 ID", "user_id", "text"),
     ),
     2001: SERVER_FIELDS
     + (
@@ -296,21 +307,20 @@ EVENT_FIELDS = {
     ),
     2004: (
         ("分类", "tags", "text"),
+        ("贴吧", "tieba", "text"),
+        ("大区", "zone", "text"),
         ("服务器", "server", "text"),
-        ("发布者", "name", "text"),
         ("标题", "title", "text"),
         ("日期", "date", "text"),
         ("链接", "url", "text"),
     ),
-    2005: (
-        ("服务器", "server", "text"),
-        ("关卡", "stage", "text"),
-        ("开始时间", "start", "time"),
-    ),
-    2006: (
-        ("事件", "name", "text"),
-        ("地点", "site", "text"),
-        ("说明", "desc", "text"),
+    2007: (
+        ("震中位置", "location", "text"),
+        ("震级", "magnitude", "text"),
+        ("烈度", "intensity", "text"),
+        ("震源深度", "depth", "text"),
+        ("纬度", "latitude", "text"),
+        ("经度", "longitude", "text"),
         ("时间", "time", "time"),
     ),
 }
@@ -760,9 +770,14 @@ class EventPushService:
             return self._format_timestamp(value)
         if value_type == "status":
             if value in (0, "0"):
-                return "维护"
+                return "关服"
             if value in (1, "1"):
                 return "开服"
+            return str(value if value is not None and value != "" else "未知")
+        if value_type == "amount":
+            # 1012 的 item_amount 为 0 表示副本掉落，其余为私货竞拍金额文本。
+            if value in (0, "0", 0.0):
+                return "副本掉落"
             return str(value if value is not None and value != "" else "未知")
         if value_type == "list":
             if isinstance(value, (list, tuple)):

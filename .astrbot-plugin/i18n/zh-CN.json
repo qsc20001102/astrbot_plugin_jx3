@@ -2,7 +2,7 @@
   "pages": {
     "server-management": {
       "title": "剑网三插件管理",
-      "description": "管理团队、报名限制、会话区服绑定、事件订阅、区服别名和心法职责。"
+      "description": "管理团队、报名限制、会话区服绑定、事件订阅和心法职责。"
     }
   }
 }

@@ -14,6 +14,7 @@ tests/*
 !tests/test_features.py
 !tests/test_features_webui.js
 !tests/test_api_routes.py
+!tests/test_event_push.py
 .pytest_cache/
 .coverage
 .coverage.*
